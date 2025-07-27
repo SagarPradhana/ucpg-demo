@@ -1,0 +1,5 @@
+# Proxy API calls to your backend server
+/api/*  https://your-api-server.com/api/:splat  200
+
+# SPA fallback
+/*    /index.html   200

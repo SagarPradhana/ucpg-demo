@@ -33,6 +33,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
 import { loginActions } from "@/store/loginReducer";
 import { debugToken } from "@/utils/debugToken";
+import { servicesApi, handleApiError } from "@/utils/api";
 
 interface DecodedUser {
   id: string;
@@ -282,34 +283,73 @@ const Services = () => {
     setIsLoading(true);
 
     try {
-      // Simulate payment processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      toast({
-        title: t("services.accessGranted"),
-        description: t("services.accessGrantedDesc", {
-          serviceName: service.name,
-        }),
-      });
+      // Prepare payment data
+      const paymentData = {
+        serviceId: service.id,
+        amount: service.price,
+        currency: service.currency,
+        timestamp: Date.now(),
+      };
 
       // Handle different access methods
       if (service.redirectUrl) {
+        // For external redirects, simulate payment and redirect
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        toast({
+          title: t("services.accessGranted"),
+          description: t("services.accessGrantedDesc", {
+            serviceName: service.name,
+          }),
+        });
+
         // Redirect to external service
         window.open(service.redirectUrl, "_blank");
       } else if (service.apiEndpoint) {
-        // Handle API-based access
-        console.log(
-          `Accessing ${service.name} via API: ${service.apiEndpoint}`
-        );
-        // Here you would make an API call to grant access
+        // Handle API-based access with real API calls
+        let apiResponse;
+
+        if (service.category === "vpn") {
+          apiResponse = await servicesApi.accessVpn(service.id, paymentData);
+        } else if (
+          service.category === "digital_goods" &&
+          service.name.includes("Courses")
+        ) {
+          apiResponse = await servicesApi.accessCourse(service.id, paymentData);
+        } else if (
+          service.category === "software" &&
+          service.name.includes("Storage")
+        ) {
+          apiResponse = await servicesApi.accessStorage(
+            service.id,
+            paymentData
+          );
+        } else {
+          // Generic service access
+          apiResponse = await servicesApi.accessService(
+            service.id,
+            paymentData
+          );
+        }
+
+        toast({
+          title: t("services.accessGranted"),
+          description: t("services.accessGrantedDesc", {
+            serviceName: service.name,
+          }),
+        });
+
+        console.log(`API Access granted for ${service.name}:`, apiResponse);
       }
 
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
+      const errorMessage = handleApiError(error);
+
       toast({
         title: t("services.accessFailed"),
-        description: t("services.accessFailedDesc"),
+        description: errorMessage,
         variant: "destructive",
       });
     }
