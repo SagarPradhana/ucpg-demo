@@ -1,0 +1,320 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import {
+  User,
+  Palette,
+  Globe,
+  LogOut,
+  Settings,
+  Sun,
+  Moon,
+  Monitor,
+  Check,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage, Language } from "@/contexts/LanguageContext";
+import { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { jwtDecode } from "jwt-decode";
+import { loginActions } from "@/store/loginReducer";
+import TokenManager from "@/utils/tokenManager";
+
+interface DecodedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  metadata: any;
+  is_active: boolean;
+  timezone: number;
+  exp: number;
+}
+
+interface UserProfileProps {
+  userName?: string;
+  userEmail?: string;
+  userAvatar?: string;
+}
+
+const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { theme, setTheme, actualTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
+  const userProfile = useSelector((store: any) => store.auth.userDetails);
+  const dispatch = useDispatch();
+
+  // Use Redux data if available, otherwise fall back to props or defaults
+  const displayName = userProfile?.name || userName || "User";
+  const displayEmail = userProfile?.email || userEmail || "user@example.com";
+  const displayAvatar = userProfile?.avatar || userAvatar;
+
+  const handleProfileClick = () => {
+    navigate("/profile");
+    toast({
+      title: "Profile",
+      description: "Opening your profile page...",
+    });
+  };
+
+  const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
+    setTheme(newTheme);
+    toast({
+      title: t("profile.themeUpdated"),
+      description: t("profile.themeChangedTo", {
+        mode:
+          newTheme === "system"
+            ? t("theme.systemPreference")
+            : t(`theme.${newTheme}`),
+      }),
+    });
+  };
+
+  const handleLanguageChange = (newLanguage: Language) => {
+    setLanguage(newLanguage);
+    toast({
+      title: t("profile.languageUpdated"),
+      description: t("profile.languageChangedTo", {
+        language: t(`language.${getLanguageName(newLanguage)}`),
+      }),
+    });
+  };
+
+  const getLanguageName = (lang: Language): string => {
+    switch (lang) {
+      case "en":
+        return "english";
+      case "ru":
+        return "russian";
+      case "tr":
+        return "turkish";
+      default:
+        return "english";
+    }
+  };
+
+  const handleLogoutClick = () => {
+    console.log("Logout clicked");
+    // Add your logout logic here
+  };
+
+  const getThemeIcon = (themeType: "light" | "dark" | "system") => {
+    switch (themeType) {
+      case "light":
+        return <Sun className="mr-2 h-4 w-4" />;
+      case "dark":
+        return <Moon className="mr-2 h-4 w-4" />;
+      case "system":
+        return <Monitor className="mr-2 h-4 w-4" />;
+      default:
+        return <Monitor className="mr-2 h-4 w-4" />;
+    }
+  };
+
+  // Get user initials for fallback
+  const getUserInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Load user data from token if Redux state is empty
+  useEffect(() => {
+    const loadUserFromToken = () => {
+      // If userProfile is already loaded, don't reload
+      if (userProfile) return;
+
+      const token = localStorage.getItem("sessionToken");
+      if (token) {
+        try {
+          const decodedUser = jwtDecode<DecodedUser>(token);
+
+          // Check if token is still valid
+          const currentTime = Date.now() / 1000;
+          if (decodedUser.exp > currentTime) {
+            // Dispatch user details to Redux store
+            dispatch(loginActions.setUserDetails(decodedUser));
+          } else {
+            // Token is expired, remove it and logout
+            localStorage.removeItem("sessionToken");
+            handleLogout();
+          }
+        } catch (error) {
+          console.error("Error decoding token:", error);
+          localStorage.removeItem("sessionToken");
+          handleLogout();
+        }
+      }
+    };
+
+    loadUserFromToken();
+  }, [dispatch, userProfile]);
+
+  // Initialize token manager
+  useEffect(() => {
+    const tokenManager = TokenManager.getInstance();
+    tokenManager.initialize(() => {
+      handleLogout();
+    }, toast);
+
+    // Cleanup on unmount
+    return () => {
+      tokenManager.destroy();
+    };
+  }, []);
+
+  const handleLogout = () => {
+    const tokenManager = TokenManager.getInstance();
+    tokenManager.destroy();
+    localStorage.removeItem("sessionToken");
+    toast({
+      title: t("auth.logout"),
+      description: t("auth.logoutSuccess"),
+    });
+    navigate("/login");
+  };
+
+  const getLanguageFlag = (lang: Language): string => {
+    switch (lang) {
+      case "en":
+        return "🇺🇸";
+      case "ru":
+        return "🇷🇺";
+      case "tr":
+        return "🇹🇷";
+      default:
+        return "🇺🇸";
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Avatar className="h-9 w-9 cursor-pointer border-2 border-transparent hover:border-primary/20 transition-all duration-200">
+          <AvatarImage src={displayAvatar} alt={displayName} />
+          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+            {getUserInitials(displayName)}
+          </AvatarFallback>
+        </Avatar>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{displayName}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {displayEmail}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleProfileClick}
+          className="cursor-pointer"
+        >
+          <User className="mr-2 h-4 w-4" />
+          <span>{t("profile.profile")}</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="cursor-pointer">
+            <Palette className="mr-2 h-4 w-4" />
+            <span>{t("profile.theme")}</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {actualTheme === "dark" ? "🌙" : "☀️"}
+            </span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem
+                onClick={() => handleThemeChange("light")}
+                className="cursor-pointer"
+              >
+                <Sun className="mr-2 h-4 w-4" />
+                <span>{t("theme.light")}</span>
+                {theme === "light" && <Check className="ml-auto h-4 w-4" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleThemeChange("dark")}
+                className="cursor-pointer"
+              >
+                <Moon className="mr-2 h-4 w-4" />
+                <span>{t("theme.dark")}</span>
+                {theme === "dark" && <Check className="ml-auto h-4 w-4" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleThemeChange("system")}
+                className="cursor-pointer"
+              >
+                <Monitor className="mr-2 h-4 w-4" />
+                <span>{t("theme.system")}</span>
+                {theme === "system" && <Check className="ml-auto h-4 w-4" />}
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuPortal>
+        </DropdownMenuSub>
+
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="cursor-pointer">
+            <Globe className="mr-2 h-4 w-4" />
+            <span>{t("profile.language")}</span>
+            <span className="ml-auto text-xs">{getLanguageFlag(language)}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem
+                onClick={() => handleLanguageChange("en")}
+                className="cursor-pointer"
+              >
+                <span className="mr-2">🇺🇸</span>
+                <span>{t("language.english")}</span>
+                {language === "en" && <Check className="ml-auto h-4 w-4" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleLanguageChange("ru")}
+                className="cursor-pointer"
+              >
+                <span className="mr-2">🇷🇺</span>
+                <span>{t("language.russian")}</span>
+                {language === "ru" && <Check className="ml-auto h-4 w-4" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleLanguageChange("tr")}
+                className="cursor-pointer"
+              >
+                <span className="mr-2">🇹🇷</span>
+                <span>{t("language.turkish")}</span>
+                {language === "tr" && <Check className="ml-auto h-4 w-4" />}
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuPortal>
+        </DropdownMenuSub>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="cursor-pointer text-red-600 focus:text-red-600"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>{t("auth.logout")}</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+export default UserProfile;

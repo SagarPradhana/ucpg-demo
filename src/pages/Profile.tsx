@@ -1,0 +1,596 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Edit3,
+  Save,
+  X,
+  ArrowLeft,
+  Shield,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useSelector, useDispatch } from "react-redux";
+import { jwtDecode } from "jwt-decode";
+import { loginActions } from "@/store/loginReducer";
+import { debugToken } from "@/utils/debugToken";
+
+interface DecodedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  metadata: any;
+  is_active: boolean;
+  timezone: number;
+  exp: number;
+}
+
+const Profile = () => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const userProfile = useSelector((store: any) => store.auth.userDetails);
+  const dispatch = useDispatch();
+  console.log("UserProfile from Redux:", userProfile);
+
+  const [profileData, setProfileData] = useState({
+    name: "John Doe",
+    email: "john.doe@example.com",
+    phone: "+1 (555) 123-4567",
+    location: "New York, USA",
+    joinDate: "March 2024",
+    bio: "",
+    avatar: "",
+  });
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { t } = useLanguage();
+  // Load user data from token when component mounts
+  useEffect(() => {
+    const loadUserFromToken = () => {
+      // If userProfile is already loaded, stop loading
+      if (userProfile) {
+        setIsLoadingUser(false);
+        return;
+      }
+
+      const token = localStorage.getItem("sessionToken");
+      if (token) {
+        try {
+          const decodedUser = jwtDecode<DecodedUser>(token);
+          console.log("Decoded user from token:", decodedUser);
+
+          // Check if token is still valid
+          const currentTime = Date.now() / 1000;
+          if (decodedUser.exp > currentTime) {
+            // Dispatch user details to Redux store
+            dispatch(loginActions.setUserDetails(decodedUser));
+
+            // Update profile data with user info
+            setProfileData((prev) => ({
+              ...prev,
+              name: decodedUser.name || prev.name,
+              email: decodedUser.email || prev.email,
+            }));
+
+            setIsLoadingUser(false);
+          } else {
+            // Token is expired, remove it
+            console.log("Token is expired");
+            localStorage.removeItem("sessionToken");
+            navigate("/login");
+          }
+        } catch (error) {
+          console.error("Error decoding token:", error);
+          localStorage.removeItem("sessionToken");
+          navigate("/login");
+        }
+      } else {
+        // No token found, redirect to login
+        console.log("No token found");
+        navigate("/login");
+      }
+    };
+
+    loadUserFromToken();
+
+    // Debug token info in development
+    if (process.env.NODE_ENV === "development") {
+      debugToken();
+    }
+  }, [dispatch, navigate, userProfile]);
+
+  // Update profile data when userProfile changes
+  useEffect(() => {
+    if (userProfile) {
+      setProfileData((prev) => ({
+        ...prev,
+        name: userProfile.name || prev.name,
+        email: userProfile.email || prev.email,
+      }));
+    }
+  }, [userProfile]);
+
+  // Initialize bio with translated default text if empty
+  useEffect(() => {
+    setProfileData((prev) => ({
+      ...prev,
+      bio: prev.bio || t("profile.defaultBio"),
+    }));
+  }, [t]);
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Simulate API call
+      setTimeout(() => {
+        setIsLoading(false);
+        setIsEditing(false);
+        toast({
+          title: t("profile.profileUpdated"),
+          description: t("profile.profileUpdatedDesc"),
+        });
+      }, 1500);
+    } catch (error) {
+      setIsLoading(false);
+      toast({
+        title: t("profile.profileUpdateFailed"),
+        description: t("profile.profileUpdateFailedDesc"),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setIsLoading(false);
+      toast({
+        title: t("profile.passwordMismatch"),
+        description: t("profile.passwordMismatchDesc"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setIsLoading(false);
+      toast({
+        title: t("profile.passwordTooShort"),
+        description: t("profile.passwordTooShortDesc"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Simulate API call
+      setTimeout(() => {
+        setIsLoading(false);
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+        toast({
+          title: t("profile.passwordChanged"),
+          description: t("profile.passwordChangedDesc"),
+        });
+      }, 1500);
+    } catch (error) {
+      setIsLoading(false);
+      toast({
+        title: t("profile.passwordChangeFailed"),
+        description: t("profile.passwordChangeFailedDesc"),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    // Reset any unsaved changes if needed
+  };
+
+  // Show loading while checking user authentication
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">{t("profile.loadingProfile")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="flex items-center space-x-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>{t("profile.back")}</span>
+            </Button>
+            <h1 className="text-3xl font-bold">{t("profile.profile")}</h1>
+          </div>
+          <Badge variant="secondary" className="flex items-center space-x-1">
+            <Shield className="h-3 w-3" />
+            <span>{t("profile.verified")}</span>
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Profile Card */}
+          <div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle>{t("profile.personalInformation")}</CardTitle>
+                  <CardDescription>
+                    {t("profile.personalInformationDesc")}
+                  </CardDescription>
+                </div>
+                {!isEditing ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center space-x-2"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    <span>{t("profile.edit")}</span>
+                  </Button>
+                ) : (
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancel}
+                      className="flex items-center space-x-2"
+                    >
+                      <X className="h-4 w-4" />
+                      <span>{t("profile.cancel")}</span>
+                    </Button>
+                  </div>
+                )}
+              </CardHeader>
+
+              <CardContent>
+                <form onSubmit={handleSaveProfile} className="space-y-6">
+                  {/* Avatar Section */}
+                  <div className="flex items-center space-x-4">
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage src={profileData.avatar} />
+                      <AvatarFallback className="text-lg">
+                        {profileData.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">{t("profile.fullName")}</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="name"
+                          value={profileData.name}
+                          onChange={(e) =>
+                            setProfileData((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
+                          disabled={!isEditing}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">{t("profile.email")}</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileData.email}
+                          disabled={true}
+                          className="pl-10 bg-muted/50 cursor-not-allowed"
+                          readOnly
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("profile.emailNote")}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">{t("profile.phone")}</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="phone"
+                          value={profileData.phone}
+                          onChange={(e) =>
+                            setProfileData((prev) => ({
+                              ...prev,
+                              phone: e.target.value,
+                            }))
+                          }
+                          disabled={!isEditing}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="location">{t("profile.location")}</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="location"
+                          value={profileData.location}
+                          onChange={(e) =>
+                            setProfileData((prev) => ({
+                              ...prev,
+                              location: e.target.value,
+                            }))
+                          }
+                          disabled={!isEditing}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">{t("profile.bio")}</Label>
+                    <textarea
+                      id="bio"
+                      value={profileData.bio}
+                      onChange={(e) =>
+                        setProfileData((prev) => ({
+                          ...prev,
+                          bio: e.target.value,
+                        }))
+                      }
+                      disabled={!isEditing}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder={t("profile.bioPlaceholder")}
+                    />
+                  </div>
+
+                  {isEditing && (
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full"
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          <span>{t("profile.saving")}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <Save className="h-4 w-4" />
+                          <span>{t("profile.save")}</span>
+                        </div>
+                      )}
+                    </Button>
+                  )}
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Change Password */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("profile.changePassword")}</CardTitle>
+                <CardDescription>
+                  {t("profile.changePasswordDesc")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">
+                      {t("profile.currentPassword")}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="currentPassword"
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={passwordData.currentPassword}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            currentPassword: e.target.value,
+                          }))
+                        }
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowCurrentPassword(!showCurrentPassword)
+                        }
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showCurrentPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">
+                      {t("profile.newPassword")}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showNewPassword ? "text" : "password"}
+                        value={passwordData.newPassword}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            newPassword: e.target.value,
+                          }))
+                        }
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showNewPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">
+                      {t("profile.confirmPassword")}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={passwordData.confirmPassword}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            confirmPassword: e.target.value,
+                          }))
+                        }
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <Button type="submit" disabled={isLoading} className="w-full">
+                    {isLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        <span>{t("profile.changing")}</span>
+                      </div>
+                    ) : (
+                      t("profile.changePassword")
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Account Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5" />
+              <span>{t("profile.accountInformation")}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">
+                  {t("profile.memberSince")}
+                </span>
+                <span className="text-sm font-medium">
+                  {profileData.joinDate}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">
+                  {t("profile.accountType")}
+                </span>
+                <Badge variant="outline">{t("profile.premium")}</Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">
+                  {t("profile.status")}
+                </span>
+                <Badge className="bg-green-100 text-green-800">
+                  {t("profile.active")}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Profile;
