@@ -1,12 +1,14 @@
 // API configuration and utilities
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const USE_PROXY = import.meta.env.VITE_USE_API_PROXY === 'true';
 
 // API client with proper error handling
 export class ApiClient {
   private baseUrl: string;
 
   constructor(baseUrl: string = API_BASE_URL) {
-    this.baseUrl = baseUrl;
+    // Use proxy route if enabled, otherwise use direct API URL
+    this.baseUrl = USE_PROXY ? '/api' : baseUrl;
   }
 
   private async request<T>(
@@ -101,17 +103,25 @@ export const servicesApi = {
 
 // Error handler for API calls
 export const handleApiError = (error: any) => {
+  console.error('API Error:', error);
+  
   if (error.message.includes('Failed to fetch')) {
-    return 'Network error. Please check your internet connection.';
+    return 'Network error. Please check your internet connection or try again later.';
+  } else if (error.message.includes('blocked by CORS policy')) {
+    return 'Configuration error. Please contact support - the server needs to allow requests from this domain.';
+  } else if (error.message.includes('NetworkError') || error.name === 'NetworkError') {
+    return 'Connection failed. The server may be temporarily unavailable.';
   } else if (error.message.includes('401')) {
     return 'Authentication failed. Please log in again.';
   } else if (error.message.includes('403')) {
     return 'Access denied. You do not have permission for this action.';
   } else if (error.message.includes('404')) {
-    return 'Service not found.';
+    return 'Service not found. Please try again or contact support.';
   } else if (error.message.includes('500')) {
     return 'Server error. Please try again later.';
+  } else if (error.message.includes('502') || error.message.includes('503')) {
+    return 'Service temporarily unavailable. Please try again in a few minutes.';
   } else {
-    return 'An unexpected error occurred. Please try again.';
+    return `An unexpected error occurred: ${error.message || 'Please try again.'}`;
   }
 };

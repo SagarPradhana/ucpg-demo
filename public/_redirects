@@ -1,5 +1,5 @@
-# Proxy API calls to your backend server
-/api/*  https://your-api-server.com/api/:splat  200
+# Proxy API calls to your Render backend server
+/api/*  https://ucpg-api-dev.onrender.com/api/:splat  200
 
 # SPA fallback
 /*    /index.html   200

@@ -8,22 +8,22 @@
   # Default build command
   command = "npm run build"
 
-# Production context: all deploys from the main branch
+# Production context: all deploys from the main branch  
 [context.production]
-  environment = { VITE_API_BASE_URL = "https://your-api-server.com", VITE_ENVIRONMENT = "production" }
+  environment = { VITE_API_BASE_URL = "https://ucpg-api-dev.onrender.com", VITE_ENVIRONMENT = "production", VITE_USE_API_PROXY = "false" }
 
 # Deploy Preview context: all Deploy Previews
 [context.deploy-preview]
-  environment = { VITE_API_BASE_URL = "https://your-staging-api.com", VITE_ENVIRONMENT = "staging" }
+  environment = { VITE_API_BASE_URL = "https://ucpg-api-dev.onrender.com", VITE_ENVIRONMENT = "staging" }
 
 # Branch deploy context: all deploys that are not from a pull/merge request
 [context.branch-deploy]
-  environment = { VITE_API_BASE_URL = "https://your-dev-api.com", VITE_ENVIRONMENT = "development" }
+  environment = { VITE_API_BASE_URL = "https://ucpg-api-dev.onrender.com", VITE_ENVIRONMENT = "development" }
 
 # Redirect rules for SPA and API proxy
 [[redirects]]
   from = "/api/*"
-  to = "https://your-api-server.com/api/:splat"
+  to = "https://ucpg-api-dev.onrender.com/api/:splat"
   status = 200
   force = true
   headers = {X-From = "Netlify"}
