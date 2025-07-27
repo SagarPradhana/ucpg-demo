@@ -80,6 +80,7 @@ import ServicesSection from "@/components/ServicesSection";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import UserProfile from "@/components/UserProfile";
 import { debugToken } from "@/utils/debugToken";
+import CORSTestComponent from "@/components/CORSTestComponent";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -673,6 +674,11 @@ const Dashboard = () => {
                   </Button>
                 </CardContent>
               </Card>
+
+              {/* TEMPORARY: CORS Test - Remove after fixing CORS */}
+              <div className="lg:col-span-1">
+                <CORSTestComponent />
+              </div>
 
               {/* Recent Activity */}
               <Card>

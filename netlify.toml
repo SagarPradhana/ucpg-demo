@@ -10,7 +10,7 @@
 
 # Production context: all deploys from the main branch  
 [context.production]
-  environment = { VITE_API_BASE_URL = "https://ucpg-api-dev.onrender.com", VITE_ENVIRONMENT = "production", VITE_USE_API_PROXY = "false" }
+  environment = { VITE_API_BASE_URL = "/api", VITE_ENVIRONMENT = "production", VITE_USE_API_PROXY = "true" }
 
 # Deploy Preview context: all Deploy Previews
 [context.deploy-preview]
