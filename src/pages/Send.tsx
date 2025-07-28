@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,76 @@ import {
 const SendPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Mock API function for sending payment
+  const mockSendPayment = (
+    paymentData: any
+  ): Promise<{
+    transactionId: string;
+    singleUseLink: string;
+    singleUseQR: string;
+    anonymousContact: string;
+  }> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Generate single-use link and QR code
+        const singleUseId = Math.random().toString(36).substr(2, 16);
+        const link = `${window.location.origin}/claim/${singleUseId}`;
+        const qrData = JSON.stringify({
+          id: singleUseId,
+          amount: paymentData.convertedAmount,
+          currency: paymentData.cryptoCurrency,
+          expires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+          singleUse: true,
+        });
+
+        const newTransactionId = Math.random()
+          .toString(36)
+          .substr(2, 12)
+          .toUpperCase();
+
+        resolve({
+          transactionId: newTransactionId,
+          singleUseLink: link,
+          singleUseQR: qrData,
+          anonymousContact: `anonymous-${Math.random()
+            .toString(36)
+            .substr(2, 9)}@example.com`,
+        });
+      }, 3000);
+    });
+  };
+
+  // Send payment mutation
+  const sendPaymentMutation = useMutation({
+    mutationFn: (paymentData: unknown) => mockSendPayment(paymentData),
+    onSuccess: (result: {
+      transactionId: string;
+      singleUseLink: string;
+      singleUseQR: string;
+      anonymousContact: string;
+    }) => {
+      setSingleUseLink(result.singleUseLink);
+      setSingleUseQR(result.singleUseQR);
+      setTransactionId(result.transactionId);
+      setPaymentStatus("completed");
+      setIsModalOpen(true);
+
+      toast({
+        title: "Payment Sent Successfully",
+        description: `Transaction ID: ${result.transactionId}`,
+      });
+    },
+    onError: (error) => {
+      console.error("Send payment failed:", error);
+      setPaymentStatus("idle");
+      toast({
+        title: "Payment Failed",
+        description: "Failed to send payment. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // State for payment form
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -92,59 +163,26 @@ const SendPage = () => {
     return `anonymous-${contactId}@example.com`;
   };
 
-  const handleSendPayment = async () => {
+  const handleSendPayment = () => {
     if (!paymentAmount || !convertedAmount) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid amount.",
-        variant: "destructive",
-      });
+      // Removed non-API validation toast - this is client-side validation
       return;
     }
 
     setPaymentStatus("processing");
 
-    // Simulate payment processing
-    const newTransactionId = Math.random()
-      .toString(36)
-      .substr(2, 12)
-      .toUpperCase();
-    setTransactionId(newTransactionId);
-
-    // Simulate processing delay
-    setTimeout(() => {
-      // Generate single-use link and QR code
-      const singleUseId = Math.random().toString(36).substr(2, 16);
-      const link = `${window.location.origin}/claim/${singleUseId}`;
-      const qrData = JSON.stringify({
-        id: singleUseId,
-        amount: convertedAmount,
-        currency: cryptoCurrency,
-        expires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-        singleUse: true,
-      });
-
-      setSingleUseLink(link);
-      setSingleUseQR(qrData);
-      setPaymentStatus("completed");
-
-      const anonymousContact = generateAnonymousContactInfo();
-
-      toast({
-        title: "Payment Completed",
-        description: `Transaction ID: ${newTransactionId}. Single-use link generated successfully. Anonymous contact: ${anonymousContact}`,
-      });
-
-      setIsModalOpen(true);
-    }, 3000);
+    sendPaymentMutation.mutate({
+      paymentAmount,
+      convertedAmount,
+      cryptoCurrency,
+      localCurrency,
+      paymentMethod,
+    });
   };
 
   const copySingleUseLink = () => {
     navigator.clipboard.writeText(singleUseLink);
-    toast({
-      title: "Link Copied",
-      description: "Single-use payment link copied to clipboard.",
-    });
+    // Removed non-API copy toast
   };
 
   const resetSendForm = () => {
@@ -169,7 +207,7 @@ const SendPage = () => {
               onClick={() => navigate("/dashboard")}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              Back
             </Button>
             <div className="flex items-center space-x-2">
               <div className="bg-primary/10 p-2 rounded-lg">

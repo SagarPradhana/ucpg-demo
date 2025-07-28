@@ -42,7 +42,7 @@ const CORSTestComponent: React.FC = () => {
       }
     } catch (error: any) {
       setTestStatus("error");
-      if (error.message.includes("CORS")) {
+      if (error instanceof Error && error.message.includes("CORS")) {
         setTestResult(
           "❌ CORS is blocking requests. Add your Netlify domain to your backend CORS configuration."
         );

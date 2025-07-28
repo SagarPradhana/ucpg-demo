@@ -1,15 +1,6 @@
 import { jwtDecode } from "jwt-decode";
 
-interface DecodedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  metadata: any;
-  is_active: boolean;
-  timezone: number;
-  exp: number;
-}
+import { User } from "@/types";
 
 export const debugToken = () => {
   const token = localStorage.getItem("sessionToken");
@@ -20,7 +11,7 @@ export const debugToken = () => {
   }
 
   try {
-    const decodedUser = jwtDecode<DecodedUser>(token);
+    const decodedUser = jwtDecode<User>(token);
     const currentTime = Date.now() / 1000;
     const timeLeft = decodedUser.exp - currentTime;
     const isValid = timeLeft > 0;

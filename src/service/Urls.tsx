@@ -42,10 +42,18 @@ export const RESENDOTP: Api = {
 
 export const FORGOT_PASSWORD: Api = {
   url: `${BACKEND_KPIX}/auth/forgot-password`,
-  method: HttpMethods.POST,
+  method: HttpMethods.PUT,
 };
 
 export const SENDOTP: Api = {
   url: `${BACKEND_KPIX}/auth/send-otp`,
   method: HttpMethods.POST,
+};
+export const UPDATEUSERPROFILE: Api = {
+  url: `${BACKEND_KPIX}/user/{0}`,
+  method: HttpMethods.PUT,
+};
+export const UPDATEUSERPASSWORD: Api = {
+  url: `${BACKEND_KPIX}/user/reset-password/{0}`,
+  method: HttpMethods.PUT,
 };

@@ -415,10 +415,7 @@ const Admin = () => {
   };
 
   const exportData = (type: string, format: string) => {
-    toast({
-      title: "Export Started",
-      description: `Exporting ${type} data in ${format.toUpperCase()} format...`,
-    });
+    // Removed non-API export toast
   };
 
   const handleTransactionCancel = (transactionId: string) => {
@@ -427,10 +424,7 @@ const Admin = () => {
         tx.id === transactionId ? { ...tx, status: "cancelled" as const } : tx
       )
     );
-    toast({
-      title: "Transaction Cancelled",
-      description: `Transaction ${transactionId} has been cancelled.`,
-    });
+    // Removed non-API transaction cancel toast
   };
 
   const renderDashboard = () => (
@@ -945,12 +939,9 @@ const Admin = () => {
             Currency Exchange Monitoring
             <Button
               size="sm"
-              onClick={() =>
-                toast({
-                  title: "Rates Updated",
-                  description: "Exchange rates refreshed successfully",
-                })
-              }
+              onClick={() => {
+                // Removed non-API rates update toast
+              }}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -1431,12 +1422,9 @@ const Admin = () => {
               />
             </div>
             <Button
-              onClick={() =>
-                toast({
-                  title: "Global Commission Updated",
-                  description: `Global commission rate set to ${globalPercentage}%`,
-                })
-              }
+              onClick={() => {
+                // Removed non-API global commission update toast
+              }}
               className="flex items-center space-x-2"
             >
               <Save className="h-4 w-4" />

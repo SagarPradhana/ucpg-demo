@@ -44,20 +44,14 @@ const UserProfileDropdown = ({ user }: UserProfileDropdownProps) => {
   };
 
   const handleSettingsClick = () => {
-    toast({
-      title: "Settings",
-      description: "Settings page coming soon!",
-    });
+    // Removed non-API settings toast
   };
 
   const handleLogout = () => {
     // Clear session data
     localStorage.removeItem("sessionToken");
 
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
+    // Removed non-API logout toast
 
     navigate("/login");
   };
@@ -129,12 +123,9 @@ const UserProfileDropdown = ({ user }: UserProfileDropdownProps) => {
 
         {/* Billing Option */}
         <DropdownMenuItem
-          onClick={() =>
-            toast({
-              title: "Billing",
-              description: "Billing page coming soon!",
-            })
-          }
+          onClick={() => {
+            // Removed non-API billing toast
+          }}
           className="cursor-pointer"
         >
           <CreditCard className="mr-2 h-4 w-4" />
@@ -143,12 +134,9 @@ const UserProfileDropdown = ({ user }: UserProfileDropdownProps) => {
 
         {/* Security Option */}
         <DropdownMenuItem
-          onClick={() =>
-            toast({
-              title: "Security",
-              description: "Security settings coming soon!",
-            })
-          }
+          onClick={() => {
+            // Removed non-API security toast
+          }}
           className="cursor-pointer"
         >
           <Shield className="mr-2 h-4 w-4" />
@@ -157,12 +145,9 @@ const UserProfileDropdown = ({ user }: UserProfileDropdownProps) => {
 
         {/* Help Option */}
         <DropdownMenuItem
-          onClick={() =>
-            toast({
-              title: "Help",
-              description: "Help center coming soon!",
-            })
-          }
+          onClick={() => {
+            // Removed non-API help toast
+          }}
           className="cursor-pointer"
         >
           <HelpCircle className="mr-2 h-4 w-4" />

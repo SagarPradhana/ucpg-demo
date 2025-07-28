@@ -18,6 +18,22 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { GoogleLogin } from "@react-oauth/google";
 import { LoginButton } from "@telegram-auth/react";
 import { resendOtp, signUp, verifyOtp } from "@/service/auth";
+import { useMutation } from "@tanstack/react-query";
+
+// Interface for API responses that include OTP resend time
+interface OtpApiResponse {
+  data?: {
+    otpResendTime?: number;
+    [key: string]: unknown;
+  };
+  otpResendTime?: number;
+  [key: string]: unknown;
+}
+
+// Utility function to extract OTP resend time from API response
+const getOtpResendTime = (response: OtpApiResponse): number => {
+  return response?.data?.otpResendTime || response?.otpResendTime || 120;
+};
 
 const Signup = () => {
   const [signupObj, setSignupObj] = useState({
@@ -27,7 +43,6 @@ const Signup = () => {
     confirmPassword: "",
   });
   const [otp, setOtp] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1); // 1: Initial form, 2: OTP verification
   const [timer, setTimer] = useState(120); // 2 minutes in seconds
   const [canResend, setCanResend] = useState(false);
@@ -36,6 +51,77 @@ const Signup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
+
+  // Signup mutation
+  const signupMutation = useMutation({
+    mutationFn: (signupData: {
+      username: string;
+      password: string;
+      email: string;
+    }) => signUp(signupData as any),
+    onSuccess: (response) => {
+      setStep(2);
+      const otpResendTime = getOtpResendTime(response as any);
+      setTimer(otpResendTime);
+      setCanResend(false);
+
+      toast({
+        title: "OTP Sent",
+        description: "An OTP has been sent to your email address.",
+      });
+    },
+    onError: (err) => {
+      console.error(err);
+      toast({
+        title: "Signup Failed",
+        description: "An error occurred during signup. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Verify OTP mutation
+  const verifyOtpMutation = useMutation({
+    mutationFn: (otpData: { email: string; otp: string }) => verifyOtp(otpData),
+    onSuccess: () => {
+      toast({
+        title: "Account Created",
+        description: "Your account has been successfully created.",
+      });
+      navigate("/login");
+    },
+    onError: (error) => {
+      console.error("OTP verification failed:", error);
+      toast({
+        title: "Verification Failed",
+        description: "Invalid OTP. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Resend OTP mutation
+  const resendOtpMutation = useMutation({
+    mutationFn: (otpData: { email: string }) => resendOtp(otpData),
+    onSuccess: (response) => {
+      const otpResendTime = getOtpResendTime(response as any);
+      setTimer(otpResendTime);
+      setCanResend(false);
+
+      toast({
+        title: "OTP Resent",
+        description: "A new OTP has been sent to your email address.",
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to resend OTP:", error);
+      toast({
+        title: "Resend Failed",
+        description: "Failed to resend OTP. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -49,12 +135,10 @@ const Signup = () => {
     return () => clearInterval(interval);
   }, [step, timer]);
 
-  const handleInitialSubmit = async (e: React.FormEvent) => {
+  const handleInitialSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     if (signupObj.password !== signupObj.confirmPassword) {
-      setIsLoading(false);
       toast({
         title: "Password Mismatch",
         description: "Passwords do not match. Please try again.",
@@ -62,82 +146,26 @@ const Signup = () => {
       return;
     }
 
-    try {
-      await signUp({
-        username: signupObj.name,
-        password: signupObj.password,
-        email: signupObj.email,
-      });
-      setIsLoading(false);
-      setStep(2);
-      setTimer(120);
-      setCanResend(false);
-      toast({
-        title: "OTP Sent",
-        description: "An OTP has been sent to your email address.",
-      });
-    } catch (err) {
-      console.error(err);
-      setIsLoading(false);
-      toast({
-        title: "Signup Failed",
-        description: "An error occurred during signup. Please try again.",
-        variant: "destructive",
-      });
-    }
+    signupMutation.mutate({
+      username: signupObj.name,
+      password: signupObj.password,
+      email: signupObj.email,
+    });
   };
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
+  const handleOtpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
-    try {
-      // Call the verifyOtp service with the OTP entered by the user
-      await verifyOtp({
-        email: signupObj.email, // Assuming you need to send the email for verification
-        otp: otp, // This is the OTP entered by the user
-      });
-
-      setIsLoading(false);
-      toast({
-        title: "Account Created",
-        description: "Your account has been successfully created.",
-      });
-      navigate("/login");
-    } catch (error) {
-      setIsLoading(false);
-      console.error("OTP verification failed:", error);
-      toast({
-        title: "Verification Failed",
-        description: "Invalid OTP. Please try again.",
-        variant: "destructive",
-      });
-    }
+    verifyOtpMutation.mutate({
+      email: signupObj.email,
+      otp: otp,
+    });
   };
 
-  const handleResendOtp = async () => {
-    setIsLoading(true);
-    try {
-      await resendOtp({
-        email: signupObj.email,
-      });
-
-      setTimer(120);
-      setCanResend(false);
-      toast({
-        title: "OTP Resent",
-        description: "A new OTP has been sent to your email address.",
-      });
-    } catch (error) {
-      console.error("Failed to resend OTP:", error);
-      toast({
-        title: "Resend Failed",
-        description: "Failed to resend OTP. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleResendOtp = () => {
+    resendOtpMutation.mutate({
+      email: signupObj.email,
+    });
   };
 
   return (
@@ -293,9 +321,9 @@ const Signup = () => {
                 <Button
                   type="submit"
                   className="w-full group"
-                  disabled={isLoading}
+                  disabled={signupMutation.isPending}
                 >
-                  {isLoading ? (
+                  {signupMutation.isPending ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       <span>Sending OTP</span>
@@ -328,9 +356,9 @@ const Signup = () => {
                 <Button
                   type="submit"
                   className="w-full group"
-                  disabled={isLoading}
+                  disabled={verifyOtpMutation.isPending}
                 >
-                  {isLoading ? (
+                  {verifyOtpMutation.isPending ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       <span>Verifying</span>
@@ -349,9 +377,11 @@ const Signup = () => {
                       type="button"
                       variant="ghost"
                       onClick={handleResendOtp}
-                      disabled={isLoading}
+                      disabled={resendOtpMutation.isPending}
                     >
-                      Resend OTP
+                      {resendOtpMutation.isPending
+                        ? "Resending..."
+                        : "Resend OTP"}
                     </Button>
                   ) : (
                     <p className="text-sm text-muted-foreground">

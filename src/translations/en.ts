@@ -417,7 +417,9 @@ export const en = {
     "sendingOtp": "Sending OTP...",
     "sendOtp": "Send OTP",
     "verifying": "Verifying...",
-    "verifyAndSignup": "Verify and Sign Up"
+    "verifyAndSignup": "Verify and Sign Up",
+  "profile.country": "Country",
+  "profile.currency": "Currency"
 };
 
 export type TranslationKey = keyof typeof en;

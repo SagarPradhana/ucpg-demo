@@ -32,16 +32,7 @@ import { jwtDecode } from "jwt-decode";
 import { loginActions } from "@/store/loginReducer";
 import TokenManager from "@/utils/tokenManager";
 
-interface DecodedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  metadata: any;
-  is_active: boolean;
-  timezone: number;
-  exp: number;
-}
+import { RootState } from "@/types";
 
 interface UserProfileProps {
   userName?: string;
@@ -64,33 +55,17 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
 
   const handleProfileClick = () => {
     navigate("/profile");
-    toast({
-      title: "Profile",
-      description: "Opening your profile page...",
-    });
+    // Removed non-API navigation toast
   };
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
     setTheme(newTheme);
-    toast({
-      title: t("profile.themeUpdated"),
-      description: t("profile.themeChangedTo", {
-        mode:
-          newTheme === "system"
-            ? t("theme.systemPreference")
-            : t(`theme.${newTheme}`),
-      }),
-    });
+    // Removed non-API theme change toast
   };
 
   const handleLanguageChange = (newLanguage: Language) => {
     setLanguage(newLanguage);
-    toast({
-      title: t("profile.languageUpdated"),
-      description: t("profile.languageChangedTo", {
-        language: t(`language.${getLanguageName(newLanguage)}`),
-      }),
-    });
+    // Removed non-API language change toast
   };
 
   const getLanguageName = (lang: Language): string => {
@@ -143,7 +118,7 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
       const token = localStorage.getItem("sessionToken");
       if (token) {
         try {
-          const decodedUser = jwtDecode<DecodedUser>(token);
+          const decodedUser = jwtDecode<any>(token);
 
           // Check if token is still valid
           const currentTime = Date.now() / 1000;
@@ -183,10 +158,7 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
     const tokenManager = TokenManager.getInstance();
     tokenManager.destroy();
     localStorage.removeItem("sessionToken");
-    toast({
-      title: t("auth.logout"),
-      description: t("auth.logoutSuccess"),
-    });
+    // Removed non-API logout toast
     navigate("/login");
   };
 

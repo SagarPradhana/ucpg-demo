@@ -36,21 +36,132 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { PaymentRequest, PaymentResponse } from "@/types";
 
 const ReceivePage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { toast } = useToast();
 
+  // Mock API functions
+  const mockProcessIncomingPayment = (
+    paymentId: string
+  ): Promise<{ transactionId: string; paymentId: string; status: string }> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const newTransactionId = Math.random()
+          .toString(36)
+          .substr(2, 12)
+          .toUpperCase();
+
+        resolve({
+          transactionId: newTransactionId,
+          paymentId,
+          status: "completed",
+        });
+      }, 2000);
+    });
+  };
+
+  const mockGenerateReceiveLink = (
+    receiveData: PaymentRequest
+  ): Promise<PaymentResponse> => {
+    return new Promise((resolve) => {
+      const uniqueId = Math.random().toString(36).substr(2, 16);
+      const link = `${window.location.origin}/receive/${uniqueId}`;
+      const qrData = JSON.stringify({
+        id: uniqueId,
+        amount: receiveData.receiveAmount,
+        currency: receiveData.receiveCurrency,
+        method: receiveData.receiveMethod,
+        destination:
+          receiveData.receiveMethod === "crypto"
+            ? receiveData.walletAddress
+            : `****${receiveData.bankCardNumber.slice(-4)}`,
+        expires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+        singleUse: true,
+      });
+
+      const newTransactionId = Math.random()
+        .toString(36)
+        .substr(2, 12)
+        .toUpperCase();
+
+      resolve({
+        receiveLink: link,
+        receiveQRCode: qrData,
+        transactionId: newTransactionId,
+      });
+    });
+  };
+
+  // Process incoming payment mutation
+  const processPaymentMutation = useMutation({
+    mutationFn: (paymentId: string) => mockProcessIncomingPayment(paymentId),
+    onSuccess: (result: {
+      transactionId: string;
+      paymentId: string;
+      status: string;
+    }) => {
+      setTransactionId(result.transactionId);
+      setPaymentReceived(true);
+      setReceiveStatus("completed");
+
+      toast({
+        title: "Payment Received",
+        description: `Transaction ID: ${result.transactionId}`,
+      });
+    },
+    onError: (error) => {
+      console.error("Process payment failed:", error);
+      setReceiveStatus("idle");
+      toast({
+        title: "Payment Processing Failed",
+        description: "Failed to process payment. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Generate receive link mutation
+  const generateLinkMutation = useMutation({
+    mutationFn: (receiveData: PaymentRequest) =>
+      mockGenerateReceiveLink(receiveData),
+    onSuccess: (result: PaymentResponse) => {
+      setReceiveLink(result?.receiveLink);
+      setReceiveQRCode(result?.receiveQRCode);
+      setTransactionId(result?.transactionId);
+      setReceiveStatus("waiting");
+
+      toast({
+        title: "Receive Link Generated",
+        description: "Your payment link is ready to share.",
+      });
+    },
+    onError: (error) => {
+      console.error("Generate link failed:", error);
+      toast({
+        title: "Link Generation Failed",
+        description: "Failed to generate receive link. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // State for receive form
   const [receiveAmount, setReceiveAmount] = useState("");
   const [receiveCurrency, setReceiveCurrency] = useState("USDT");
-  const [receiveMethod, setReceiveMethod] = useState("crypto"); // crypto or fiat
+  const [receiveMethod, setReceiveMethod] = useState<"crypto" | "fiat">(
+    "crypto"
+  );
   const [walletAddress, setWalletAddress] = useState("");
   const [bankCardNumber, setBankCardNumber] = useState("");
   const [receiveLink, setReceiveLink] = useState("");
   const [receiveQRCode, setReceiveQRCode] = useState("");
-  const [receiveStatus, setReceiveStatus] = useState("idle"); // idle, waiting, completed, expired
+  const [receiveStatus, setReceiveStatus] = useState<
+    "idle" | "waiting" | "completed" | "expired"
+  >("idle");
   const [transactionId, setTransactionId] = useState("");
   const [showCardNumber, setShowCardNumber] = useState(false);
   const [paymentReceived, setPaymentReceived] = useState(false);
@@ -71,93 +182,39 @@ const ReceivePage = () => {
     }
   }, [id]);
 
-  const processIncomingPayment = async (paymentId: string) => {
+  const processIncomingPayment = (paymentId: string) => {
     setReceiveStatus("waiting");
-
-    // Simulate payment processing
-    setTimeout(() => {
-      const newTransactionId = Math.random()
-        .toString(36)
-        .substr(2, 12)
-        .toUpperCase();
-      setTransactionId(newTransactionId);
-      setPaymentReceived(true);
-      setReceiveStatus("completed");
-
-      toast({
-        title: "Payment Received",
-        description: `Funds have been delivered anonymously. Transaction ID: ${newTransactionId}`,
-      });
-    }, 2000);
+    processPaymentMutation.mutate(paymentId);
   };
 
   const generateReceiveLink = () => {
     if (!receiveAmount) {
-      toast({
-        title: "Error",
-        description: "Please enter an amount to receive.",
-        variant: "destructive",
-      });
+      // Removed non-API validation toast - this is client-side validation
       return;
     }
 
     if (receiveMethod === "crypto" && !walletAddress) {
-      toast({
-        title: "Error",
-        description: "Please enter your wallet address.",
-        variant: "destructive",
-      });
+      // Removed non-API validation toast - this is client-side validation
       return;
     }
 
     if (receiveMethod === "fiat" && !bankCardNumber) {
-      toast({
-        title: "Error",
-        description: "Please enter your bank card number.",
-        variant: "destructive",
-      });
+      // Removed non-API validation toast - this is client-side validation
       return;
     }
 
-    // Generate receive link and QR code
-    const uniqueId = Math.random().toString(36).substr(2, 16);
-    const link = `${window.location.origin}/receive/${uniqueId}`;
-    const qrData = JSON.stringify({
-      id: uniqueId,
-      amount: receiveAmount,
-      currency: receiveCurrency,
-      method: receiveMethod,
-      destination:
-        receiveMethod === "crypto"
-          ? walletAddress
-          : `****${bankCardNumber.slice(-4)}`,
-      expires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-      singleUse: true,
-    });
-
-    setReceiveLink(link);
-    setReceiveQRCode(qrData);
-    setReceiveStatus("waiting");
-
-    const newTransactionId = Math.random()
-      .toString(36)
-      .substr(2, 12)
-      .toUpperCase();
-    setTransactionId(newTransactionId);
-
-    toast({
-      title: "Receive Link Generated",
-      description:
-        "Share this link or QR code to receive payment. It's valid for 24 hours and single-use only.",
+    generateLinkMutation.mutate({
+      receiveAmount,
+      receiveCurrency,
+      receiveMethod,
+      walletAddress,
+      bankCardNumber,
     });
   };
 
   const copyReceiveLink = () => {
     navigator.clipboard.writeText(receiveLink);
-    toast({
-      title: "Link Copied",
-      description: "Receive payment link copied to clipboard.",
-    });
+    // Removed non-API copy toast
   };
 
   const resetReceiveForm = () => {
@@ -279,7 +336,7 @@ const ReceivePage = () => {
               onClick={() => navigate("/dashboard")}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              Back
             </Button>
             <div className="flex items-center space-x-2">
               <div className="bg-primary/10 p-2 rounded-lg">
@@ -325,7 +382,10 @@ const ReceivePage = () => {
                     placeholder="0.00"
                     value={receiveAmount}
                     onChange={(e) => setReceiveAmount(e.target.value)}
-                    disabled={receiveStatus === "waiting"}
+                    disabled={
+                      generateLinkMutation.isPending ||
+                      processPaymentMutation.isPending
+                    }
                     className="text-lg font-semibold"
                   />
                 </div>
@@ -334,7 +394,10 @@ const ReceivePage = () => {
                   <Select
                     value={receiveCurrency}
                     onValueChange={setReceiveCurrency}
-                    disabled={receiveStatus === "waiting"}
+                    disabled={
+                      generateLinkMutation.isPending ||
+                      processPaymentMutation.isPending
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -364,7 +427,10 @@ const ReceivePage = () => {
               {/* Delivery Method */}
               <div className="space-y-4">
                 <Label>Delivery Method</Label>
-                <Tabs value={receiveMethod} onValueChange={setReceiveMethod}>
+                <Tabs
+                  value={receiveMethod}
+                  onValueChange={setReceiveMethod as any}
+                >
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="crypto">
                       <Wallet className="h-4 w-4 mr-2" />
@@ -384,7 +450,10 @@ const ReceivePage = () => {
                         placeholder="Enter your wallet address"
                         value={walletAddress}
                         onChange={(e) => setWalletAddress(e.target.value)}
-                        disabled={receiveStatus === "waiting"}
+                        disabled={
+                          generateLinkMutation.isPending ||
+                          processPaymentMutation.isPending
+                        }
                         className="font-mono text-sm"
                       />
                       <p className="text-xs text-muted-foreground">
@@ -403,7 +472,10 @@ const ReceivePage = () => {
                           placeholder="1234 5678 9012 3456"
                           value={bankCardNumber}
                           onChange={handleCardNumberChange}
-                          disabled={receiveStatus === "waiting"}
+                          disabled={
+                            generateLinkMutation.isPending ||
+                            processPaymentMutation.isPending
+                          }
                           type={showCardNumber ? "text" : "password"}
                           maxLength={19}
                           className="font-mono"
@@ -435,10 +507,18 @@ const ReceivePage = () => {
               <Button
                 onClick={generateReceiveLink}
                 className="w-full h-12"
-                disabled={receiveStatus === "waiting"}
+                disabled={
+                  generateLinkMutation.isPending ||
+                  processPaymentMutation.isPending
+                }
                 size="lg"
               >
-                {receiveStatus === "waiting" ? (
+                {generateLinkMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                    Generating Link...
+                  </>
+                ) : receiveStatus === "waiting" ? (
                   <>
                     <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
                     Waiting for Payment...
@@ -525,7 +605,7 @@ const ReceivePage = () => {
                           size="sm"
                           onClick={() => {
                             navigator.clipboard.writeText(transactionId);
-                            toast({ title: "Transaction ID Copied" });
+                            // Removed non-API copy toast
                           }}
                         >
                           <Copy className="h-4 w-4" />

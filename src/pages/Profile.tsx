@@ -16,7 +16,6 @@ import {
   User,
   Mail,
   Phone,
-  MapPin,
   Calendar,
   Edit3,
   Save,
@@ -25,48 +24,96 @@ import {
   Shield,
   Eye,
   EyeOff,
+  Globe,
+  DollarSign,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSelector, useDispatch } from "react-redux";
+import { useMutation } from "@tanstack/react-query";
 import { jwtDecode } from "jwt-decode";
 import { loginActions } from "@/store/loginReducer";
 import { debugToken } from "@/utils/debugToken";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-interface DecodedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  metadata: any;
-  is_active: boolean;
-  timezone: number;
-  exp: number;
-}
+import { RootState } from "@/types";
+import { updateUserPessword, updateUserProfile } from "@/service/auth";
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const userProfile = useSelector((store: any) => store.auth.userDetails);
+  const userProfile = useSelector((store: RootState) => store.auth.userDetails);
   const dispatch = useDispatch();
+  const { toast } = useToast();
+  const { t } = useLanguage();
   console.log("UserProfile from Redux:", userProfile);
 
   const [profileData, setProfileData] = useState({
     name: "John Doe",
     email: "john.doe@example.com",
     phone: "+1 (555) 123-4567",
-    location: "New York, USA",
+    country: "",
+    currency: "",
     joinDate: "March 2024",
-    bio: "",
     avatar: "",
   });
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { t } = useLanguage();
+
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: (profileData: any) =>
+      updateUserProfile(profileData, userProfile?.id),
+    onSuccess: (res: any) => {
+      setIsEditing(false);
+      toast({
+        title: t("profile.success"),
+        description: res.message,
+      });
+    },
+    onError: (error) => {
+      console.error("Profile update failed:", error);
+      toast({
+        title: t("profile.error"),
+        description: error?.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Password change mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: (passwordData: any) =>
+      updateUserPessword(passwordData, userProfile?.id),
+    onSuccess: (res: any) => {
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      toast({
+        title: t("profile.success"),
+        description: res.message,
+      });
+    },
+    onError: (error) => {
+      console.error("Password change failed:", error);
+      toast({
+        title: t("profile.error"),
+        description: error?.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Load user data from token when component mounts
   useEffect(() => {
     const loadUserFromToken = () => {
@@ -79,7 +126,7 @@ const Profile = () => {
       const token = localStorage.getItem("sessionToken");
       if (token) {
         try {
-          const decodedUser = jwtDecode<DecodedUser>(token);
+          const decodedUser = jwtDecode<any>(token);
           console.log("Decoded user from token:", decodedUser);
 
           // Check if token is still valid
@@ -117,7 +164,7 @@ const Profile = () => {
     loadUserFromToken();
 
     // Debug token info in development
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.MODE === "development") {
       debugToken();
     }
   }, [dispatch, navigate, userProfile]);
@@ -133,90 +180,42 @@ const Profile = () => {
     }
   }, [userProfile]);
 
-  // Initialize bio with translated default text if empty
-  useEffect(() => {
-    setProfileData((prev) => ({
-      ...prev,
-      bio: prev.bio || t("profile.defaultBio"),
-    }));
-  }, [t]);
-
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
-    try {
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
-        setIsEditing(false);
-        toast({
-          title: t("profile.profileUpdated"),
-          description: t("profile.profileUpdatedDesc"),
-        });
-      }, 1500);
-    } catch (error) {
-      setIsLoading(false);
-      toast({
-        title: t("profile.profileUpdateFailed"),
-        description: t("profile.profileUpdateFailedDesc"),
-        variant: "destructive",
-      });
-    }
+    updateProfileMutation.mutate({
+      name: profileData.name,
+      metadata: {
+        country: profileData.country,
+        currency: profileData.currency,
+      },
+    });
   };
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
+  const handlePasswordChange = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setIsLoading(false);
-      toast({
-        title: t("profile.passwordMismatch"),
-        description: t("profile.passwordMismatchDesc"),
-        variant: "destructive",
-      });
+      // Removed non-API validation toast - this is client-side validation
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      setIsLoading(false);
-      toast({
-        title: t("profile.passwordTooShort"),
-        description: t("profile.passwordTooShortDesc"),
-        variant: "destructive",
-      });
+      // Removed non-API validation toast - this is client-side validation
       return;
     }
 
-    try {
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
-        setPasswordData({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-        toast({
-          title: t("profile.passwordChanged"),
-          description: t("profile.passwordChangedDesc"),
-        });
-      }, 1500);
-    } catch (error) {
-      setIsLoading(false);
-      toast({
-        title: t("profile.passwordChangeFailed"),
-        description: t("profile.passwordChangeFailedDesc"),
-        variant: "destructive",
-      });
-    }
+    changePasswordMutation.mutate({
+      email: userProfile?.email,
+      old_password: passwordData.currentPassword,
+      new_password: passwordData.newPassword,
+    });
   };
 
   const handleCancel = () => {
@@ -235,6 +234,34 @@ const Profile = () => {
       </div>
     );
   }
+
+  // List of countries (you may want to use a more comprehensive list)
+  const countries = [
+    "United States",
+    "United Kingdom",
+    "Canada",
+    "Australia",
+    "Germany",
+    "France",
+    "Japan",
+    "China",
+    "India",
+    // ... add more countries
+  ];
+
+  // List of currencies (you may want to use a more comprehensive list)
+  const currencies = [
+    "USD",
+    "EUR",
+    "GBP",
+    "JPY",
+    "AUD",
+    "CAD",
+    "CHF",
+    "CNY",
+    "INR",
+    // ... add more currencies
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4">
@@ -368,50 +395,73 @@ const Profile = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="location">{t("profile.location")}</Label>
+                      <Label htmlFor="country">{t("profile.country")}</Label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="location"
-                          value={profileData.location}
-                          onChange={(e) =>
+                        <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Select
+                          disabled={!isEditing}
+                          value={profileData.country}
+                          onValueChange={(value) =>
                             setProfileData((prev) => ({
                               ...prev,
-                              location: e.target.value,
+                              country: value,
                             }))
                           }
-                          disabled={!isEditing}
-                          className="pl-10"
-                        />
+                        >
+                          <SelectTrigger className="pl-10">
+                            <SelectValue
+                              placeholder={t("profile.selectCountry")}
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countries.map((country) => (
+                              <SelectItem key={country} value={country}>
+                                {country}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">{t("profile.bio")}</Label>
-                    <textarea
-                      id="bio"
-                      value={profileData.bio}
-                      onChange={(e) =>
-                        setProfileData((prev) => ({
-                          ...prev,
-                          bio: e.target.value,
-                        }))
-                      }
-                      disabled={!isEditing}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      placeholder={t("profile.bioPlaceholder")}
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="currency">{t("profile.currency")}</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Select
+                          disabled={!isEditing}
+                          value={profileData.currency}
+                          onValueChange={(value) =>
+                            setProfileData((prev) => ({
+                              ...prev,
+                              currency: value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="pl-10">
+                            <SelectValue
+                              placeholder={t("profile.selectCurrency")}
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {currencies.map((currency) => (
+                              <SelectItem key={currency} value={currency}>
+                                {currency}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
 
                   {isEditing && (
                     <Button
                       type="submit"
-                      disabled={isLoading}
+                      disabled={updateProfileMutation.isPending}
                       className="w-full"
                     >
-                      {isLoading ? (
+                      {updateProfileMutation.isPending ? (
                         <div className="flex items-center space-x-2">
                           <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                           <span>{t("profile.saving")}</span>
@@ -537,8 +587,12 @@ const Profile = () => {
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={isLoading} className="w-full">
-                    {isLoading ? (
+                  <Button
+                    type="submit"
+                    disabled={changePasswordMutation.isPending}
+                    className="w-full"
+                  >
+                    {changePasswordMutation.isPending ? (
                       <div className="flex items-center space-x-2">
                         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                         <span>{t("profile.changing")}</span>

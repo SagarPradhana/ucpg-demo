@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -54,43 +53,23 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
+import { useMutation } from "@tanstack/react-query";
 import { loginActions } from "@/store/loginReducer";
 import { Input } from "@/components/ui/input";
 
-interface DecodedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  metadata: any;
-  is_active: boolean;
-  timezone: number;
-  exp: number;
-}
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { QRCodeSVG } from "qrcode.react";
-import ServicesSection from "@/components/ServicesSection";
+import { RootState } from "@/types";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import UserProfile from "@/components/UserProfile";
 import { debugToken } from "@/utils/debugToken";
-import CORSTestComponent from "@/components/CORSTestComponent";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
-  const userProfile = useSelector((store: any) => store.auth.userDetails);
+  const userProfile = useSelector((store: RootState) => store.auth.userDetails);
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState("overview");
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [totalBalance, setTotalBalance] = useState(2350.0);
   const [activePayments, setActivePayments] = useState(7);
   const [pendingCount, setPendingCount] = useState(3);
@@ -102,6 +81,64 @@ const Dashboard = () => {
   const [isActionProcessing, setIsActionProcessing] = useState<string | null>(
     null
   );
+
+  // Mock API for refreshing balance data
+  const mockRefreshBalance = (): Promise<{
+    totalBalance: number;
+    activePayments: number;
+    pendingCount: number;
+    balanceChange: number;
+  }> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const variation = (Math.random() - 0.5) * 100;
+        const newBalance = Math.max(1000, totalBalance + variation);
+        const newPayments = Math.max(
+          1,
+          activePayments + Math.floor((Math.random() - 0.5) * 3)
+        );
+        const newPending = Math.max(0, Math.floor(Math.random() * 5));
+        const newChange = ((newBalance - totalBalance) / totalBalance) * 100;
+
+        resolve({
+          totalBalance: Number(newBalance.toFixed(2)),
+          activePayments: newPayments,
+          pendingCount: newPending,
+          balanceChange: Number(newChange.toFixed(1)),
+        });
+      }, 1000);
+    });
+  };
+
+  // Refresh balance mutation
+  const refreshBalanceMutation = useMutation({
+    mutationFn: () => mockRefreshBalance(),
+    onSuccess: (result: {
+      totalBalance: number;
+      activePayments: number;
+      pendingCount: number;
+      balanceChange: number;
+    }) => {
+      setTotalBalance(result.totalBalance);
+      setActivePayments(result.activePayments);
+      setPendingCount(result.pendingCount);
+      setBalanceChange(result.balanceChange);
+      setLastUpdated(new Date());
+
+      toast({
+        title: "Data Refreshed",
+        description: "Balance and transactions updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Refresh failed:", error);
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     const token = localStorage.getItem("sessionToken");
@@ -121,7 +158,7 @@ const Dashboard = () => {
       const token = localStorage.getItem("sessionToken");
       if (token) {
         try {
-          const decodedUser = jwtDecode<DecodedUser>(token);
+          const decodedUser = jwtDecode<any>(token);
 
           // Check if token is still valid
           const currentTime = Date.now() / 1000;
@@ -144,7 +181,7 @@ const Dashboard = () => {
     loadUserFromToken();
 
     // Debug token info in development
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.MODE === "development") {
       debugToken();
     }
   }, [dispatch, navigate, userProfile]);
@@ -152,76 +189,51 @@ const Dashboard = () => {
   // Auto-update balance every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      updateBalanceData();
+      if (!refreshBalanceMutation.isPending) {
+        refreshBalanceMutation.mutate();
+      }
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [totalBalance, activePayments]); // Adding dependencies to prevent stale closure
+  }, [refreshBalanceMutation]);
 
-  const updateBalanceData = () => {
-    // Simulate API call to get updated balance data
-    const variation = (Math.random() - 0.5) * 100;
-    const newBalance = Math.max(1000, totalBalance + variation);
-    const newPayments = Math.max(
-      1,
-      activePayments + Math.floor((Math.random() - 0.5) * 3)
-    );
-    const newPending = Math.max(0, Math.floor(Math.random() * 5));
-    const newChange = ((newBalance - totalBalance) / totalBalance) * 100;
-
-    setTotalBalance(Number(newBalance.toFixed(2)));
-    setActivePayments(newPayments);
-    setPendingCount(newPending);
-    setBalanceChange(Number(newChange.toFixed(1)));
-    setLastUpdated(new Date());
+  const handleRefresh = () => {
+    refreshBalanceMutation.mutate();
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
+  // Mock API for quick actions
+  const mockQuickAction = (
+    action: string
+  ): Promise<{ action: string; redirectTo: string }> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ action, redirectTo: `/${action}` });
+      }, 500);
+    });
+  };
 
-    // Simulate API call delay
-    setTimeout(() => {
-      updateBalanceData();
-      setIsRefreshing(false);
+  // Quick action mutation
+  const quickActionMutation = useMutation({
+    mutationFn: (action: string) => mockQuickAction(action),
+    onSuccess: (result: { action: string; redirectTo: string }) => {
+      navigate(result.redirectTo);
+      setIsActionProcessing(null);
+    },
+    onError: (error) => {
+      console.error("Quick action failed:", error);
+      setIsActionProcessing(null);
       toast({
-        title: t("common.success"),
-        description: t("common.refreshSuccess"),
+        title: "Action Failed",
+        description: "Failed to navigate. Please try again.",
+        variant: "destructive",
       });
-    }, 1000);
-  };
+    },
+  });
 
   // Quick Action handlers with feedback
-  const handleQuickAction = async (action: string) => {
+  const handleQuickAction = (action: string) => {
     setIsActionProcessing(action);
-
-    // Simulate processing delay
-    setTimeout(() => {
-      setIsActionProcessing(null);
-
-      switch (action) {
-        case "send":
-          navigate("/send");
-          toast({
-            title: t("common.success"),
-            description: t("dashboard.sendPageOpened"),
-          });
-          break;
-        case "receive":
-          navigate("/receive");
-          toast({
-            title: t("common.success"),
-            description: t("dashboard.receivePageOpened"),
-          });
-          break;
-        case "services":
-          navigate("/services");
-          toast({
-            title: t("common.success"),
-            description: t("dashboard.servicesOpened"),
-          });
-          break;
-      }
-    }, 500);
+    quickActionMutation.mutate(action);
   };
 
   const toggleTransactionDetails = (txId: number) => {
@@ -274,10 +286,7 @@ const Dashboard = () => {
 
   const copyAddress = () => {
     navigator.clipboard.writeText(walletAddress);
-    toast({
-      title: t("message.addressCopied"),
-      description: t("message.addressCopiedDesc"),
-    });
+    // Removed non-API copy toast
   };
 
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -323,11 +332,7 @@ const Dashboard = () => {
 
   const handleSendPayment = async () => {
     if (!paymentAmount || !convertedAmount) {
-      toast({
-        title: t("send.error"),
-        description: t("send.enterValidAmount"),
-        variant: "destructive",
-      });
+      // Removed non-API validation toast - this is client-side validation
       return;
     }
 
@@ -359,22 +364,13 @@ const Dashboard = () => {
 
       const anonymousContact = generateAnonymousContactInfo();
 
-      toast({
-        title: t("message.paymentCompleted"),
-        description: t("message.paymentCompletedDesc", {
-          transactionId: newTransactionId,
-          contact: anonymousContact,
-        }),
-      });
+      // Removed mock payment completion toast - not a real API call
     }, 3000);
   };
 
   const copySingleUseLink = () => {
     navigator.clipboard.writeText(singleUseLink);
-    toast({
-      title: t("message.linkCopied"),
-      description: t("message.linkCopiedDesc"),
-    });
+    // Removed non-API copy toast
   };
 
   const mockStatistics = {
@@ -395,52 +391,6 @@ const Dashboard = () => {
     ],
   };
 
-  const StatisticsSection = () => {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Statistics</CardTitle>
-          <CardDescription>Key performance indicators</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold">
-              Total Commission Received Today
-            </h3>
-            <p className="text-3xl font-bold">
-              ${mockStatistics.totalCommissionToday.toFixed(2)}
-            </p>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-2">
-              Income for the Last 7 Days
-            </h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={mockStatistics.incomeLastWeek}>
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Bar dataKey="amount" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-2">
-              Top Commission-Generating Providers
-            </h3>
-            <ul className="space-y-2">
-              {mockStatistics.topProviders.map((provider, index) => (
-                <li key={index} className="flex justify-between items-center">
-                  <span>{provider.name}</span>
-                  <span className="font-semibold">${provider.commission}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -453,11 +403,6 @@ const Dashboard = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold">{t("dashboard.title")}</h1>
-                {userProfile && (
-                  <p className="text-sm text-muted-foreground">
-                    Welcome back, {userProfile.name}!
-                  </p>
-                )}
               </div>
             </div>
           </div>
@@ -467,14 +412,18 @@ const Dashboard = () => {
               variant="outline"
               size="sm"
               onClick={handleRefresh}
-              disabled={isRefreshing}
+              disabled={refreshBalanceMutation.isPending}
               className="flex items-center space-x-2"
             >
               <RefreshCw
-                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                className={`h-4 w-4 ${
+                  refreshBalanceMutation.isPending ? "animate-spin" : ""
+                }`}
               />
               <span className="hidden sm:inline">
-                {isRefreshing ? t("common.refreshing") : t("common.refresh")}
+                {refreshBalanceMutation.isPending
+                  ? t("common.refreshing")
+                  : t("common.refresh")}
               </span>
             </Button>
             <DropdownMenu>
@@ -674,12 +623,6 @@ const Dashboard = () => {
                   </Button>
                 </CardContent>
               </Card>
-
-              {/* TEMPORARY: CORS Test - Remove after fixing CORS */}
-              <div className="lg:col-span-1">
-                <CORSTestComponent />
-              </div>
-
               {/* Recent Activity */}
               <Card>
                 <CardHeader>
@@ -823,12 +766,7 @@ const Dashboard = () => {
                                   navigator.clipboard.writeText(
                                     tx.transactionHash
                                   );
-                                  toast({
-                                    title: t("transaction.hashCopied"),
-                                    description: t(
-                                      "transaction.hashCopiedDesc"
-                                    ),
-                                  });
+                                  // Removed non-API copy toast
                                 }}
                               >
                                 <Copy className="h-3 w-3" />
@@ -945,11 +883,7 @@ const Dashboard = () => {
                               size="sm"
                               onClick={() => {
                                 navigator.clipboard.writeText(paymentLink);
-                                toast({
-                                  title: "Copied",
-                                  description:
-                                    "Payment link copied to clipboard",
-                                });
+                                // Removed non-API copy toast
                               }}
                             >
                               <Copy className="h-4 w-4" />
@@ -1013,10 +947,7 @@ const Dashboard = () => {
                         size="sm"
                         onClick={() => {
                           navigator.clipboard.writeText(receiveLink);
-                          toast({
-                            title: "Copied",
-                            description: "Payment link copied to clipboard",
-                          });
+                          // Removed non-API copy toast
                         }}
                       >
                         <Copy className="h-4 w-4" />

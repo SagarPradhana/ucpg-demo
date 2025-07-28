@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
+import { useMutation } from "@tanstack/react-query";
 import { loginActions } from "@/store/loginReducer";
 import { debugToken } from "@/utils/debugToken";
 import { servicesApi, handleApiError } from "@/utils/api";
@@ -205,7 +206,6 @@ const Services = () => {
     useState<Service[]>(mockServices);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   const userProfile = useSelector((store: any) => store.auth.userDetails);
@@ -213,6 +213,88 @@ const Services = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
+
+  // Service access mutation
+  const serviceAccessMutation = useMutation({
+    mutationFn: async (service: Service) => {
+      // Prepare payment data
+      const paymentData = {
+        serviceId: service.id,
+        amount: service.price,
+        currency: service.currency,
+        timestamp: Date.now(),
+      };
+
+      if (service.redirectUrl) {
+        // For external redirects, simulate payment delay
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        return { redirectUrl: service.redirectUrl };
+      } else if (service.apiEndpoint) {
+        // Handle API-based access with real API calls
+        let apiResponse;
+
+        if (service.category === "vpn") {
+          apiResponse = await servicesApi.accessVpn(service.id, paymentData);
+        } else if (
+          service.category === "digital_goods" &&
+          service.name.includes("Courses")
+        ) {
+          apiResponse = await servicesApi.accessCourse(service.id, paymentData);
+        } else if (
+          service.category === "software" &&
+          service.name.includes("Storage")
+        ) {
+          apiResponse = await servicesApi.accessStorage(
+            service.id,
+            paymentData
+          );
+        } else {
+          // Generic service access
+          apiResponse = await servicesApi.accessService(
+            service.id,
+            paymentData
+          );
+        }
+
+        return apiResponse;
+      } else {
+        throw new Error("Service configuration error");
+      }
+    },
+    onSuccess: (result, service) => {
+      if (result.redirectUrl) {
+        // For redirect services, show toast and redirect
+        toast({
+          title: t("services.accessGranted"),
+          description: t("services.accessGrantedDesc", {
+            serviceName: service.name,
+          }),
+        });
+
+        // Redirect to external service
+        window.open(result.redirectUrl, "_blank");
+      } else {
+        // For API services, show success
+        toast({
+          title: t("services.accessGranted"),
+          description: t("services.accessGrantedDesc", {
+            serviceName: service.name,
+          }),
+        });
+
+        console.log(`API Access granted for ${service.name}:`, result);
+      }
+    },
+    onError: (error) => {
+      const errorMessage = handleApiError(error);
+
+      toast({
+        title: t("services.accessFailed"),
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Load user data from token when component mounts
   useEffect(() => {
@@ -279,80 +361,8 @@ const Services = () => {
     setFilteredServices(filtered);
   }, [searchQuery, selectedCategory, services]);
 
-  const handleServiceAccess = async (service: Service) => {
-    setIsLoading(true);
-
-    try {
-      // Prepare payment data
-      const paymentData = {
-        serviceId: service.id,
-        amount: service.price,
-        currency: service.currency,
-        timestamp: Date.now(),
-      };
-
-      // Handle different access methods
-      if (service.redirectUrl) {
-        // For external redirects, simulate payment and redirect
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        toast({
-          title: t("services.accessGranted"),
-          description: t("services.accessGrantedDesc", {
-            serviceName: service.name,
-          }),
-        });
-
-        // Redirect to external service
-        window.open(service.redirectUrl, "_blank");
-      } else if (service.apiEndpoint) {
-        // Handle API-based access with real API calls
-        let apiResponse;
-
-        if (service.category === "vpn") {
-          apiResponse = await servicesApi.accessVpn(service.id, paymentData);
-        } else if (
-          service.category === "digital_goods" &&
-          service.name.includes("Courses")
-        ) {
-          apiResponse = await servicesApi.accessCourse(service.id, paymentData);
-        } else if (
-          service.category === "software" &&
-          service.name.includes("Storage")
-        ) {
-          apiResponse = await servicesApi.accessStorage(
-            service.id,
-            paymentData
-          );
-        } else {
-          // Generic service access
-          apiResponse = await servicesApi.accessService(
-            service.id,
-            paymentData
-          );
-        }
-
-        toast({
-          title: t("services.accessGranted"),
-          description: t("services.accessGrantedDesc", {
-            serviceName: service.name,
-          }),
-        });
-
-        console.log(`API Access granted for ${service.name}:`, apiResponse);
-      }
-
-      setIsLoading(false);
-    } catch (error) {
-      setIsLoading(false);
-      const errorMessage = handleApiError(error);
-
-      toast({
-        title: t("services.accessFailed"),
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
+  const handleServiceAccess = (service: Service) => {
+    serviceAccessMutation.mutate(service);
   };
 
   const getCategoryIcon = (category: string) => {
@@ -548,10 +558,10 @@ const Services = () => {
 
                 <Button
                   onClick={() => handleServiceAccess(service)}
-                  disabled={isLoading}
+                  disabled={serviceAccessMutation.isPending}
                   className="w-full"
                 >
-                  {isLoading ? (
+                  {serviceAccessMutation.isPending ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       <span>{t("services.processing")}</span>

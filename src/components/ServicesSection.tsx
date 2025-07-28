@@ -1,5 +1,11 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,9 +18,27 @@ interface Service {
 }
 
 const mockServices: Service[] = [
-  { id: '1', name: 'VPN Service', description: 'Secure and anonymous browsing', price: '9.99', currency: 'USD' },
-  { id: '2', name: 'Game Pass', description: 'Access to premium games', price: '14.99', currency: 'USD' },
-  { id: '3', name: 'Cloud Storage', description: 'Encrypted cloud storage', price: '4.99', currency: 'USD' },
+  {
+    id: "1",
+    name: "VPN Service",
+    description: "Secure and anonymous browsing",
+    price: "9.99",
+    currency: "USD",
+  },
+  {
+    id: "2",
+    name: "Game Pass",
+    description: "Access to premium games",
+    price: "14.99",
+    currency: "USD",
+  },
+  {
+    id: "3",
+    name: "Cloud Storage",
+    description: "Encrypted cloud storage",
+    price: "4.99",
+    currency: "USD",
+  },
 ];
 
 const ServicesSection: React.FC = () => {
@@ -23,15 +47,11 @@ const ServicesSection: React.FC = () => {
 
   const handlePurchase = (service: Service) => {
     // This is where you'd integrate with your backend to process the payment and connect to the service API
-    // For now, we'll just show a toast notification
-    toast({
-      title: "Service Purchased",
-      description: `You have successfully purchased ${service.name}. Redirecting to service...`,
-    });
+    // Removed non-API mock purchase toast
 
     // Simulate redirection to service
     setTimeout(() => {
-      window.open(`https://example.com/service/${service.id}`, '_blank');
+      window.open(`https://example.com/service/${service.id}`, "_blank");
     }, 2000);
   };
 
@@ -46,8 +66,13 @@ const ServicesSection: React.FC = () => {
               <CardDescription>{service.description}</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold mb-4">{service.price} {service.currency}</p>
-              <Button onClick={() => handlePurchase(service)} className="w-full">
+              <p className="text-2xl font-bold mb-4">
+                {service.price} {service.currency}
+              </p>
+              <Button
+                onClick={() => handlePurchase(service)}
+                className="w-full"
+              >
                 Purchase Anonymously
               </Button>
             </CardContent>

@@ -14,52 +14,32 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Shield, Coins, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { loginActions } from "@/store/loginReducer";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { jwtDecode } from "jwt-decode";
 import { login } from "@/service/auth";
 import TokenManager from "@/utils/tokenManager";
-
-interface DecodedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  metadata: any;
-  is_active: boolean;
-  timezone: number;
-  exp: number;
-  // Add other fields if present in token
-}
+import { useMutation } from "@tanstack/react-query";
+import { User, LoginCredentials } from "@/types";
 
 const Login = () => {
   const [loginObj, setLoginObj] = useState({
     email: "",
     password: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const dispatch = useDispatch();
   const { t } = useLanguage();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const response = await login({
-        email: loginObj.email,
-        password: loginObj.password,
-      });
-
-      // Assuming the response includes a token and user details
-
+  const loginMutation = useMutation({
+    mutationFn: (loginData: LoginCredentials) => login(loginData),
+    onSuccess: (response: any) => {
       // Store the token in localStorage
       localStorage.setItem("sessionToken", response?.data?.access_token);
-      const decodedUser = jwtDecode<DecodedUser>(response?.data?.access_token);
+      const decodedUser = jwtDecode<User>(response?.data?.access_token);
 
       // Dispatch user details to Redux store
       dispatch(loginActions.setUserDetails(decodedUser));
@@ -72,18 +52,24 @@ const Login = () => {
         title: t("auth.welcomeToUCPG"),
         description: response?.message,
       });
-
       navigate("/dashboard");
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Login failed:", error);
       toast({
         title: t("auth.incorrectCredentials"),
-        description: t("auth.failedLogin"),
+        description: error?.message,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
-    }
+    },
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginMutation.mutate({
+      email: loginObj.email,
+      password: loginObj.password,
+    });
   };
 
   return (
@@ -170,9 +156,9 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full group"
-                disabled={isLoading}
+                disabled={loginMutation.isPending}
               >
-                {isLoading ? (
+                {loginMutation.isPending ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     <span>{t("auth.signingIn")}</span>
@@ -206,16 +192,6 @@ const Login = () => {
                 {t("auth.signup")}
               </Link>
             </p>
-            {/* <div>
-              <LoginButton
-                botUsername={""}
-                authCallbackUrl="/path/to/callback/url"
-                buttonSize="large" // "large" | "medium" | "small"
-                cornerRadius={5} // 0 - 20
-                showAvatar={true} // true | false
-                lang="en"
-              />
-            </div> */}
           </CardFooter>
         </Card>
 

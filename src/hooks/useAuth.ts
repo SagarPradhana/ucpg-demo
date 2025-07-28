@@ -4,20 +4,11 @@ import { jwtDecode } from "jwt-decode";
 import { loginActions } from "@/store/loginReducer";
 import { useNavigate } from "react-router-dom";
 
-interface DecodedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  metadata: any;
-  is_active: boolean;
-  timezone: number;
-  exp: number;
-}
+import { User, RootState } from "@/types";
 
 export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const userProfile = useSelector((store: any) => store.auth.userDetails);
+  const userProfile = useSelector((store: RootState) => store.auth.userDetails);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -32,7 +23,7 @@ export const useAuth = () => {
       const token = localStorage.getItem("sessionToken");
       if (token) {
         try {
-          const decodedUser = jwtDecode<DecodedUser>(token);
+          const decodedUser = jwtDecode<User>(token);
           
           // Check if token is still valid
           const currentTime = Date.now() / 1000;

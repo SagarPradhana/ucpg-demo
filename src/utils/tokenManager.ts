@@ -1,15 +1,5 @@
 import { jwtDecode } from "jwt-decode";
-
-interface DecodedToken {
-  exp: number;
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  metadata: any;
-  is_active: boolean;
-  timezone: number;
-}
+import { User } from "@/types";
 
 interface ToastFunction {
   (options: { title: string; description: string; variant?: "destructive" | "default" }): void;
@@ -60,7 +50,7 @@ class TokenManager {
     }
 
     try {
-      const decodedToken = jwtDecode<DecodedToken>(token);
+      const decodedToken = jwtDecode<User>(token);
       const currentTime = Date.now() / 1000; // Convert to seconds
       const timeUntilExpiry = decodedToken.exp - currentTime;
 
@@ -82,24 +72,12 @@ class TokenManager {
 
   // Show warning before token expires
   private showExpirationWarning(minutesLeft: number) {
-    if (this.toastFn) {
-      this.toastFn({
-        title: "Session Warning",
-        description: `Your session will expire in ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}. Please save your work.`,
-        variant: "destructive",
-      });
-    }
+    // Removed session warning toast - not an API response
   }
 
   // Handle expired token
   private handleExpiredToken() {
-    if (this.toastFn) {
-      this.toastFn({
-        title: "Session Expired", 
-        description: "Your session has expired. Please log in again.",
-        variant: "destructive",
-      });
-    }
+    // Removed session expired toast - not an API response
 
     // Clear token from localStorage
     localStorage.removeItem("sessionToken");
@@ -119,7 +97,7 @@ class TokenManager {
     }
 
     try {
-      const decodedToken = jwtDecode<DecodedToken>(token);
+      const decodedToken = jwtDecode<User>(token);
       const currentTime = Date.now() / 1000;
       return decodedToken.exp > currentTime;
     } catch (error) {
@@ -136,7 +114,7 @@ class TokenManager {
     }
 
     try {
-      const decodedToken = jwtDecode<DecodedToken>(token);
+      const decodedToken = jwtDecode<User>(token);
       return new Date(decodedToken.exp * 1000);
     } catch (error) {
       return null;

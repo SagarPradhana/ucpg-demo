@@ -10,7 +10,7 @@ export enum HttpMethods {
 
 interface RequestOptions {
   method: HttpMethods;
-  data?: any;
+  data?: unknown;
   withAuth?: boolean;
   queryParams?: Record<string, string | number | boolean>;
   responseType?: "json" | "blob";
@@ -19,7 +19,10 @@ interface RequestOptions {
   selectedLang?: string;
 }
 
-const buildUrl = (url: string, params?: Record<string, any>) => {
+const buildUrl = (
+  url: string,
+  params?: Record<string, string | number | boolean>
+) => {
   // Handle both absolute URLs and relative URLs
   let finalUrl: URL;
 
@@ -43,10 +46,10 @@ const buildUrl = (url: string, params?: Record<string, any>) => {
 
 const getToken = (): string | null => {
   // Example localStorage implementation
-  const userData = getDataFromLocalStorage(LocalStorageItem.USER_INFO) as any;
+  const userData = getDataFromLocalStorage(LocalStorageItem.USER_INFO);
   if (!userData) return null;
   try {
-    const parsed = JSON.parse(userData);
+    const parsed = JSON.parse(userData as any);
     return parsed?.token || parsed?.app_token || null;
   } catch {
     return null;
@@ -56,7 +59,7 @@ const getToken = (): string | null => {
 const httpClient = async (
   url: string,
   options: RequestOptions
-): Promise<any> => {
+): Promise<unknown> => {
   const {
     method,
     data,
@@ -102,7 +105,9 @@ const httpClient = async (
   const response = await fetch(finalUrl, fetchOptions);
 
   if (!response.ok) {
-    let error: any = {};
+    let error: { message: string; [key: string]: unknown } = {
+      message: "Something went wrong",
+    };
     try {
       error = await response.json();
     } catch {

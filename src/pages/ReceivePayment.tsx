@@ -31,10 +31,7 @@ const ReceivePayment = () => {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setPaymentDetails((prev: any) => ({ ...prev, status: "completed" }));
     setIsProcessing(false);
-    toast({
-      title: "Payment Received",
-      description: "The funds have been transferred to your account.",
-    });
+    // Removed mock payment success toast - not a real API call
   };
 
   if (!paymentDetails) {

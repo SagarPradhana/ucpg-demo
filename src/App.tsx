@@ -13,7 +13,6 @@ import { Provider } from "react-redux";
 import { store } from "./store";
 import Signup from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
-import ReceivePayment from "./pages/ReceivePayment";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import Services from "./pages/Services";
@@ -24,7 +23,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
+  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <LanguageProvider defaultLanguage="en">

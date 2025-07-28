@@ -16,6 +16,22 @@ import { Shield, ArrowRight, Mail, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { forgotPassword, resendOtp, sendOtp } from "@/service/auth";
+import { useMutation } from "@tanstack/react-query";
+
+// Interface for API responses that include OTP resend time
+interface OtpApiResponse {
+  data?: {
+    otpResendTime?: number;
+    [key: string]: any;
+  };
+  otpResendTime?: number;
+  [key: string]: any;
+}
+
+// Utility function to extract OTP resend time from API response
+const getOtpResendTime = (response: OtpApiResponse): number => {
+  return response?.data?.otpResendTime || response?.otpResendTime || 120;
+};
 
 const ForgotPassword = () => {
   const [forgotPasswordObj, setForgotPasswordObj] = useState({
@@ -24,7 +40,7 @@ const ForgotPassword = () => {
     newPassword: "",
     confirmPassword: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
+
   const [step, setStep] = useState(1); // 1: Email form, 2: OTP verification and New password form
   const [timer, setTimer] = useState(120); // 2 minutes in seconds
   const [canResend, setCanResend] = useState(false);
@@ -33,6 +49,77 @@ const ForgotPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
+
+  // Send OTP mutation
+  const sendOtpMutation = useMutation({
+    mutationFn: (emailData: { email: string }) => sendOtp(emailData),
+    onSuccess: (response) => {
+      setStep(2);
+      const otpResendTime = getOtpResendTime(response);
+      setTimer(otpResendTime);
+      setCanResend(false);
+
+      toast({
+        title: "OTP Sent",
+        description:
+          "An OTP has been sent to your email address for password reset verification.",
+      });
+    },
+    onError: (err) => {
+      console.error(err);
+      toast({
+        title: "Request Failed",
+        description:
+          "An error occurred while processing your request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reset password mutation
+  const forgotPasswordMutation = useMutation({
+    mutationFn: (resetData: { email: string; otp: string; password: string }) =>
+      forgotPassword(resetData),
+    onSuccess: () => {
+      toast({
+        title: "Password Reset Successful",
+        description:
+          "Your password has been successfully reset. You can now login with your new password.",
+      });
+      navigate("/login");
+    },
+    onError: (error) => {
+      console.error("Password reset failed:", error);
+      toast({
+        title: "Reset Failed",
+        description: "Failed to reset password. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Resend OTP mutation
+  const resendOtpMutation = useMutation({
+    mutationFn: (emailData: { email: string }) => resendOtp(emailData),
+    onSuccess: (response) => {
+      const otpResendTime = getOtpResendTime(response);
+      setTimer(otpResendTime);
+      setCanResend(false);
+
+      toast({
+        title: "OTP Resent",
+        description: "A new OTP has been sent to your email address.",
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to resend OTP:", error);
+      toast({
+        title: "Resend Failed",
+        description: "Failed to resend OTP. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -46,108 +133,38 @@ const ForgotPassword = () => {
     return () => clearInterval(interval);
   }, [step, timer]);
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
-    try {
-      await sendOtp({
-        email: forgotPasswordObj.email,
-      });
-      setIsLoading(false);
-      setStep(2);
-      setTimer(120);
-      setCanResend(false);
-      toast({
-        title: "OTP Sent",
-        description:
-          "An OTP has been sent to your email address for password reset verification.",
-      });
-    } catch (err) {
-      console.error(err);
-      setIsLoading(false);
-      toast({
-        title: "Request Failed",
-        description:
-          "An error occurred while processing your request. Please try again.",
-        variant: "destructive",
-      });
-    }
+    sendOtpMutation.mutate({
+      email: forgotPasswordObj.email,
+    });
   };
 
-  const handleResetSubmit = async (e: React.FormEvent) => {
+  const handleResetSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     if (forgotPasswordObj.newPassword !== forgotPasswordObj.confirmPassword) {
-      setIsLoading(false);
-      toast({
-        title: "Password Mismatch",
-        description: "Passwords do not match. Please try again.",
-        variant: "destructive",
-      });
+      // Removed non-API validation toast - this is client-side validation
       return;
     }
 
     if (forgotPasswordObj.newPassword.length < 6) {
-      setIsLoading(false);
-      toast({
-        title: "Password Too Short",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      });
+      // Removed non-API validation toast - this is client-side validation
       return;
     }
 
-    try {
-      // Verify OTP and reset password in one step
-      await forgotPassword({
-        email: forgotPasswordObj.email,
-        otp: forgotPasswordObj.otp,
-        password: forgotPasswordObj.newPassword,
-      });
-
-      setIsLoading(false);
-      toast({
-        title: "Password Reset Successful",
-        description:
-          "Your password has been successfully reset. You can now login with your new password.",
-      });
-      navigate("/login");
-    } catch (error) {
-      setIsLoading(false);
-      console.error("Password reset failed:", error);
-      toast({
-        title: "Reset Failed",
-        description: "Failed to reset password. Please try again.",
-        variant: "destructive",
-      });
-    }
+    forgotPasswordMutation.mutate({
+      email: forgotPasswordObj.email,
+      otp: forgotPasswordObj.otp,
+      password: forgotPasswordObj.newPassword,
+    });
   };
 
-  const handleResendOtp = async () => {
-    setIsLoading(true);
-    try {
-      await resendOtp({
-        email: forgotPasswordObj.email,
-      });
-
-      setTimer(120);
-      setCanResend(false);
-      toast({
-        title: "OTP Resent",
-        description: "A new OTP has been sent to your email address.",
-      });
-    } catch (error) {
-      console.error("Failed to resend OTP:", error);
-      toast({
-        title: "Resend Failed",
-        description: "Failed to resend OTP. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleResendOtp = () => {
+    resendOtpMutation.mutate({
+      email: forgotPasswordObj.email,
+    });
   };
 
   return (
@@ -203,9 +220,9 @@ const ForgotPassword = () => {
                 <Button
                   type="submit"
                   className="w-full group"
-                  disabled={isLoading}
+                  disabled={sendOtpMutation.isPending}
                 >
-                  {isLoading ? (
+                  {sendOtpMutation.isPending ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       <span>Sending OTP...</span>
@@ -319,9 +336,9 @@ const ForgotPassword = () => {
                 <Button
                   type="submit"
                   className="w-full group"
-                  disabled={isLoading}
+                  disabled={forgotPasswordMutation.isPending}
                 >
-                  {isLoading ? (
+                  {forgotPasswordMutation.isPending ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       <span>Resetting Password...</span>
@@ -341,10 +358,12 @@ const ForgotPassword = () => {
                       type="button"
                       variant="ghost"
                       onClick={handleResendOtp}
-                      disabled={isLoading}
+                      disabled={resendOtpMutation.isPending}
                       className="text-sm"
                     >
-                      Resend OTP
+                      {resendOtpMutation.isPending
+                        ? "Resending..."
+                        : "Resend OTP"}
                     </Button>
                   ) : (
                     <p className="text-sm text-muted-foreground">

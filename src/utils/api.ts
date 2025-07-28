@@ -55,7 +55,7 @@ export class ApiClient {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
   }
 
-  async post<T>(endpoint: string, data?: any, options: RequestInit = {}): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown, options: RequestInit = {}): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
       method: 'POST',
@@ -63,7 +63,7 @@ export class ApiClient {
     });
   }
 
-  async put<T>(endpoint: string, data?: any, options: RequestInit = {}): Promise<T> {
+  async put<T>(endpoint: string, data?: unknown, options: RequestInit = {}): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
       method: 'PUT',
@@ -85,24 +85,24 @@ export const servicesApi = {
   getServices: () => apiClient.get('/services'),
   
   // Access a specific service
-  accessService: (serviceId: string, paymentData: any) => 
+  accessService: (serviceId: string, paymentData: unknown) => 
     apiClient.post(`/services/${serviceId}/access`, paymentData),
   
   // VPN access
-  accessVpn: (serviceId: string, paymentData: any) => 
+  accessVpn: (serviceId: string, paymentData: unknown) => 
     apiClient.post('/vpn/access', { serviceId, ...paymentData }),
   
   // Course access  
-  accessCourse: (serviceId: string, paymentData: any) => 
+  accessCourse: (serviceId: string, paymentData: unknown) => 
     apiClient.post('/courses/access', { serviceId, ...paymentData }),
   
   // Storage access
-  accessStorage: (serviceId: string, paymentData: any) => 
+  accessStorage: (serviceId: string, paymentData: unknown) => 
     apiClient.post('/storage/access', { serviceId, ...paymentData }),
 };
 
 // Error handler for API calls
-export const handleApiError = (error: any) => {
+export const handleApiError = (error: Error) => {
   console.error('API Error:', error);
   
   if (error.message.includes('Failed to fetch')) {
