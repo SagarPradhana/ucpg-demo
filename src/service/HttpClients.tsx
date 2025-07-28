@@ -1,4 +1,5 @@
 import { getDataFromLocalStorage, LocalStorageItem } from "./constants";
+import TokenManager from "@/utils/tokenManager";
 
 export enum HttpMethods {
   GET = "GET",
@@ -45,7 +46,13 @@ const buildUrl = (
 };
 
 const getToken = (): string | null => {
-  // Example localStorage implementation
+  // First try to get session token (preferred method)
+  const sessionToken = localStorage.getItem("sessionToken");
+  if (sessionToken) {
+    return sessionToken;
+  }
+
+  // Fallback to old method for backwards compatibility
   const userData = getDataFromLocalStorage(LocalStorageItem.USER_INFO);
   if (!userData) return null;
   try {
@@ -58,7 +65,8 @@ const getToken = (): string | null => {
 
 const httpClient = async (
   url: string,
-  options: RequestOptions
+  options: RequestOptions,
+  retryCount = 0
 ): Promise<unknown> => {
   const {
     method,
@@ -87,6 +95,9 @@ const httpClient = async (
     const token = getToken();
     if (token) {
       requestHeaders["Authorization"] = `Bearer ${token}`;
+      console.log("🔑 Adding Bearer token to request:", url);
+    } else {
+      console.warn("⚠️ No token found for authenticated request:", url);
     }
   }
 
@@ -102,25 +113,55 @@ const httpClient = async (
     fetchOptions.body = data instanceof FormData ? data : JSON.stringify(data);
   }
 
-  const response = await fetch(finalUrl, fetchOptions);
+  try {
+    const response = await fetch(finalUrl, fetchOptions);
 
-  if (!response.ok) {
-    let error: { message: string; [key: string]: unknown } = {
-      message: "Something went wrong",
-    };
-    try {
-      error = await response.json();
-    } catch {
-      error.message = "Something went wrong";
+    // Handle 401 Unauthorized - try to refresh token and retry
+    if (response.status === 401 && withAuth && retryCount === 0) {
+      console.log("Received 401, attempting token refresh");
+
+      const tokenManager = TokenManager.getInstance();
+      const refreshed = await tokenManager.manualRefresh();
+
+      if (refreshed) {
+        console.log("Token refreshed, retrying request");
+        // Retry the request with the new token (only retry once)
+        return await httpClient(url, options, retryCount + 1);
+      } else {
+        console.log("Token refresh failed");
+        // Let the error propagate to trigger logout
+      }
     }
-    throw error;
-  }
 
-  if (responseType === "blob") {
-    return await response.blob();
-  }
+    if (!response.ok) {
+      let error: { message: string; status: number; [key: string]: unknown } = {
+        message: "Something went wrong",
+        status: response.status,
+      };
+      try {
+        error = await response.json();
+        error.status = response.status;
+      } catch {
+        error.message = "Something went wrong";
+        error.status = response.status;
+      }
+      throw error;
+    }
 
-  return await response.json();
+    if (responseType === "blob") {
+      return await response.blob();
+    }
+
+    return await response.json();
+  } catch (fetchError) {
+    // If it's a network error or parsing error, just throw it
+    if (!(fetchError as any).status) {
+      throw fetchError;
+    }
+
+    // If it's an HTTP error, it was already handled above
+    throw fetchError;
+  }
 };
 
 export default httpClient;

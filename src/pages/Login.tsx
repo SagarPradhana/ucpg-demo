@@ -21,7 +21,7 @@ import { jwtDecode } from "jwt-decode";
 import { login } from "@/service/auth";
 import TokenManager from "@/utils/tokenManager";
 import { useMutation } from "@tanstack/react-query";
-import { User, LoginCredentials } from "@/types";
+import { User, LoginCredentials, ApiResponse, LoginResponse } from "@/types";
 
 const Login = () => {
   const [loginObj, setLoginObj] = useState({
@@ -36,29 +36,38 @@ const Login = () => {
 
   const loginMutation = useMutation({
     mutationFn: (loginData: LoginCredentials) => login(loginData),
-    onSuccess: (response: any) => {
-      // Store the token in localStorage
-      localStorage.setItem("sessionToken", response?.data?.access_token);
-      const decodedUser = jwtDecode<User>(response?.data?.access_token);
+    onSuccess: (response: ApiResponse<LoginResponse>) => {
+      if (!response?.data?.access_token || !response?.data?.refresh_token) {
+        throw new Error("Invalid login response - missing tokens");
+      }
+
+      // Store both tokens using TokenManager
+      const tokenManager = TokenManager.getInstance();
+      tokenManager.storeTokens(
+        response.data.access_token,
+        response.data.refresh_token
+      );
+
+      // Decode user from access token
+      const decodedUser = jwtDecode<User>(response.data.access_token);
 
       // Dispatch user details to Redux store
       dispatch(loginActions.setUserDetails(decodedUser));
 
-      // Refresh token manager to start monitoring the new token
-      const tokenManager = TokenManager.getInstance();
+      // Start token monitoring with refresh capability
       tokenManager.refreshTokenCheck();
 
       toast({
         title: t("auth.welcomeToUCPG"),
-        description: response?.message,
+        description: response?.message || "Login successful",
       });
       navigate("/dashboard");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Login failed:", error);
       toast({
         title: t("auth.incorrectCredentials"),
-        description: error?.message,
+        description: error?.message || "Login failed. Please try again.",
         variant: "destructive",
       });
     },

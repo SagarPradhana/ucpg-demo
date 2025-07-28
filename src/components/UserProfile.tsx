@@ -155,9 +155,14 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   }, []);
 
   const handleLogout = () => {
+    // Stop token monitoring and clear all tokens
     const tokenManager = TokenManager.getInstance();
     tokenManager.destroy();
-    localStorage.removeItem("sessionToken");
+    tokenManager.clearTokens();
+
+    // Clear Redux state
+    dispatch(loginActions.clearUserDetails());
+
     // Removed non-API logout toast
     navigate("/login");
   };

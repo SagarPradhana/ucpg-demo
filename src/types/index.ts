@@ -22,6 +22,23 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in?: number;
+  token_type?: string;
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string;
+}
+
+export interface RefreshTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in?: number;
+}
+
 export interface SignUpData extends LoginCredentials {
   name: string;
   confirmPassword: string;

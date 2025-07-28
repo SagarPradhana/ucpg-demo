@@ -19,8 +19,33 @@ import Services from "./pages/Services";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import TokenManager from "./utils/tokenManager";
+import { loginActions } from "./store/loginReducer";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient();
+
+// Component to initialize TokenManager
+const TokenManagerInitializer = () => {
+  useEffect(() => {
+    const tokenManager = TokenManager.getInstance();
+
+    // Initialize token manager with logout callback
+    tokenManager.initialize(() => {
+      // Clear Redux state on token expiration
+      store.dispatch(loginActions.clearUserDetails());
+
+      // Redirect to login (this will be handled by individual components)
+      console.log("Token expired, user should be redirected to login");
+    });
+
+    return () => {
+      tokenManager.destroy();
+    };
+  }, []);
+
+  return null;
+};
 
 const App = () => (
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
@@ -28,6 +53,7 @@ const App = () => (
       <QueryClientProvider client={queryClient}>
         <LanguageProvider defaultLanguage="en">
           <ThemeProvider defaultTheme="system">
+            <TokenManagerInitializer />
             <TooltipProvider>
               <Toaster />
               <Sonner />

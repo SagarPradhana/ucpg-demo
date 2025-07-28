@@ -44,6 +44,7 @@ import {
 
 import { RootState } from "@/types";
 import { updateUserPessword, updateUserProfile } from "@/service/auth";
+import TokenDebugPanel from "@/components/TokenDebugPanel";
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -189,6 +190,25 @@ const Profile = () => {
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
 
+    console.log("🔄 Updating profile for user ID:", userProfile?.id);
+    console.log("📝 Profile data:", {
+      name: profileData.name,
+      metadata: {
+        country: profileData.country,
+        currency: profileData.currency,
+      },
+    });
+
+    if (!userProfile?.id) {
+      console.error("❌ No user ID available for profile update");
+      toast({
+        title: t("profile.error"),
+        description: "User ID not found. Please try logging in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     updateProfileMutation.mutate({
       name: profileData.name,
       metadata: {
@@ -208,6 +228,18 @@ const Profile = () => {
 
     if (passwordData.newPassword.length < 6) {
       // Removed non-API validation toast - this is client-side validation
+      return;
+    }
+
+    console.log("🔄 Changing password for user ID:", userProfile?.id);
+
+    if (!userProfile?.id) {
+      console.error("❌ No user ID available for password change");
+      toast({
+        title: t("profile.error"),
+        description: "User ID not found. Please try logging in again.",
+        variant: "destructive",
+      });
       return;
     }
 

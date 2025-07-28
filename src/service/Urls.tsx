@@ -57,3 +57,8 @@ export const UPDATEUSERPASSWORD: Api = {
   url: `${BACKEND_KPIX}/user/reset-password/{0}`,
   method: HttpMethods.PUT,
 };
+
+export const REFRESH_TOKEN: Api = {
+  url: `${BACKEND_KPIX}/auth/refreshtoken`,
+  method: HttpMethods.POST,
+};

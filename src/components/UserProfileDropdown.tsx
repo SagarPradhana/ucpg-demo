@@ -48,8 +48,13 @@ const UserProfileDropdown = ({ user }: UserProfileDropdownProps) => {
   };
 
   const handleLogout = () => {
-    // Clear session data
-    localStorage.removeItem("sessionToken");
+    // Stop token monitoring and clear all tokens
+    const tokenManager = TokenManager.getInstance();
+    tokenManager.destroy();
+    tokenManager.clearTokens();
+
+    // Clear Redux state
+    dispatch(loginActions.clearUserDetails());
 
     // Removed non-API logout toast
 
