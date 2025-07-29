@@ -28,6 +28,7 @@ import {
   ArrowLeft,
   Coins,
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { QRCodeSVG } from "qrcode.react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -42,6 +43,7 @@ import {
 const SendPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   // Mock API function for sending payment
   const mockSendPayment = (
@@ -98,16 +100,18 @@ const SendPage = () => {
       setIsModalOpen(true);
 
       toast({
-        title: "Payment Sent Successfully",
-        description: `Transaction ID: ${result.transactionId}`,
+        title: t("send.paymentSentSuccessfully"),
+        description: t("send.transactionIdResult", {
+          transactionId: result.transactionId,
+        }),
       });
     },
     onError: (error) => {
       console.error("Send payment failed:", error);
       setPaymentStatus("idle");
       toast({
-        title: "Payment Failed",
-        description: "Failed to send payment. Please try again.",
+        title: t("send.paymentFailed"),
+        description: t("send.paymentFailedDesc"),
         variant: "destructive",
       });
     },
@@ -207,13 +211,13 @@ const SendPage = () => {
               onClick={() => navigate("/dashboard")}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t("common.back")}
             </Button>
             <div className="flex items-center space-x-2">
               <div className="bg-primary/10 p-2 rounded-lg">
                 <Coins className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="text-xl font-bold">Send Payment</h1>
+              <h1 className="text-xl font-bold">{t("send.title")}</h1>
             </div>
           </div>
         </div>
@@ -224,9 +228,7 @@ const SendPage = () => {
         <Card className="mb-6">
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">
-              This platform ensures your anonymity. No personal data is
-              collected or stored. All transactions use anonymous identifiers.
-              For support, use your transaction ID.
+              {t("dashboard.anonymityDisclaimer")}
             </p>
           </CardContent>
         </Card>
@@ -237,19 +239,16 @@ const SendPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Send className="h-5 w-5 mr-2" />
-                Send Payment
+                {t("send.title")}
               </CardTitle>
-              <CardDescription>
-                Send cryptocurrency anonymously with automatic currency
-                conversion
-              </CardDescription>
+              <CardDescription>{t("send.subtitle")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Amount Input */}
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="amount">Amount</Label>
+                    <Label htmlFor="amount">{t("send.amount")}</Label>
                     <Input
                       id="amount"
                       placeholder="0.00"
@@ -263,7 +262,7 @@ const SendPage = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Local Currency</Label>
+                    <Label>{t("send.localCurrency")}</Label>
                     <Select
                       value={localCurrency}
                       onValueChange={(value) => {
@@ -276,16 +275,20 @@ const SendPage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="USD">🇺🇸 USD - US Dollar</SelectItem>
-                        <SelectItem value="EUR">🇪🇺 EUR - Euro</SelectItem>
+                        <SelectItem value="USD">
+                          🇺🇸 USD - {t("currency.usd")}
+                        </SelectItem>
+                        <SelectItem value="EUR">
+                          🇪🇺 EUR - {t("currency.eur")}
+                        </SelectItem>
                         <SelectItem value="GBP">
-                          🇬🇧 GBP - British Pound
+                          🇬🇧 GBP - {t("currency.gbp")}
                         </SelectItem>
                         <SelectItem value="UZS">
-                          🇺🇿 UZS - Uzbekistani Som
+                          🇺🇿 UZS - {t("currency.uzs")}
                         </SelectItem>
                         <SelectItem value="KZT">
-                          🇰🇿 KZT - Kazakhstani Tenge
+                          🇰🇿 KZT - {t("currency.kzt")}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -294,7 +297,7 @@ const SendPage = () => {
 
                 {/* Payment Method Selection */}
                 <div className="space-y-2">
-                  <Label>Payment Method</Label>
+                  <Label>{t("send.paymentMethod")}</Label>
                   <Select
                     value={paymentMethod}
                     onValueChange={setPaymentMethod}
@@ -303,9 +306,13 @@ const SendPage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="card">💳 Bank Card</SelectItem>
+                      <SelectItem value="card">
+                        💳 {t("send.bankCard")}
+                      </SelectItem>
                       <SelectItem value="paypal">🏦 PayPal</SelectItem>
-                      <SelectItem value="bank">🏛️ Bank Transfer</SelectItem>
+                      <SelectItem value="bank">
+                        🏛️ {t("send.bankTransfer")}
+                      </SelectItem>
                       <SelectItem value="apple">📱 Apple Pay</SelectItem>
                       <SelectItem value="google">📱 Google Pay</SelectItem>
                     </SelectContent>
@@ -318,7 +325,7 @@ const SendPage = () => {
               {/* Conversion Display */}
               <div className="p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <Label>Convert to Cryptocurrency</Label>
+                  <Label>{t("send.convertTo")}</Label>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -326,7 +333,7 @@ const SendPage = () => {
                     disabled={paymentStatus === "processing"}
                   >
                     <RefreshCw className="h-4 w-4 mr-1" />
-                    Refresh Rate
+                    {t("send.refreshRate")}
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -342,22 +349,31 @@ const SendPage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USDT">₮ USDT - Tether</SelectItem>
-                      <SelectItem value="BTC">₿ BTC - Bitcoin</SelectItem>
-                      <SelectItem value="ETH">Ξ ETH - Ethereum</SelectItem>
+                      <SelectItem value="USDT">
+                        ₮ USDT - {t("currency.usdt")}
+                      </SelectItem>
+                      <SelectItem value="BTC">
+                        ₿ BTC - {t("currency.btc")}
+                      </SelectItem>
+                      <SelectItem value="ETH">
+                        Ξ ETH - {t("currency.eth")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <div className="space-y-1">
                     <Input
                       value={convertedAmount}
-                      placeholder="Converted amount"
+                      placeholder={t("send.convertedAmount")}
                       readOnly
                       className="font-mono text-right"
                     />
                     {exchangeRate && paymentAmount && (
                       <p className="text-xs text-muted-foreground">
-                        Rate: 1 {localCurrency} = {exchangeRate.toFixed(8)}{" "}
-                        {cryptoCurrency}
+                        {t("send.exchangeRateDisplay", {
+                          localCurrency,
+                          rate: exchangeRate.toFixed(8),
+                          cryptoCurrency,
+                        })}
                       </p>
                     )}
                   </div>
@@ -378,12 +394,12 @@ const SendPage = () => {
                 {paymentStatus === "processing" ? (
                   <>
                     <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                    Processing Payment...
+                    {t("send.processing")}
                   </>
                 ) : (
                   <>
                     <CreditCard className="h-5 w-5 mr-2" />
-                    Process Payment ({paymentAmount} {localCurrency})
+                    {t("send.processPayment")} ({paymentAmount} {localCurrency})
                   </>
                 )}
               </Button>
@@ -393,8 +409,11 @@ const SendPage = () => {
                 <div className="flex items-center justify-center p-4 bg-blue-50 rounded-lg">
                   <RefreshCw className="h-5 w-5 mr-2 animate-spin text-blue-600" />
                   <span className="text-blue-700">
-                    Processing your {paymentMethod} payment of {paymentAmount}{" "}
-                    {localCurrency}...
+                    {t("send.processingDescription", {
+                      method: paymentMethod,
+                      amount: paymentAmount,
+                      currency: localCurrency,
+                    })}
                   </span>
                 </div>
               )}
@@ -407,24 +426,30 @@ const SendPage = () => {
             {paymentAmount && convertedAmount && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Payment Summary</CardTitle>
+                  <CardTitle className="text-lg">
+                    {t("send.paymentSummary")}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Amount:</span>
+                    <span className="text-muted-foreground">
+                      {t("send.amount")}:
+                    </span>
                     <span className="font-semibold">
                       {paymentAmount} {localCurrency}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Converts to:</span>
+                    <span className="text-muted-foreground">
+                      {t("send.convertsTo")}:
+                    </span>
                     <span className="font-semibold font-mono">
                       {convertedAmount} {cryptoCurrency}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
-                      Payment Method:
+                      {t("send.paymentMethod")}:
                     </span>
                     <span className="font-semibold capitalize">
                       {paymentMethod.replace("_", " ")}
@@ -433,7 +458,7 @@ const SendPage = () => {
                   <Separator />
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      Exchange Rate:
+                      {t("send.exchangeRate")}:
                     </span>
                     <span>
                       1 {localCurrency} = {exchangeRate.toFixed(8)}{" "}
@@ -450,14 +475,14 @@ const SendPage = () => {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle className="text-green-800">
-                      Payment Completed Successfully!
+                      {t("send.completed")}
                     </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-6 pt-6">
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">
-                          Transaction ID
+                          {t("send.transactionId")}
                         </Label>
                         <div className="flex space-x-2">
                           <Input
@@ -470,7 +495,7 @@ const SendPage = () => {
                             size="sm"
                             onClick={() => {
                               navigator.clipboard.writeText(transactionId);
-                              toast({ title: "Transaction ID Copied" });
+                              toast({ title: t("send.transactionIdCopied") });
                             }}
                           >
                             <Copy className="h-4 w-4" />
@@ -480,7 +505,7 @@ const SendPage = () => {
 
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">
-                          Single-Use Payment Link
+                          {t("send.singleUseLink")}
                         </Label>
                         <div className="flex space-x-2">
                           <Input
@@ -497,22 +522,20 @@ const SendPage = () => {
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          ⚠️ This link can only be used once and expires in 24
-                          hours
+                          ⚠️ {t("send.singleUseLinkWarning")}
                         </p>
                       </div>
 
                       <div className="flex justify-center">
                         <div className="text-center space-y-2">
                           <Label className="text-sm font-medium">
-                            Single-Use QR Code
+                            {t("send.singleUseQR")}
                           </Label>
                           <div className="p-4 bg-white rounded-lg border">
                             <QRCodeSVG value={singleUseQR} size={150} />
                           </div>
                           <p className="text-xs text-muted-foreground max-w-xs">
-                            Scan this QR code to access the payment. It will
-                            become invalid after first use.
+                            {t("send.qrCodeInstructions")}
                           </p>
                         </div>
                       </div>
@@ -524,13 +547,13 @@ const SendPage = () => {
                           className="flex-1"
                         >
                           <Send className="h-4 w-4 mr-2" />
-                          Send Another Payment
+                          {t("send.sendAnother")}
                         </Button>
                         <Button
                           onClick={() => navigate("/dashboard")}
                           className="flex-1"
                         >
-                          Back to Dashboard
+                          {t("nav.back")}
                         </Button>
                       </div>
                     </div>

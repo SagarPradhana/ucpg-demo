@@ -6,6 +6,7 @@ import {
   VERIFYOTP,
   FORGOT_PASSWORD,
   SENDOTP,
+  GET_USER,
   FormatUrl,
   UPDATEUSERPROFILE,
   UPDATEUSERPASSWORD,
@@ -67,6 +68,18 @@ export const sendOtp = (data: { email: string }) => {
   const response = httpClient(SENDOTP?.url, {
     method: SENDOTP.method,
     data,
+  });
+  return response;
+};
+
+export const getUser = (id: string) => {
+  console.log("🔄 getUser called with ID:", id);
+  const formatedUrl = FormatUrl(GET_USER.url, id);
+  console.log("📡 Get user URL:", formatedUrl);
+
+  const response = httpClient(formatedUrl, {
+    method: GET_USER.method,
+    withAuth: true, // Explicitly ensure authentication header is included
   });
   return response;
 };

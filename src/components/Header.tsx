@@ -1,5 +1,6 @@
 import { Shield } from "lucide-react";
 import UserProfileDropdown from "./UserProfileDropdown";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface HeaderProps {
   user?: {
@@ -10,6 +11,7 @@ interface HeaderProps {
 }
 
 const Header = ({ user }: HeaderProps) => {
+  const { t } = useLanguage();
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
@@ -18,7 +20,7 @@ const Header = ({ user }: HeaderProps) => {
           <div className="bg-primary/10 p-2 rounded-lg">
             <Shield className="h-6 w-6 text-primary" />
           </div>
-          <h1 className="text-xl font-bold">UCPG</h1>
+          <h1 className="text-xl font-bold">{t("app.title")}</h1>
         </div>
 
         {/* Navigation - Add your navigation items here */}

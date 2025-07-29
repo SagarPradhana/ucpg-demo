@@ -3,10 +3,12 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const ReceivePayment = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -35,28 +37,28 @@ const ReceivePayment = () => {
   };
 
   if (!paymentDetails) {
-    return <div>Loading...</div>;
+    return <div>{t("common.loading")}</div>;
   }
 
   return (
     <div className="container mx-auto p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Receive Payment</CardTitle>
+          <CardTitle>{t("receive.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p>
-            Amount: {paymentDetails.amount} {paymentDetails.currency}
+            {t("receive.amount")}: {paymentDetails.amount} {paymentDetails.currency}
           </p>
-          <p>Status: {paymentDetails.status}</p>
+          <p>{t("profile.status")}: {paymentDetails.status}</p>
           {paymentDetails.status === "pending" && (
             <Button onClick={handleReceivePayment} disabled={isProcessing}>
-              {isProcessing ? "Processing..." : "Receive Funds"}
+              {isProcessing ? t("common.processing") : t("receive.receiveFunds")}
             </Button>
           )}
           {paymentDetails.status === "completed" && (
             <p className="text-green-500">
-              Payment has been received successfully!
+              {t("receive.paymentReceived")}
             </p>
           )}
         </CardContent>

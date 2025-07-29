@@ -30,7 +30,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSelector, useDispatch } from "react-redux";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { jwtDecode } from "jwt-decode";
 import { loginActions } from "@/store/loginReducer";
 import { debugToken } from "@/utils/debugToken";
@@ -45,6 +45,7 @@ import {
 import { RootState } from "@/types";
 import { updateUserPessword, updateUserProfile } from "@/service/auth";
 import TokenDebugPanel from "@/components/TokenDebugPanel";
+import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -52,10 +53,17 @@ const Profile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const userProfile = useSelector((store: RootState) => store.auth.userDetails);
+  const authUser = useSelector((store: RootState) => store.auth.userDetails); // For getting user ID and initial auth
+  const singleUserDetails = useSelector(
+    (store: RootState) => store.singleUserDetails
+  ) as any;
+
+  // Use singleUserDetails as primary user data, fallback to authUser for ID when needed
+  const userProfile = singleUserDetails.userDetails.data || authUser;
   const dispatch = useDispatch();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
   console.log("UserProfile from Redux:", userProfile);
 
   const [profileData, setProfileData] = useState({
@@ -72,9 +80,24 @@ const Profile = () => {
   // Profile update mutation
   const updateProfileMutation = useMutation({
     mutationFn: (profileData: any) =>
-      updateUserProfile(profileData, userProfile?.id),
+      updateUserProfile(profileData, authUser?.id || userProfile?.id),
     onSuccess: (res: any) => {
       setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      // Update the singleUserDetails with the new profile data
+      if (userProfile) {
+        const updatedUser = {
+          ...userProfile,
+          name: profileData.name,
+          metadata: {
+            ...userProfile.metadata,
+            country: profileData.country,
+            currency: profileData.currency,
+          },
+        };
+        dispatch(singleUserDetailsActions.setSingleUserDetails(updatedUser));
+      }
+
       toast({
         title: t("profile.success"),
         description: res.message,
@@ -93,8 +116,9 @@ const Profile = () => {
   // Password change mutation
   const changePasswordMutation = useMutation({
     mutationFn: (passwordData: any) =>
-      updateUserPessword(passwordData, userProfile?.id),
+      updateUserPessword(passwordData, authUser?.id || userProfile?.id),
     onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
       setPasswordData({
         currentPassword: "",
         newPassword: "",
@@ -118,8 +142,8 @@ const Profile = () => {
   // Load user data from token when component mounts
   useEffect(() => {
     const loadUserFromToken = () => {
-      // If userProfile is already loaded, stop loading
-      if (userProfile) {
+      // If authUser is already loaded, stop loading
+      if (authUser) {
         setIsLoadingUser(false);
         return;
       }
@@ -135,13 +159,6 @@ const Profile = () => {
           if (decodedUser.exp > currentTime) {
             // Dispatch user details to Redux store
             dispatch(loginActions.setUserDetails(decodedUser));
-
-            // Update profile data with user info
-            setProfileData((prev) => ({
-              ...prev,
-              name: decodedUser.name || prev.name,
-              email: decodedUser.email || prev.email,
-            }));
 
             setIsLoadingUser(false);
           } else {
@@ -168,15 +185,17 @@ const Profile = () => {
     if (import.meta.env.MODE === "development") {
       debugToken();
     }
-  }, [dispatch, navigate, userProfile]);
+  }, [dispatch, navigate, authUser]);
 
-  // Update profile data when userProfile changes
+  // Update profile data when userProfile changes (from API or JWT)
   useEffect(() => {
     if (userProfile) {
-      setProfileData((prev) => ({
+      setProfileData((prev: any) => ({
         ...prev,
         name: userProfile.name || prev.name,
         email: userProfile.email || prev.email,
+        country: userProfile.metadata?.country || prev.country,
+        currency: userProfile.metadata?.currency || prev.currency,
       }));
     }
   }, [userProfile]);
@@ -199,7 +218,9 @@ const Profile = () => {
       },
     });
 
-    if (!userProfile?.id) {
+    // Use authUser.id for API calls since that's always available from JWT
+    const userId = authUser?.id || userProfile?.id;
+    if (!userId) {
       console.error("❌ No user ID available for profile update");
       toast({
         title: t("profile.error"),
@@ -231,9 +252,11 @@ const Profile = () => {
       return;
     }
 
-    console.log("🔄 Changing password for user ID:", userProfile?.id);
+    // Use authUser.id for API calls since that's always available from JWT
+    const userId = authUser?.id || userProfile?.id;
+    console.log("🔄 Changing password for user ID:", userId);
 
-    if (!userProfile?.id) {
+    if (!userId) {
       console.error("❌ No user ID available for password change");
       toast({
         title: t("profile.error"),
@@ -244,7 +267,7 @@ const Profile = () => {
     }
 
     changePasswordMutation.mutate({
-      email: userProfile?.email,
+      email: userProfile?.email || authUser?.email,
       old_password: passwordData.currentPassword,
       new_password: passwordData.newPassword,
     });
@@ -405,25 +428,6 @@ const Profile = () => {
                       <p className="text-xs text-muted-foreground">
                         {t("profile.emailNote")}
                       </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">{t("profile.phone")}</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="phone"
-                          value={profileData.phone}
-                          onChange={(e) =>
-                            setProfileData((prev) => ({
-                              ...prev,
-                              phone: e.target.value,
-                            }))
-                          }
-                          disabled={!isEditing}
-                          className="pl-10"
-                        />
-                      </div>
                     </div>
 
                     <div className="space-y-2">

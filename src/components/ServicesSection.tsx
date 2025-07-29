@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Service {
   id: string;
@@ -43,6 +44,7 @@ const mockServices: Service[] = [
 
 const ServicesSection: React.FC = () => {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [services] = useState<Service[]>(mockServices);
 
   const handlePurchase = (service: Service) => {
@@ -57,7 +59,7 @@ const ServicesSection: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Available Services</h2>
+      <h2 className="text-2xl font-bold">{t("services.availableServices")}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {services.map((service) => (
           <Card key={service.id}>
@@ -73,7 +75,7 @@ const ServicesSection: React.FC = () => {
                 onClick={() => handlePurchase(service)}
                 className="w-full"
               >
-                Purchase Anonymously
+                {t("services.purchaseAnonymously")}
               </Button>
             </CardContent>
           </Card>

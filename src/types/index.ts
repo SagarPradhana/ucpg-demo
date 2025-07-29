@@ -90,8 +90,15 @@ export interface UserState {
   isAuthenticated: boolean;
 }
 
+export interface SingleUserDetailsState {
+  userDetails: User | null;
+  loading: boolean;
+  error: string | null;
+}
+
 export interface RootState {
   auth: UserState;
+  singleUserDetails: SingleUserDetailsState;
 }
 
 export interface ServiceAccess {

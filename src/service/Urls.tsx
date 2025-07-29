@@ -49,6 +49,11 @@ export const SENDOTP: Api = {
   url: `${BACKEND_KPIX}/auth/send-otp`,
   method: HttpMethods.POST,
 };
+export const GET_USER: Api = {
+  url: `${BACKEND_KPIX}/user/{0}`,
+  method: HttpMethods.GET,
+};
+
 export const UPDATEUSERPROFILE: Api = {
   url: `${BACKEND_KPIX}/user/{0}`,
   method: HttpMethods.PUT,

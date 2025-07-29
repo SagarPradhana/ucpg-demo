@@ -259,6 +259,57 @@ export const tr = {
   "profile.loadingProfile": "Profiliniz yükleniyor...",
   "profile.bioPlaceholder": "Kendiniz hakkında bize söyleyin...",
   "profile.defaultBio": "Kripto meraklısı ve blockchain geliştiricisi",
+  "profile.userDetails": "Kullanıcı Detayları",
+  "profile.userInfoFromAPI": "API'den güncel kullanıcı bilgileri",
+  "profile.loadingUserData": "Kullanıcı verileri yükleniyor...",
+  "profile.errorLoadingUserData": "Kullanıcı verileri yüklenirken hata",
+
+  // NotFound Page
+  "notFound.message": "Ops! Sayfa bulunamadı",
+  "notFound.returnHome": "Ana Sayfaya Dön",
+
+  // Send Page - Additional keys
+  "send.paymentSentSuccessfully": "Ödeme Başarıyla Gönderildi",
+  "send.transactionIdResult": "İşlem ID: {{transactionId}}",
+  "send.paymentFailed": "Ödeme Başarısız",
+  "send.paymentFailedDesc": "Ödeme gönderilemedi. Lütfen tekrar deneyin.",
+  "send.bankCard": "Banka Kartı",
+  "send.convertedAmount": "Dönüştürülen tutar",
+  "send.exchangeRateDisplay": "Kur: 1 {{localCurrency}} = {{rate}} {{cryptoCurrency}}",
+  "send.paymentSummary": "Ödeme Özeti",
+  "send.convertsTo": "Dönüştürülür",
+  "send.transactionIdCopied": "İşlem ID Kopyalandı",
+  "send.singleUseLinkWarning": "Bu bağlantı sadece bir kez kullanılabilir ve 24 saat içinde sona erer",
+  "send.qrCodeInstructions": "Ödemeye erişmek için bu QR kodunu tarayın. İlk kullanımdan sonra geçersiz hale gelecektir.",
+  "send.sendAnother": "Başka Bir Ödeme Gönder",
+
+  // Receive Page - Additional keys
+  "receive.receiveFunds": "Fonları Al",
+  "receive.paymentReceived": "Ödeme başarıyla alındı!",
+  "receive.transactionIdResult": "İşlem ID: {{transactionId}}",
+  "receive.processingFailed": "Ödeme İşleme Başarısız",
+  "receive.processingFailedDesc": "Ödeme işlenemedi. Lütfen tekrar deneyin.",
+  "receive.linkGenerated": "Alma Bağlantısı Oluşturuldu",
+  "receive.linkGeneratedDesc": "Ödeme bağlantınız paylaşıma hazır.",
+  "receive.linkGenerationFailed": "Bağlantı Oluşturma Başarısız",
+  "receive.linkGenerationFailedDesc": "Alma bağlantısı oluşturulamadı. Lütfen tekrar deneyin.",
+  "receive.processingPayment": "Ödeme İşleniyor",
+  "receive.processingPaymentDesc": "Ödemeniz anonim olarak işleniyor",
+  "receive.processingWait": "Fonlarınızı güvenli bir şekilde teslim ederken lütfen bekleyin...",
+  "receive.paymentDelivered": "Ödeme Teslim Edildi",
+  "receive.paymentDeliveredDesc": "Fonlar anonim olarak teslim edildi",
+  "receive.linkBlocked": "Bu ödeme bağlantısı artık engellendi ve tekrar kullanılamaz.",
+  "receive.anonymityDisclaimer": "Anonim ödemeler almak için güvenli bir bağlantı veya QR kodu oluşturun. Tüm transferler anonim olarak işlenir ve bağlantılar tek kullanımlıktır.",
+  "receive.requestPayment": "Ödeme Talep Et",
+  
+  "receive.amountToReceive": "Alınacak Tutar",
+
+  // Services Section
+  "services.availableServices": "Mevcut Hizmetler",
+  "services.purchaseAnonymously": "Anonim Satın Al",
+
+  // Common - Additional keys
+  "common.processing": "İşleniyor...",
 
   // Services Page
   "services.title": "Servisler",
@@ -319,14 +370,12 @@ export const tr = {
   "send.singleUseQR": "Tek Kullanımlık QR Kod",
   "send.linkWarning": "⚠️ Bu bağlantı sadece bir kez kullanılabilir ve 24 saat sonra sona erer",
   "send.qrWarning": "Ödeme erişimi için bu QR kodu tarayın. İlk kullanımdan sonra geçersiz hale gelecektir.",
-  "send.sendAnother": "Başka Ödeme Gönder",
-  "send.paymentSummary": "Ödeme Özeti",
-  "send.convertsTo": "Dönüştürülür",
+  
   
 
   // Receive Page
  
-  "receive.amountToReceive": "Alınacak Miktar",
+  
  
   "receive.deliveryMethod": "Teslimat Yöntemi",
   "receive.cryptoWallet": "Kripto Cüzdan",
@@ -339,7 +388,6 @@ export const tr = {
   "receive.bankCardHelper": "Fonlar dönüştürülüp banka kartınıza transfer edilecek",
   "receive.generateLink": "Alma Bağlantısı Oluştur",
   "receive.waitingForPayment": "Ödeme Bekleniyor...",
-  "receive.linkGenerated": "Alma Bağlantısı Oluşturuldu",
   
   "receive.linkShareWarning": "⚠️ Ödeme almak için bu bağlantıyı paylaşın. Sadece tek kullanımlık, 24 saat sonra sona erer.",
   "receive.qrShareWarning": "Kolay ödeme erişimi için bu QR kodu paylaşın. İlk kullanımdan sonra geçersiz hale gelir.",
@@ -347,12 +395,11 @@ export const tr = {
   "receive.receiveSummary": "Alma Özeti",
   "receive.destination": "Hedef",
   "receive.notSet": "Ayarlanmadı",
-  "receive.processingPayment": "Ödeme İşleniyor",
+  
   "receive.processingDescription": "Ödemeniz anonim olarak işleniyor",
-  "receive.processingWait": "Fonlarınızı güvenli şekilde teslim ederken lütfen bekleyin...",
-  "receive.paymentDelivered": "Ödeme Teslim Edildi",
+ 
   "receive.fundsDelivered": "Fonlar anonim olarak teslim edildi",
-  "receive.linkBlocked": "⚠️ Bu ödeme bağlantısı artık bloklandı ve tekrar kullanılamaz.",
+  
 
   // Payment Methods
   "payment.card": "Banka Kartı",

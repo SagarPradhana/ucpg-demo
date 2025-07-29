@@ -23,14 +23,9 @@ import {
   Download,
   History,
   Settings,
-  LogOut,
   TrendingUp,
-  Shield,
   Globe,
   Copy,
-  QrCode,
-  ArrowUpRight,
-  ArrowDownLeft,
   Wallet,
   Menu,
   MoreVertical,
@@ -53,20 +48,28 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { loginActions } from "@/store/loginReducer";
+import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
+import { getUser } from "@/service/auth";
 import { Input } from "@/components/ui/input";
-
-import { RootState } from "@/types";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import UserProfile from "@/components/UserProfile";
+import SingleUserDetailsCard from "@/components/SingleUserDetailsCard";
+import { RootState } from "@/types";
 import { debugToken } from "@/utils/debugToken";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
-  const userProfile = useSelector((store: RootState) => store.auth.userDetails);
+  const authUser = useSelector((store: RootState) => store.auth.userDetails); // For getting user ID and initial auth
+  const singleUserDetails = useSelector(
+    (store: RootState) => store.singleUserDetails
+  );
+
+  // Use singleUserDetails as primary user data, fallback to authUser for ID when needed
+  const userProfile = singleUserDetails.userDetails || authUser;
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState("overview");
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -81,6 +84,35 @@ const Dashboard = () => {
   const [isActionProcessing, setIsActionProcessing] = useState<string | null>(
     null
   );
+
+  // Get user data using useQuery
+  const {
+    data: userData,
+    isLoading: userDataLoading,
+    refetch: refetchUserData,
+  } = useQuery({
+    queryKey: ["user", authUser?.id],
+    queryFn: () => {
+      if (!authUser?.id) {
+        throw new Error("User ID not available");
+      }
+      console.log("🔄 Fetching user data for ID:", authUser.id);
+      return getUser(authUser.id);
+    },
+    enabled: !!authUser?.id, // Only run query if user ID exists
+    staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
+    retry: 3,
+  });
+
+  // Update Redux state when query state changes
+  useEffect(() => {
+    if (userDataLoading) {
+      dispatch(singleUserDetailsActions.setLoading(true));
+    } else {
+      dispatch(singleUserDetailsActions.setSingleUserDetails(userData as any));
+      dispatch(singleUserDetailsActions.setLoading(false));
+    }
+  }, [userDataLoading, dispatch, userData]);
 
   // Mock API for refreshing balance data
   const mockRefreshBalance = (): Promise<{
@@ -152,8 +184,8 @@ const Dashboard = () => {
   // Load user data from token when component mounts if Redux state is empty
   useEffect(() => {
     const loadUserFromToken = () => {
-      // If userProfile is already loaded, don't reload
-      if (userProfile) return;
+      // If authUser is already loaded, don't reload
+      if (authUser) return;
 
       const token = localStorage.getItem("sessionToken");
       if (token) {
@@ -184,7 +216,7 @@ const Dashboard = () => {
     if (import.meta.env.MODE === "development") {
       debugToken();
     }
-  }, [dispatch, navigate, userProfile]);
+  }, [dispatch, navigate, authUser]);
 
   // Auto-update balance every 30 seconds
   useEffect(() => {
@@ -283,11 +315,6 @@ const Dashboard = () => {
   ];
 
   const walletAddress = "1A2B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S";
-
-  const copyAddress = () => {
-    navigator.clipboard.writeText(walletAddress);
-    // Removed non-API copy toast
-  };
 
   const [paymentAmount, setPaymentAmount] = useState("");
   const [localCurrency, setLocalCurrency] = useState("USD");
@@ -408,24 +435,26 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={refreshBalanceMutation.isPending}
-              className="flex items-center space-x-2"
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${
-                  refreshBalanceMutation.isPending ? "animate-spin" : ""
-                }`}
-              />
-              <span className="hidden sm:inline">
-                {refreshBalanceMutation.isPending
-                  ? t("common.refreshing")
-                  : t("common.refresh")}
-              </span>
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={refreshBalanceMutation.isPending}
+                className="flex items-center space-x-2"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${
+                    refreshBalanceMutation.isPending ? "animate-spin" : ""
+                  }`}
+                />
+                <span className="hidden sm:inline">
+                  {refreshBalanceMutation.isPending
+                    ? t("common.refreshing")
+                    : t("common.refresh")}
+                </span>
+              </Button>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -558,14 +587,6 @@ const Dashboard = () => {
           onValueChange={setActiveTab}
           className="space-y-4"
         >
-          {/* <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="send">Send</TabsTrigger>
-            <TabsTrigger value="receive">Receive</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-          </TabsList> */}
-
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Quick Actions */}
@@ -788,238 +809,7 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Statistics Section */}
-            {/* <StatisticsSection /> */}
           </TabsContent>
-
-          {/* <TabsContent value="send" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Send Payment</CardTitle>
-                <CardDescription>
-                  Send cryptocurrency anonymously
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSendPayment();
-                  }}
-                  className="space-y-4"
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">Amount</Label>
-                    <Input
-                      id="amount"
-                      placeholder="Enter amount"
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="localCurrency">Local Currency</Label>
-                    <Select
-                      value={localCurrency}
-                      onValueChange={setLocalCurrency}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                        <SelectItem value="UZS">UZS</SelectItem>
-                        <SelectItem value="KZT">KZT</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cryptoCurrency">Cryptocurrency</Label>
-                    <Select
-                      value={cryptoCurrency}
-                      onValueChange={setCryptoCurrency}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select cryptocurrency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="USDT">USDT</SelectItem>
-                        <SelectItem value="BTC">BTC</SelectItem>
-                        <SelectItem value="ETH">ETH</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Initiate Anonymous Payment
-                  </Button>
-                </form>
-
-                {(qrCode || paymentLink) && (
-                  <div className="mt-6 space-y-4">
-                    <Separator />
-                    <div className="text-center">
-                      <h3 className="text-lg font-semibold mb-2">
-                        Payment Details
-                      </h3>
-                      {qrCode && (
-                        <div className="mb-4">
-                          <img
-                            src={qrCode}
-                            alt="Payment QR Code"
-                            className="mx-auto"
-                          />
-                        </div>
-                      )}
-                      {paymentLink && (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">
-                            Use this link to complete your payment:
-                          </p>
-                          <div className="flex items-center space-x-2">
-                            <Input value={paymentLink} readOnly />
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                navigator.clipboard.writeText(paymentLink);
-                                // Removed non-API copy toast
-                              }}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent> */}
-
-          {/* <TabsContent value="receive" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Receive Payment</CardTitle>
-                <CardDescription>
-                  Generate an anonymous one-time use link or QR code to receive
-                  payment
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="receiveAmount">Amount</Label>
-                  <Input
-                    id="receiveAmount"
-                    placeholder="Enter amount"
-                    value={receiveAmount}
-                    onChange={(e) => setReceiveAmount(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="receiveCurrency">Currency</Label>
-                  <Select
-                    value={receiveCurrency}
-                    onValueChange={setReceiveCurrency}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="UZS">UZS</SelectItem>
-                      <SelectItem value="KZT">KZT</SelectItem>
-                      <SelectItem value="BTC">BTC</SelectItem>
-                      <SelectItem value="ETH">ETH</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button onClick={generateReceiveLink} className="w-full">
-                  Generate Payment Link
-                </Button>
-                {receiveLink && (
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Input value={receiveLink} readOnly />
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(receiveLink);
-                          // Removed non-API copy toast
-                        }}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="flex justify-center">
-                      <QRCodeSVG value={receiveQRCode} size={200} />
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent> */}
-
-          {/* <TabsContent value="history" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-                <CardDescription>
-                  View all your payment transactions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {mockTransactions.map((tx) => (
-                    <div
-                      key={tx.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div
-                          className={`p-2 rounded-full ${
-                            tx.type === "received"
-                              ? "bg-green-100 text-green-600"
-                              : "bg-blue-100 text-blue-600"
-                          }`}
-                        >
-                          {tx.type === "received" ? (
-                            <ArrowDownLeft className="h-4 w-4" />
-                          ) : (
-                            <ArrowUpRight className="h-4 w-4" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium">{tx.amount}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {tx.fiat}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge
-                          variant={
-                            tx.status === "completed" ? "default" : "secondary"
-                          }
-                        >
-                          {tx.status}
-                        </Badge>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {tx.time}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent> */}
-
-          {/* <TabsContent value="services">
-            <ServicesSection />
-          </TabsContent> */}
         </Tabs>
       </div>
     </div>

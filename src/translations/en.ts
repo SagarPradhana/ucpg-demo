@@ -259,6 +259,57 @@ export const en = {
   "profile.loadingProfile": "Loading your profile...",
   "profile.bioPlaceholder": "Tell us about yourself...",
   "profile.defaultBio": "Crypto enthusiast and blockchain developer",
+  "profile.userDetails": "User Details",
+  "profile.userInfoFromAPI": "Current user information from API",
+  "profile.loadingUserData": "Loading user data...",
+  "profile.errorLoadingUserData": "Error loading user data",
+
+  // NotFound Page
+  "notFound.message": "Oops! Page not found",
+  "notFound.returnHome": "Return to Home",
+
+  // Send Page - Additional keys
+  "send.paymentSentSuccessfully": "Payment Sent Successfully",
+  "send.transactionIdResult": "Transaction ID: {{transactionId}}",
+  "send.paymentFailed": "Payment Failed",
+  "send.paymentFailedDesc": "Failed to send payment. Please try again.",
+  "send.bankCard": "Bank Card",
+  "send.convertedAmount": "Converted amount",
+  "send.exchangeRateDisplay": "Rate: 1 {{localCurrency}} = {{rate}} {{cryptoCurrency}}",
+  "send.paymentSummary": "Payment Summary",
+  "send.convertsTo": "Converts to",
+  "send.transactionIdCopied": "Transaction ID Copied",
+  "send.singleUseLinkWarning": "This link can only be used once and expires in 24 hours",
+  "send.qrCodeInstructions": "Scan this QR code to access the payment. It will become invalid after first use.",
+  "send.sendAnother": "Send Another Payment",
+
+  // Receive Page - Additional keys
+  "receive.receiveFunds": "Receive Funds",
+  "receive.paymentReceived": "Payment has been received successfully!",
+  "receive.transactionIdResult": "Transaction ID: {{transactionId}}",
+  "receive.processingFailed": "Payment Processing Failed",
+  "receive.processingFailedDesc": "Failed to process payment. Please try again.",
+  "receive.linkGenerated": "Receive Link Generated",
+  "receive.linkGeneratedDesc": "Your payment link is ready to share.",
+  "receive.linkGenerationFailed": "Link Generation Failed",
+  "receive.linkGenerationFailedDesc": "Failed to generate receive link. Please try again.",
+  "receive.processingPayment": "Processing Payment",
+  "receive.processingPaymentDesc": "Your payment is being processed anonymously",
+  "receive.processingWait": "Please wait while we deliver your funds securely...",
+  "receive.paymentDelivered": "Payment Delivered",
+  "receive.paymentDeliveredDesc": "Funds have been delivered anonymously",
+  "receive.linkBlocked": "This payment link is now blocked and cannot be used again.",
+  "receive.anonymityDisclaimer": "Generate a secure link or QR code to receive anonymous payments. All transfers are processed anonymously and links are single-use only.",
+  "receive.requestPayment": "Request Payment",
+
+  "receive.amountToReceive": "Amount to Receive",
+
+  // Services Section
+  "services.availableServices": "Available Services",
+  "services.purchaseAnonymously": "Purchase Anonymously",
+
+  // Common - Additional keys
+  "common.processing": "Processing...",
 
   // Services Page
   "services.title": "Services",
@@ -316,14 +367,9 @@ export const en = {
   "send.singleUseQR": "Single-Use QR Code",
   "send.linkWarning": "⚠️ This link can only be used once and expires in 24 hours",
   "send.qrWarning": "Scan this QR code to access the payment. It will become invalid after first use.",
-  "send.sendAnother": "Send Another Payment",
-  "send.paymentSummary": "Payment Summary",
-  "send.convertsTo": "Converts to",
   
 
   // Receive Page
- 
-  "receive.amountToReceive": "Amount to Receive",
  
   "receive.deliveryMethod": "Delivery Method",
   "receive.cryptoWallet": "Crypto Wallet",
@@ -336,7 +382,7 @@ export const en = {
   "receive.bankCardHelper": "Funds will be converted and transferred to your bank card",
   "receive.generateLink": "Generate Receive Link",
   "receive.waitingForPayment": "Waiting for Payment...",
-  "receive.linkGenerated": "Receive Link Generated",
+ 
   
   "receive.linkShareWarning": "⚠️ Share this link to receive payment. Single-use only, expires in 24 hours.",
   "receive.qrShareWarning": "Share this QR code for easy payment access. It becomes invalid after first use.",
@@ -344,12 +390,10 @@ export const en = {
   "receive.receiveSummary": "Receive Summary",
   "receive.destination": "Destination",
   "receive.notSet": "Not set",
-  "receive.processingPayment": "Processing Payment",
+
   "receive.processingDescription": "Your payment is being processed anonymously",
-  "receive.processingWait": "Please wait while we deliver your funds securely...",
-  "receive.paymentDelivered": "Payment Delivered",
   "receive.fundsDelivered": "Funds have been delivered anonymously",
-  "receive.linkBlocked": "⚠️ This payment link is now blocked and cannot be used again.",
+
 
   // Payment Methods
   "payment.card": "Bank Card",

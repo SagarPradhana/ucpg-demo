@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,6 +44,7 @@ const ReceivePage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   // Mock API functions
   const mockProcessIncomingPayment = (
@@ -109,16 +111,18 @@ const ReceivePage = () => {
       setReceiveStatus("completed");
 
       toast({
-        title: "Payment Received",
-        description: `Transaction ID: ${result.transactionId}`,
+        title: t("receive.paymentReceived"),
+        description: t("receive.transactionIdResult", {
+          transactionId: result.transactionId,
+        }),
       });
     },
     onError: (error) => {
       console.error("Process payment failed:", error);
       setReceiveStatus("idle");
       toast({
-        title: "Payment Processing Failed",
-        description: "Failed to process payment. Please try again.",
+        title: t("receive.processingFailed"),
+        description: t("receive.processingFailedDesc"),
         variant: "destructive",
       });
     },
@@ -135,15 +139,15 @@ const ReceivePage = () => {
       setReceiveStatus("waiting");
 
       toast({
-        title: "Receive Link Generated",
-        description: "Your payment link is ready to share.",
+        title: t("receive.linkGenerated"),
+        description: t("receive.linkGeneratedDesc"),
       });
     },
     onError: (error) => {
       console.error("Generate link failed:", error);
       toast({
-        title: "Link Generation Failed",
-        description: "Failed to generate receive link. Please try again.",
+        title: t("receive.linkGenerationFailed"),
+        description: t("receive.linkGenerationFailedDesc"),
         variant: "destructive",
       });
     },
@@ -256,10 +260,10 @@ const ReceivePage = () => {
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center">
               <Download className="h-5 w-5 mr-2" />
-              Processing Payment
+              {t("receive.processingPayment")}
             </CardTitle>
             <CardDescription>
-              Your payment is being processed anonymously
+              {t("receive.processingPaymentDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
@@ -267,7 +271,7 @@ const ReceivePage = () => {
               <RefreshCw className="h-12 w-12 animate-spin text-blue-600" />
             </div>
             <p className="text-muted-foreground">
-              Please wait while we deliver your funds securely...
+              {t("receive.processingWait")}
             </p>
           </CardContent>
         </Card>
@@ -283,15 +287,17 @@ const ReceivePage = () => {
           <CardHeader className="text-center bg-green-50">
             <CardTitle className="flex items-center justify-center text-green-800">
               <CheckCircle className="h-5 w-5 mr-2" />
-              Payment Delivered
+              {t("receive.paymentDelivered")}
             </CardTitle>
             <CardDescription className="text-green-700">
-              Funds have been delivered anonymously
+              {t("receive.paymentDeliveredDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
             <div className="text-center space-y-2">
-              <Label className="text-sm font-medium">Transaction ID</Label>
+              <Label className="text-sm font-medium">
+                {t("send.transactionId")}
+              </Label>
               <div className="flex space-x-2">
                 <Input
                   value={transactionId}
@@ -303,7 +309,7 @@ const ReceivePage = () => {
                   size="sm"
                   onClick={() => {
                     navigator.clipboard.writeText(transactionId);
-                    toast({ title: "Transaction ID Copied" });
+                    toast({ title: t("send.transactionIdCopied") });
                   }}
                 >
                   <Copy className="h-4 w-4" />
@@ -312,11 +318,11 @@ const ReceivePage = () => {
             </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
-                ⚠️ This payment link is now blocked and cannot be used again.
+                ⚠️ {t("receive.linkBlocked")}
               </p>
             </div>
             <Button onClick={() => navigate("/dashboard")} className="w-full">
-              Back to Dashboard
+              {t("nav.back")}
             </Button>
           </CardContent>
         </Card>
@@ -336,13 +342,13 @@ const ReceivePage = () => {
               onClick={() => navigate("/dashboard")}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t("common.back")}
             </Button>
             <div className="flex items-center space-x-2">
               <div className="bg-primary/10 p-2 rounded-lg">
                 <Coins className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="text-xl font-bold">Receive Payment</h1>
+              <h1 className="text-xl font-bold">{t("receive.title")}</h1>
             </div>
           </div>
         </div>
@@ -353,9 +359,7 @@ const ReceivePage = () => {
         <Card className="mb-6">
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">
-              Generate a secure link or QR code to receive anonymous payments.
-              All transfers are processed anonymously and links are single-use
-              only.
+              {t("receive.anonymityDisclaimer")}
             </p>
           </CardContent>
         </Card>
@@ -366,17 +370,17 @@ const ReceivePage = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Download className="h-5 w-5 mr-2" />
-                Request Payment
+                {t("receive.requestPayment")}
               </CardTitle>
-              <CardDescription>
-                Create a secure link to receive anonymous payments
-              </CardDescription>
+              <CardDescription>{t("receive.subtitle")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Amount and Currency */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="receive-amount">Amount to Receive</Label>
+                  <Label htmlFor="receive-amount">
+                    {t("receive.amountToReceive")}
+                  </Label>
                   <Input
                     id="receive-amount"
                     placeholder="0.00"
@@ -390,7 +394,7 @@ const ReceivePage = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Currency</Label>
+                  <Label>{t("common.currency")}</Label>
                   <Select
                     value={receiveCurrency}
                     onValueChange={setReceiveCurrency}

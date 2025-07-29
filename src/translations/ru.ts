@@ -259,6 +259,57 @@ export const ru = {
   "profile.loadingProfile": "Загрузка вашего профиля...",
   "profile.bioPlaceholder": "Расскажите нам о себе...",
   "profile.defaultBio": "Энтузиаст криптовалют и блокчейн-разработчик",
+  "profile.userDetails": "Детали пользователя",
+  "profile.userInfoFromAPI": "Текущая информация о пользователе из API",
+  "profile.loadingUserData": "Загрузка данных пользователя...",
+  "profile.errorLoadingUserData": "Ошибка загрузки данных пользователя",
+
+  // NotFound Page
+  "notFound.message": "Упс! Страница не найдена",
+  "notFound.returnHome": "Вернуться на главную",
+
+  // Send Page - Additional keys
+  "send.paymentSentSuccessfully": "Платёж отправлен успешно",
+  "send.transactionIdResult": "ID транзакции: {{transactionId}}",
+  "send.paymentFailed": "Ошибка платежа",
+  "send.paymentFailedDesc": "Не удалось отправить платёж. Попробуйте ещё раз.",
+  "send.bankCard": "Банковская карта",
+  "send.convertedAmount": "Конвертированная сумма",
+  "send.exchangeRateDisplay": "Курс: 1 {{localCurrency}} = {{rate}} {{cryptoCurrency}}",
+  "send.paymentSummary": "Сводка платежа",
+  "send.convertsTo": "Конвертируется в",
+  "send.transactionIdCopied": "ID транзакции скопирован",
+  "send.singleUseLinkWarning": "Эта ссылка может быть использована только один раз и истекает через 24 часа",
+  "send.qrCodeInstructions": "Отсканируйте этот QR-код для доступа к платежу. Он станет недействительным после первого использования.",
+  "send.sendAnother": "Отправить ещё один платёж",
+
+  // Receive Page - Additional keys
+  "receive.receiveFunds": "Получить средства",
+  "receive.paymentReceived": "Платёж успешно получен!",
+  "receive.transactionIdResult": "ID транзакции: {{transactionId}}",
+  "receive.processingFailed": "Ошибка обработки платежа",
+  "receive.processingFailedDesc": "Не удалось обработать платёж. Попробуйте ещё раз.",
+  "receive.linkGenerated": "Ссылка для получения создана",
+  "receive.linkGeneratedDesc": "Ваша ссылка для платежа готова к отправке.",
+  "receive.linkGenerationFailed": "Ошибка создания ссылки",
+  "receive.linkGenerationFailedDesc": "Не удалось создать ссылку для получения. Попробуйте ещё раз.",
+  "receive.processingPayment": "Обработка платежа",
+  "receive.processingPaymentDesc": "Ваш платёж обрабатывается анонимно",
+  "receive.processingWait": "Пожалуйста, подождите, пока мы безопасно доставим ваши средства...",
+  "receive.paymentDelivered": "Платёж доставлен",
+  "receive.paymentDeliveredDesc": "Средства доставлены анонимно",
+  "receive.linkBlocked": "Эта ссылка для платежа заблокирована и не может быть использована снова.",
+  "receive.anonymityDisclaimer": "Создайте безопасную ссылку или QR-код для получения анонимных платежей. Все переводы обрабатываются анонимно, а ссылки одноразовые.",
+  "receive.requestPayment": "Запросить платёж",
+  
+  "receive.amountToReceive": "Сумма к получению",
+
+  // Services Section
+  "services.availableServices": "Доступные услуги",
+  "services.purchaseAnonymously": "Покупка анонимно",
+
+  // Common - Additional keys
+  "common.processing": "Обработка...",
 
   // Services Page
   "services.title": "Сервисы",
@@ -320,14 +371,11 @@ export const ru = {
   "send.singleUseQR": "Одноразовый QR-код",
   "send.linkWarning": "⚠️ Эта ссылка может быть использована только один раз и истекает через 24 часа",
   "send.qrWarning": "Отсканируйте этот QR-код для доступа к платежу. Он станет недействительным после первого использования.",
-  "send.sendAnother": "Отправить еще один платеж",
-  "send.paymentSummary": "Сводка платежа",
-  "send.convertsTo": "Конвертируется в",
  
   // Receive Page
   
  
-  "receive.amountToReceive": "Сумма к получению",
+  
   
   "receive.deliveryMethod": "Способ доставки",
   "receive.cryptoWallet": "Криптокошелек",
@@ -340,7 +388,7 @@ export const ru = {
   "receive.bankCardHelper": "Средства будут конвертированы и переведены на вашу банковскую карту",
   "receive.generateLink": "Создать ссылку для получения",
   "receive.waitingForPayment": "Ожидание платежа...",
-  "receive.linkGenerated": "Ссылка для получения создана",
+ 
   
   "receive.linkShareWarning": "⚠️ Поделитесь этой ссылкой для получения платежа. Только одноразовое использование, истекает через 24 часа.",
   "receive.qrShareWarning": "Поделитесь этим QR-кодом для легкого доступа к платежу. Он становится недействительным после первого использования.",
@@ -348,12 +396,11 @@ export const ru = {
   "receive.receiveSummary": "Сводка получения",
   "receive.destination": "Назначение",
   "receive.notSet": "Не задано",
-  "receive.processingPayment": "Обработка платежа",
+ 
   "receive.processingDescription": "Ваш платеж обрабатывается анонимно",
-  "receive.processingWait": "Пожалуйста, подождите, пока мы безопасно доставим ваши средства...",
-  "receive.paymentDelivered": "Платеж доставлен",
+  
   "receive.fundsDelivered": "Средства доставлены анонимно",
-  "receive.linkBlocked": "⚠️ Эта ссылка на платеж теперь заблокирована и не может быть использована снова.",
+  
 
   // Payment Methods
   "payment.card": "Банковская карта",
