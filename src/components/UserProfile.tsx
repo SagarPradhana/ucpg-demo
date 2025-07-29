@@ -31,6 +31,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
 import { loginActions } from "@/store/loginReducer";
 import TokenManager from "@/utils/tokenManager";
+import { useMutation } from "@tanstack/react-query";
 
 import { RootState } from "@/types";
 
@@ -48,6 +49,75 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   const userProfile = useSelector((store: any) => store.auth.userDetails);
   const dispatch = useDispatch();
 
+  // updateUserProfile API function
+  const updateUserProfileAPI = async (updateData: any) => {
+    const token = localStorage.getItem("sessionToken");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    // Replace this mock with your actual API endpoint
+    // Example for real implementation:
+    /*
+    const response = await fetch('/api/user/profile', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(updateData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+    */
+
+    // Mock implementation for development
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        // Simulate occasional API failure for testing
+        if (Math.random() > 0.9) {
+          reject(new Error("Network error"));
+        } else {
+          console.log("Profile updated:", updateData);
+          resolve({ success: true, data: updateData });
+        }
+      }, 1000);
+    });
+  };
+
+  // Mutation for updating user profile
+  const updateProfileMutation = useMutation({
+    mutationFn: updateUserProfileAPI,
+    onSuccess: (data: any, variables: any) => {
+      toast({
+        title: t("profile.profileUpdated"),
+        description: t("profile.profileUpdatedDesc"),
+      });
+
+      // Update Redux store with new metadata
+      if (userProfile) {
+        dispatch(
+          loginActions.setUserDetails({
+            ...userProfile,
+            metadata: variables.metadata,
+          })
+        );
+      }
+    },
+    onError: (error: any) => {
+      console.error("Profile update failed:", error);
+      toast({
+        title: t("profile.updateFailed"),
+        description: t("profile.updateFailedDesc"),
+        variant: "destructive",
+      });
+    },
+  });
+
   // Use Redux data if available, otherwise fall back to props or defaults
   const displayName = userProfile?.name || userName || "User";
   const displayEmail = userProfile?.email || userEmail || "user@example.com";
@@ -60,12 +130,30 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
     setTheme(newTheme);
-    // Removed non-API theme change toast
+
+    // Update user profile with new theme
+    const currentMetadata = userProfile?.metadata || {};
+    updateProfileMutation.mutate({
+      metadata: {
+        ...currentMetadata,
+        language: language,
+        theme: newTheme,
+      },
+    });
   };
 
   const handleLanguageChange = (newLanguage: Language) => {
     setLanguage(newLanguage);
-    // Removed non-API language change toast
+
+    // Update user profile with new language
+    const currentMetadata = userProfile?.metadata || {};
+    updateProfileMutation.mutate({
+      metadata: {
+        ...currentMetadata,
+        language: newLanguage,
+        theme: theme,
+      },
+    });
   };
 
   const getLanguageName = (lang: Language): string => {

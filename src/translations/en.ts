@@ -263,6 +263,9 @@ export const en = {
   "profile.userInfoFromAPI": "Current user information from API",
   "profile.loadingUserData": "Loading user data...",
   "profile.errorLoadingUserData": "Error loading user data",
+ 
+  "profile.updateFailed": "Update Failed",
+  "profile.updateFailedDesc": "Failed to update your profile. Please try again.",
 
   // NotFound Page
   "notFound.message": "Oops! Page not found",

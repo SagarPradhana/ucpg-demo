@@ -263,6 +263,9 @@ export const tr = {
   "profile.userInfoFromAPI": "API'den güncel kullanıcı bilgileri",
   "profile.loadingUserData": "Kullanıcı verileri yükleniyor...",
   "profile.errorLoadingUserData": "Kullanıcı verileri yüklenirken hata",
+  
+  "profile.updateFailed": "Güncelleme Başarısız",
+  "profile.updateFailedDesc": "Profiliniz güncellenemedi. Lütfen tekrar deneyin.",
 
   // NotFound Page
   "notFound.message": "Ops! Sayfa bulunamadı",

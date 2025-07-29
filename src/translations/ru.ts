@@ -263,6 +263,9 @@ export const ru = {
   "profile.userInfoFromAPI": "Текущая информация о пользователе из API",
   "profile.loadingUserData": "Загрузка данных пользователя...",
   "profile.errorLoadingUserData": "Ошибка загрузки данных пользователя",
+  
+  "profile.updateFailed": "Ошибка обновления",
+  "profile.updateFailedDesc": "Не удалось обновить ваш профиль. Попробуйте ещё раз.",
 
   // NotFound Page
   "notFound.message": "Упс! Страница не найдена",

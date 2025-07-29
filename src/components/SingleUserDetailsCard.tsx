@@ -39,9 +39,9 @@ const SingleUserDetailsCard: React.FC<SingleUserDetailsCardProps> = ({
         <div>
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <User className="h-4 w-4" />
-            User Details
+            {t("profile.userDetails")}
           </CardTitle>
-          <CardDescription>Current user information from API</CardDescription>
+          <CardDescription>{t("profile.userInfoFromAPI")}</CardDescription>
         </div>
         {onRefresh && (
           <Button
@@ -71,7 +71,7 @@ const SingleUserDetailsCard: React.FC<SingleUserDetailsCardProps> = ({
             <AlertCircle className="h-4 w-4 text-destructive" />
             <div>
               <p className="text-sm font-medium text-destructive">
-                Error loading user data
+                {t("profile.errorLoadingUserData")}
               </p>
               <p className="text-xs text-destructive/80">
                 {singleUserDetails.error}
