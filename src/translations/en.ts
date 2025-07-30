@@ -537,7 +537,9 @@ export const en = {
     "verifying": "Verifying...",
     "verifyAndSignup": "Verify and Sign Up",
   "profile.country": "Country",
-  "profile.currency": "Currency"
+  "profile.currency": "Currency",
+  "profile.selectCountry": "Select Country",
+  "profile.selectCurrency": "Select Currency"
 };
 
 export type TranslationKey = keyof typeof en;
