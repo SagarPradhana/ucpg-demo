@@ -27,6 +27,13 @@ export interface LoginResponse {
   refresh_token: string;
   expires_in?: number;
   token_type?: string;
+  admin?: boolean;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    role?: string;
+  };
 }
 
 export interface RefreshTokenRequest {

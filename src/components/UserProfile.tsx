@@ -23,7 +23,7 @@ import {
   Monitor,
   Check,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 import { useEffect } from "react";
@@ -34,6 +34,7 @@ import TokenManager from "@/utils/tokenManager";
 import { useMutation } from "@tanstack/react-query";
 
 import { RootState } from "@/types";
+import { updateUserProfile } from "@/service/auth";
 
 interface UserProfileProps {
   userName?: string;
@@ -44,84 +45,83 @@ interface UserProfileProps {
 const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, setTheme, actualTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const userProfile = useSelector((store: any) => store.auth.userDetails);
+  const userProfile = useSelector((store: RootState) => store.auth.userDetails);
   const dispatch = useDispatch();
 
+  // Pages where theme/language updates should not trigger API calls
+  const excludedPages = [
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/reset-password",
+  ];
+  const isExcludedPage = excludedPages.includes(location.pathname);
+
   // updateUserProfile API function
-  const updateUserProfileAPI = async (updateData: any) => {
-    const token = localStorage.getItem("sessionToken");
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
-
-    // Replace this mock with your actual API endpoint
-    // Example for real implementation:
-    /*
-    const response = await fetch('/api/user/profile', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(updateData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
-    */
-
-    // Mock implementation for development
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // Simulate occasional API failure for testing
-        if (Math.random() > 0.9) {
-          reject(new Error("Network error"));
-        } else {
-          console.log("Profile updated:", updateData);
-          resolve({ success: true, data: updateData });
-        }
-      }, 1000);
-    });
-  };
 
   // Mutation for updating user profile
   const updateProfileMutation = useMutation({
-    mutationFn: updateUserProfileAPI,
+    mutationFn: (payload: any) => updateUserProfile(payload, userProfile?.id),
     onSuccess: (data: any, variables: any) => {
-      toast({
-        title: t("profile.profileUpdated"),
-        description: t("profile.profileUpdatedDesc"),
-      });
+      console.log("Profile update successful:", data, variables);
+
+      // Create updated user profile with new metadata
+      const updatedUserProfile = {
+        ...userProfile,
+        metadata: {
+          ...(userProfile?.metadata || {}),
+          ...variables.metadata,
+        },
+      };
+
+      console.log("Updating Redux with:", updatedUserProfile);
 
       // Update Redux store with new metadata
-      if (userProfile) {
-        dispatch(
-          loginActions.setUserDetails({
-            ...userProfile,
-            metadata: variables.metadata,
-          })
-        );
+      dispatch(loginActions.setUserDetails(updatedUserProfile));
+
+      // Show success toast only if not on excluded pages
+      if (!isExcludedPage) {
+        toast({
+          title: t("profile.profileUpdated"),
+          description: t("profile.profileUpdatedDesc"),
+        });
       }
     },
     onError: (error: any) => {
       console.error("Profile update failed:", error);
-      toast({
-        title: t("profile.updateFailed"),
-        description: t("profile.updateFailedDesc"),
-        variant: "destructive",
-      });
+
+      // Show error toast only if not on excluded pages
+      if (!isExcludedPage) {
+        toast({
+          title: t("profile.updateFailed"),
+          description: t("profile.updateFailedDesc"),
+          variant: "destructive",
+        });
+      }
     },
   });
 
   // Use Redux data if available, otherwise fall back to props or defaults
   const displayName = userProfile?.name || userName || "User";
   const displayEmail = userProfile?.email || userEmail || "user@example.com";
-  const displayAvatar = userProfile?.avatar || userAvatar;
+  const displayAvatar = userAvatar;
+
+  // Debug useEffect to track Redux state changes
+  useEffect(() => {
+    console.log("UserProfile Redux state changed:", userProfile);
+  }, [userProfile]);
+
+  // Debug useEffect to track theme and language changes
+  useEffect(() => {
+    console.log("Theme or language changed:", {
+      theme,
+      language,
+      userProfileMetadata: userProfile?.metadata,
+    });
+  }, [theme, language, userProfile?.metadata]);
 
   const handleProfileClick = () => {
     navigate("/profile");
@@ -129,31 +129,61 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   };
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
+    console.log("Theme change:", newTheme, "Current user:", userProfile);
     setTheme(newTheme);
 
-    // Update user profile with new theme
-    const currentMetadata = userProfile?.metadata || {};
-    updateProfileMutation.mutate({
-      metadata: {
-        ...currentMetadata,
-        language: language,
-        theme: newTheme,
-      },
-    });
+    // Don't update profile API on excluded pages (login, signup, forgot password)
+    if (!isExcludedPage && userProfile) {
+      // Update user profile with new theme
+      const currentMetadata = userProfile?.metadata || {};
+      console.log("Updating theme in profile:", {
+        currentMetadata,
+        newTheme,
+        language,
+      });
+
+      updateProfileMutation.mutate({
+        ...userProfile,
+        metadata: {
+          ...currentMetadata,
+          language: language,
+          theme: newTheme,
+        },
+      });
+    } else {
+      console.log(
+        "Skipping theme API update - excluded page or no user profile"
+      );
+    }
   };
 
   const handleLanguageChange = (newLanguage: Language) => {
+    console.log("Language change:", newLanguage, "Current user:", userProfile);
     setLanguage(newLanguage);
 
-    // Update user profile with new language
-    const currentMetadata = userProfile?.metadata || {};
-    updateProfileMutation.mutate({
-      metadata: {
-        ...currentMetadata,
-        language: newLanguage,
-        theme: theme,
-      },
-    });
+    // Don't update profile API on excluded pages (login, signup, forgot password)
+    if (!isExcludedPage && userProfile) {
+      // Update user profile with new language
+      const currentMetadata = userProfile?.metadata || {};
+      console.log("Updating language in profile:", {
+        currentMetadata,
+        newLanguage,
+        theme,
+      });
+
+      updateProfileMutation.mutate({
+        ...userProfile,
+        metadata: {
+          ...currentMetadata,
+          language: newLanguage,
+          theme: theme,
+        },
+      });
+    } else {
+      console.log(
+        "Skipping language API update - excluded page or no user profile"
+      );
+    }
   };
 
   const getLanguageName = (lang: Language): string => {
@@ -171,7 +201,16 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
 
   const handleLogoutClick = () => {
     console.log("Logout clicked");
-    // Add your logout logic here
+
+    // Safely logout while preserving user preferences
+    const tokenManager = TokenManager.getInstance();
+    tokenManager.safeLogout();
+
+    // Clear user from Redux store
+    dispatch(loginActions.clearUserDetails());
+
+    // Navigate to login page
+    navigate("/login");
   };
 
   const getThemeIcon = (themeType: "light" | "dark" | "system") => {

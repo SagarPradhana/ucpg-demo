@@ -1,6 +1,7 @@
 import { jwtDecode } from "jwt-decode";
 import { User } from "@/types";
 import { refreshToken } from "@/service/auth";
+import StorageDebugger from "./storageDebugger";
 
 interface ToastFunction {
   (options: { title: string; description: string; variant?: "destructive" | "default" }): void;
@@ -137,9 +138,11 @@ class TokenManager {
         throw new Error("No access token in refresh response");
       }
     } catch (error) {
-      // If refresh fails, clear tokens
-      localStorage.removeItem("sessionToken");
-      localStorage.removeItem("refreshToken");
+      // If refresh fails, safely clear tokens while preserving preferences
+      const storageDebugger = StorageDebugger.getInstance();
+      storageDebugger.logStorageState("Before Refresh Failure Cleanup");
+      storageDebugger.safeLogout();
+      storageDebugger.logStorageState("After Refresh Failure Cleanup");
       throw error;
     }
   }
@@ -153,9 +156,13 @@ class TokenManager {
   private handleExpiredToken() {
     // Removed session expired toast - not an API response
 
-    // Clear tokens from localStorage
-    localStorage.removeItem("sessionToken");
-    localStorage.removeItem("refreshToken");
+    const storageDebugger = StorageDebugger.getInstance();
+    storageDebugger.logStorageState("Before Token Expiration Cleanup");
+
+    // Safely clear tokens while preserving preferences
+    storageDebugger.safeLogout();
+
+    storageDebugger.logStorageState("After Token Expiration Cleanup");
 
     // Call logout callback
     if (this.onLogout) {
@@ -220,10 +227,37 @@ class TokenManager {
     localStorage.setItem("refreshToken", refreshTokenValue);
   }
 
-  // Clear all tokens
+  // Clear all tokens while preserving user preferences
   clearTokens() {
+    // Preserve theme and language settings
+    const theme = localStorage.getItem("ucpg-theme");
+    const language = localStorage.getItem("ucpg-language");
+    
+    // Remove only authentication-related tokens
     localStorage.removeItem("sessionToken");
     localStorage.removeItem("refreshToken");
+    
+    // Restore preserved settings
+    if (theme) {
+      localStorage.setItem("ucpg-theme", theme);
+    }
+    if (language) {
+      localStorage.setItem("ucpg-language", language);
+    }
+  }
+
+  // Safe logout that preserves user preferences
+  safeLogout() {
+    const storageDebugger = StorageDebugger.getInstance();
+    storageDebugger.logStorageState("Before TokenManager Logout");
+    
+    // Use StorageDebugger's safe logout method
+    storageDebugger.safeLogout();
+    
+    // Stop token checking
+    this.destroy();
+    
+    storageDebugger.logStorageState("After TokenManager Logout");
   }
 }
 

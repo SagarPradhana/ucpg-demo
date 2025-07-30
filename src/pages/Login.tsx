@@ -22,6 +22,7 @@ import { login } from "@/service/auth";
 import TokenManager from "@/utils/tokenManager";
 import { useMutation } from "@tanstack/react-query";
 import { User, LoginCredentials, ApiResponse, LoginResponse } from "@/types";
+import RoleSelectionModal from "@/components/RoleSelectionModal";
 
 const Login = () => {
   const [loginObj, setLoginObj] = useState({
@@ -29,6 +30,11 @@ const Login = () => {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [userInfo, setUserInfo] = useState<{
+    name: string;
+    email: string;
+  } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const dispatch = useDispatch();
@@ -57,11 +63,26 @@ const Login = () => {
       // Start token monitoring with refresh capability
       tokenManager.refreshTokenCheck();
 
+      // Show success toast
       toast({
         title: t("auth.welcomeToUCPG"),
         description: response?.message || "Login successful",
       });
-      navigate("/dashboard");
+
+      // Check if user has admin privileges
+      if (response.data.admin === true) {
+        // Set user info for the modal
+        setUserInfo({
+          name: response.data.user?.name || decodedUser.name || "User",
+          email:
+            response.data.user?.email || decodedUser.email || loginObj.email,
+        });
+        // Show role selection modal
+        setShowRoleModal(true);
+      } else {
+        // Navigate directly to dashboard for regular users
+        navigate("/dashboard");
+      }
     },
     onError: (error: any) => {
       console.error("Login failed:", error);
@@ -79,6 +100,13 @@ const Login = () => {
       email: loginObj.email,
       password: loginObj.password,
     });
+  };
+
+  const handleCloseRoleModal = () => {
+    setShowRoleModal(false);
+    setUserInfo(null);
+    // Navigate to dashboard as fallback if modal is closed without selection
+    navigate("/dashboard");
   };
 
   return (
@@ -226,6 +254,13 @@ const Login = () => {
           </div>
         </div>
       </div>
+
+      {/* Role Selection Modal */}
+      <RoleSelectionModal
+        isOpen={showRoleModal}
+        onClose={handleCloseRoleModal}
+        userInfo={userInfo || undefined}
+      />
     </div>
   );
 };

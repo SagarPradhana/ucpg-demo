@@ -19,6 +19,9 @@ import {
   CreditCard,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import TokenManager from "@/utils/tokenManager";
+import { loginActions } from "@/store/loginReducer";
+import { useDispatch } from "react-redux";
 
 interface UserProfileDropdownProps {
   user?: {
@@ -31,6 +34,7 @@ interface UserProfileDropdownProps {
 const UserProfileDropdown = ({ user }: UserProfileDropdownProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const dispatch = useDispatch();
 
   // Default user data if none provided
   const userData = user || {

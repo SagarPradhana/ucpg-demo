@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -20,22 +20,31 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import TokenManager from "./utils/tokenManager";
+import StorageDebugger from "./utils/storageDebugger";
 import { loginActions } from "./store/loginReducer";
 import { useEffect } from "react";
+import SupportChatbot from "./components/SupportChatbot";
+import ErrorBoundary from "./components/ErrorBoundary";
+import ProtectedRoute from "./components/ProtectedRoute";
+// import RouteProtectionDebug from "./components/RouteProtectionDebug";
+import { ROUTE_CONFIG } from "./config/routes";
 
 const queryClient = new QueryClient();
 
-// Component to initialize TokenManager
-const TokenManagerInitializer = () => {
+// Component to initialize TokenManager and StorageDebugger
+const AppInitializer = () => {
   useEffect(() => {
-    const tokenManager = TokenManager.getInstance();
+    // Initialize StorageDebugger
+    const storageDebugger = StorageDebugger.getInstance();
+    storageDebugger.initializeDefaults();
+    storageDebugger.monitorStorage();
+    storageDebugger.logStorageState("App Initialization");
 
-    // Initialize token manager with logout callback
+    // Initialize TokenManager
+    const tokenManager = TokenManager.getInstance();
     tokenManager.initialize(() => {
       // Clear Redux state on token expiration
       store.dispatch(loginActions.clearUserDetails());
-
-      // Redirect to login (this will be handled by individual components)
       console.log("Token expired, user should be redirected to login");
     });
 
@@ -47,39 +56,171 @@ const TokenManagerInitializer = () => {
   return null;
 };
 
+// Component to conditionally render Support Chatbot
+const ConditionalSupportChatbot = () => {
+  const location = useLocation();
+
+  // Pages where chatbot should NOT appear
+  const excludedPaths = ["/login", "/signup", "/forgotpassword", "/admin"];
+
+  // Check if current path should exclude chatbot
+  const shouldShowChatbot = !excludedPaths.some((path) =>
+    location.pathname.toLowerCase().includes(path.toLowerCase())
+  );
+
+  return shouldShowChatbot ? <SupportChatbot /> : null;
+};
+
 const App = () => (
-  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <LanguageProvider defaultLanguage="en">
-          <ThemeProvider defaultTheme="system">
-            <TokenManagerInitializer />
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/forgotpassword" element={<ForgotPassword />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/send" element={<Send />} />
-                  <Route path="/receive" element={<Receive />} />
-                  <Route path="/receive/:id" element={<Receive />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/services" element={<Services />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </ThemeProvider>
-        </LanguageProvider>
-      </QueryClientProvider>
-    </Provider>
-  </GoogleOAuthProvider>
+  <ErrorBoundary>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <LanguageProvider defaultLanguage="en">
+            <ThemeProvider defaultTheme="light">
+              <AppInitializer />
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <Routes>
+                    {/* Public Routes - No authentication required */}
+                    <Route
+                      path={ROUTE_CONFIG.PUBLIC.HOME}
+                      element={
+                        <ProtectedRoute requireAuth={false}>
+                          <Index />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.PUBLIC.LOGIN}
+                      element={
+                        <ProtectedRoute requireAuth={false}>
+                          <Login />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.PUBLIC.SIGNUP}
+                      element={
+                        <ProtectedRoute requireAuth={false}>
+                          <Signup />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.PUBLIC.FORGOT_PASSWORD}
+                      element={
+                        <ProtectedRoute requireAuth={false}>
+                          <ForgotPassword />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* User Routes - Require authentication, block admin users */}
+                    <Route
+                      path={ROUTE_CONFIG.USER.DASHBOARD}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["user"]}
+                          blockAdmins={true}
+                        >
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.USER.SEND}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["user"]}
+                          blockAdmins={true}
+                        >
+                          <Send />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.USER.RECEIVE}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["user"]}
+                          blockAdmins={true}
+                        >
+                          <Receive />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.USER.RECEIVE_WITH_ID}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["user"]}
+                          blockAdmins={true}
+                        >
+                          <Receive />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.USER.PROFILE}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["user"]}
+                          blockAdmins={true}
+                        >
+                          <Profile />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.USER.SERVICES}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["user"]}
+                          blockAdmins={true}
+                        >
+                          <Services />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Admin Routes - Only for admin users */}
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.PANEL}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Catch-all route for 404 errors */}
+                    <Route
+                      path={ROUTE_CONFIG.ERROR.NOT_FOUND}
+                      element={<NotFound />}
+                    />
+                  </Routes>
+                  <ConditionalSupportChatbot />
+                </BrowserRouter>
+              </TooltipProvider>
+            </ThemeProvider>
+          </LanguageProvider>
+        </QueryClientProvider>
+      </Provider>
+    </GoogleOAuthProvider>
+  </ErrorBoundary>
 );
 
 export default App;

@@ -84,7 +84,8 @@ const Profile = () => {
     onSuccess: (res: any) => {
       setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ["user"] });
-      // Update the singleUserDetails with the new profile data
+
+      // Update both stores with the new profile data
       if (userProfile) {
         const updatedUser = {
           ...userProfile,
@@ -95,8 +96,32 @@ const Profile = () => {
             currency: profileData.currency,
           },
         };
+
+        // Update the singleUserDetails store
         dispatch(singleUserDetailsActions.setSingleUserDetails(updatedUser));
+
+        // Also update the main auth.userDetails store (used by UserProfile dropdown)
+        if (authUser) {
+          const updatedAuthUser = {
+            ...authUser,
+            name: profileData.name,
+            metadata: {
+              ...authUser.metadata,
+              country: profileData.country,
+              currency: profileData.currency,
+            },
+          };
+          dispatch(loginActions.setUserDetails(updatedAuthUser));
+        }
       }
+
+      // Force update the local profileData state to reflect the changes immediately
+      setProfileData((prev) => ({
+        ...prev,
+        name: profileData.name,
+        country: profileData.country,
+        currency: profileData.currency,
+      }));
 
       toast({
         title: t("profile.success"),

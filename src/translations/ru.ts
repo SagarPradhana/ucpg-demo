@@ -263,9 +263,80 @@ export const ru = {
   "profile.userInfoFromAPI": "Текущая информация о пользователе из API",
   "profile.loadingUserData": "Загрузка данных пользователя...",
   "profile.errorLoadingUserData": "Ошибка загрузки данных пользователя",
-  
+
   "profile.updateFailed": "Ошибка обновления",
   "profile.updateFailedDesc": "Не удалось обновить ваш профиль. Попробуйте ещё раз.",
+  "profile.preferences": "Настройки",
+  "profile.customizeExperience": "Настройте свой опыт",
+
+  // Support Chatbot
+  "support.chatbot.title": "Помощник UCPG",
+  "support.chatbot.subtitle": "Как я могу помочь вам сегодня?",
+  "support.chatbot.placeholder": "Спросите меня что-нибудь о UCPG...",
+  "support.chatbot.send": "Отправить",
+  "support.chatbot.close": "Закрыть",
+  "support.chatbot.minimize": "Свернуть",
+  "support.chatbot.typing": "Ассистент печатает...",
+  "support.chatbot.welcome": "Привет! Я ваш помощник UCPG. Я могу помочь с:",
+  "support.chatbot.helpTopics": "• Панелью управления и управлением аккаунтом\n• Отправкой криптоплатежей\n• Получением платежей и созданием ссылок\n• Использованием сервисов платформы\n• Профилем и настройками\n• Общей навигацией по платформе",
+  "support.chatbot.askQuestion": "О чём хотели бы узнать?",
+  "support.chatbot.quickHelp": "Быстрая помощь",
+  "support.chatbot.categories": "Категории помощи",
+  "support.chatbot.searchHelp": "Поиск по разделам помощи...",
+  "support.chatbot.noResults": "Результаты не найдены. Попробуйте спросить меня напрямую!",
+  "support.chatbot.contactSupport": "Связаться с поддержкой",
+  "support.chatbot.feedbackThanks": "Спасибо за ваш отзыв!",
+  "support.chatbot.rateHelpful": "Это было полезно?",
+  "support.chatbot.yes": "Да",
+  "support.chatbot.no": "Нет",
+  "support.chatbot.thankYou": "Спасибо за ваш отзыв!",
+
+  // Support Categories
+  "support.category.dashboard": "Панель управления",
+  "support.category.sending": "Отправка платежей",
+  "support.category.receiving": "Получение платежей", 
+  "support.category.services": "Сервисы",
+  "support.category.profile": "Профиль и настройки",
+  "support.category.general": "Общая помощь",
+
+  // Support Quick Actions
+  "support.quick.howToSend": "Как отправлять платежи?",
+  "support.quick.howToReceive": "Как получать платежи?",
+  "support.quick.viewBalance": "Как проверить баланс?",
+  "support.quick.changeTheme": "Как изменить тему?",
+  "support.quick.changeLanguage": "Как изменить язык?",
+  "support.quick.anonymousTx": "Как работают анонимные платежи?",
+
+  // Role Selection Modal
+  "roleSelection.title": "Добро пожаловать в UCPG",
+  "roleSelection.subtitle": "У вас есть права администратора. Пожалуйста, выберите способ доступа к платформе.",
+  "roleSelection.admin.title": "Администратор",
+  "roleSelection.admin.subtitle": "Полный доступ к системе и управление",
+  "roleSelection.admin.description": "Доступ к панели администратора, управление пользователями, системные настройки и аналитика платформы",
+  "roleSelection.user.title": "Пользовательская панель", 
+  "roleSelection.user.subtitle": "Управление личными криптоплатежами",
+  "roleSelection.user.description": "Доступ к личной панели, отправка/получение платежей и управление криптотранзакциями",
+  "roleSelection.selected": "Выбрано",
+  "roleSelection.keyFeatures": "Ключевые функции",
+  "roleSelection.proceed": "Продолжить",
+  "roleSelection.proceeding": "Переход...",
+  "roleSelection.cancel": "Отмена",
+  "roleSelection.securityNotice": "Уведомление о безопасности",
+  "roleSelection.securityText": "Ваша сессия защищена сквозным шифрованием. Доступ администратора включает дополнительный мониторинг безопасности и журналирование аудита. Вы можете переключаться между ролями в любое время из настроек профиля.",
+  "roleSelection.admin.features": {
+    "userManagement": "Управление пользователями",
+    "systemAnalytics": "Системная аналитика", 
+    "platformSettings": "Настройки платформы",
+    "securityControls": "Контроль безопасности",
+    "transactionMonitoring": "Мониторинг транзакций"
+  },
+  "roleSelection.user.features": {
+    "sendPayments": "Отправка платежей",
+    "receivePayments": "Получение платежей",
+    "transactionHistory": "История транзакций", 
+    "walletManagement": "Управление кошельком",
+    "anonymousTransactions": "Анонимные транзакции"
+  },
 
   // NotFound Page
   "notFound.message": "Упс! Страница не найдена",

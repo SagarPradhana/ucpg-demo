@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/types";
 
 type Theme = "light" | "dark" | "system";
 
@@ -25,15 +27,60 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children,
-  defaultTheme = "system",
+  defaultTheme = "light", // Changed default to light instead of system
 }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Get theme from localStorage or use default
-    const savedTheme = localStorage.getItem("ucpg-theme") as Theme;
-    return savedTheme || defaultTheme;
-  });
+  // Get user details from Redux store
+  const authUser = useSelector((state: RootState) => state.auth.userDetails);
+  const singleUserDetails = useSelector(
+    (state: RootState) => state.singleUserDetails.userDetails
+  );
+  const isAuthenticated = useSelector(
+    (state: RootState) => state.auth.isAuthenticated
+  );
 
+  // Function to get theme priority: user metadata (only for authenticated) > default light
+  const getInitialTheme = (): Theme => {
+    // Only apply user theme preferences for authenticated users
+    if (isAuthenticated) {
+      // Check singleUserDetails first (primary source)
+      if (singleUserDetails?.metadata?.theme) {
+        const userTheme = singleUserDetails.metadata.theme as Theme;
+        if (["light", "dark", "system"].includes(userTheme)) {
+          return userTheme;
+        }
+      }
+
+      // Check authUser as fallback
+      if (authUser?.metadata?.theme) {
+        const userTheme = authUser.metadata.theme as Theme;
+        if (["light", "dark", "system"].includes(userTheme)) {
+          return userTheme;
+        }
+      }
+
+      // For authenticated users without theme metadata, default to light
+      return "light";
+    }
+
+    // For non-authenticated users, always use light theme (ignore localStorage)
+    return "light";
+  };
+
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [actualTheme, setActualTheme] = useState<"light" | "dark">("light");
+
+  // Update theme when user authentication status or user data changes
+  useEffect(() => {
+    const newTheme = getInitialTheme();
+    if (newTheme !== theme) {
+      setTheme(newTheme);
+      console.log(`🎨 Theme updated from user metadata: ${newTheme}`);
+    }
+  }, [
+    isAuthenticated,
+    authUser?.metadata?.theme,
+    singleUserDetails?.metadata?.theme,
+  ]);
 
   // Function to get system preference
   const getSystemTheme = (): "light" | "dark" => {
@@ -76,10 +123,35 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     }
   }, [theme]);
 
-  // Save theme to localStorage
+  // Theme logging and persistence (only for authenticated users)
   useEffect(() => {
-    localStorage.setItem("ucpg-theme", theme);
-  }, [theme]);
+    // Log the theme source for debugging
+    if (isAuthenticated) {
+      const userTheme =
+        singleUserDetails?.metadata?.theme || authUser?.metadata?.theme;
+      if (userTheme) {
+        console.log(`🎨 Theme applied from user metadata: ${theme}`);
+      } else {
+        console.log(
+          `🎨 Theme applied (authenticated user, no metadata): ${theme}`
+        );
+      }
+
+      // Only save to localStorage for authenticated users
+      localStorage.setItem("ucpg-theme", theme);
+    } else {
+      console.log(
+        `🎨 Theme applied (non-authenticated, always light): ${theme}`
+      );
+      // For non-authenticated users, don't save to localStorage
+      // This ensures public pages always start with light theme
+    }
+  }, [
+    theme,
+    isAuthenticated,
+    authUser?.metadata?.theme,
+    singleUserDetails?.metadata?.theme,
+  ]);
 
   const value: ThemeContextType = {
     theme,

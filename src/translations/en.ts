@@ -263,9 +263,80 @@ export const en = {
   "profile.userInfoFromAPI": "Current user information from API",
   "profile.loadingUserData": "Loading user data...",
   "profile.errorLoadingUserData": "Error loading user data",
- 
+
   "profile.updateFailed": "Update Failed",
   "profile.updateFailedDesc": "Failed to update your profile. Please try again.",
+  "profile.preferences": "Preferences",
+  "profile.customizeExperience": "Customize your experience",
+
+  // Support Chatbot
+  "support.chatbot.title": "UCPG Support Assistant",
+  "support.chatbot.subtitle": "How can I help you today?",
+  "support.chatbot.placeholder": "Ask me anything about UCPG...",
+  "support.chatbot.send": "Send",
+  "support.chatbot.close": "Close",
+  "support.chatbot.minimize": "Minimize",
+  "support.chatbot.typing": "Assistant is typing...",
+  "support.chatbot.welcome": "Hello! I'm your UCPG support assistant. I can help you with:",
+  "support.chatbot.helpTopics": "• Dashboard and account management\n• Sending crypto payments\n• Receiving payments and generating links\n• Using platform services\n• Profile and settings management\n• General platform navigation",
+  "support.chatbot.askQuestion": "What would you like to know?",
+  "support.chatbot.quickHelp": "Quick Help",
+  "support.chatbot.categories": "Help Categories",
+  "support.chatbot.searchHelp": "Search help topics...",
+  "support.chatbot.noResults": "No results found. Try asking me directly!",
+  "support.chatbot.contactSupport": "Contact Support",
+  "support.chatbot.feedbackThanks": "Thank you for your feedback!",
+  "support.chatbot.rateHelpful": "Was this helpful?",
+  "support.chatbot.yes": "Yes",
+  "support.chatbot.no": "No",
+  "support.chatbot.thankYou": "Thank you for your feedback!",
+
+  // Support Categories
+  "support.category.dashboard": "Dashboard",
+  "support.category.sending": "Sending Payments",
+  "support.category.receiving": "Receiving Payments", 
+  "support.category.services": "Services",
+  "support.category.profile": "Profile & Settings",
+  "support.category.general": "General Help",
+
+  // Support Quick Actions
+  "support.quick.howToSend": "How to send payments?",
+  "support.quick.howToReceive": "How to receive payments?",
+  "support.quick.viewBalance": "How to check my balance?",
+  "support.quick.changeTheme": "How to change theme?",
+  "support.quick.changeLanguage": "How to change language?",
+  "support.quick.anonymousTx": "How does anonymous payment work?",
+
+  // Role Selection Modal
+  "roleSelection.title": "Welcome to UCPG",
+  "roleSelection.subtitle": "You have admin privileges. Please select how you'd like to access the platform.",
+  "roleSelection.admin.title": "Administrator",
+  "roleSelection.admin.subtitle": "Full system access and management",
+  "roleSelection.admin.description": "Access admin dashboard, manage users, system settings, and platform analytics",
+  "roleSelection.user.title": "User Dashboard", 
+  "roleSelection.user.subtitle": "Personal crypto payment management",
+  "roleSelection.user.description": "Access your personal dashboard, send/receive payments, and manage your crypto transactions",
+  "roleSelection.selected": "Selected",
+  "roleSelection.keyFeatures": "Key Features",
+  "roleSelection.proceed": "Proceed",
+  "roleSelection.proceeding": "Proceeding...",
+  "roleSelection.cancel": "Cancel",
+  "roleSelection.securityNotice": "Security Notice",
+  "roleSelection.securityText": "Your session is secured with end-to-end encryption. Admin access includes additional security monitoring and audit logging. You can switch between roles anytime from your profile settings.",
+  "roleSelection.admin.features": {
+    "userManagement": "User Management",
+    "systemAnalytics": "System Analytics", 
+    "platformSettings": "Platform Settings",
+    "securityControls": "Security Controls",
+    "transactionMonitoring": "Transaction Monitoring"
+  },
+  "roleSelection.user.features": {
+    "sendPayments": "Send Payments",
+    "receivePayments": "Receive Payments",
+    "transactionHistory": "Transaction History", 
+    "walletManagement": "Wallet Management",
+    "anonymousTransactions": "Anonymous Transactions"
+  },
 
   // NotFound Page
   "notFound.message": "Oops! Page not found",

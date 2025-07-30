@@ -263,9 +263,80 @@ export const tr = {
   "profile.userInfoFromAPI": "API'den güncel kullanıcı bilgileri",
   "profile.loadingUserData": "Kullanıcı verileri yükleniyor...",
   "profile.errorLoadingUserData": "Kullanıcı verileri yüklenirken hata",
-  
+ 
   "profile.updateFailed": "Güncelleme Başarısız",
   "profile.updateFailedDesc": "Profiliniz güncellenemedi. Lütfen tekrar deneyin.",
+  "profile.preferences": "Tercihler",
+  "profile.customizeExperience": "Deneyiminizi özelleştirin",
+
+  // Support Chatbot
+  "support.chatbot.title": "UCPG Destek Asistanı",
+  "support.chatbot.subtitle": "Bugün size nasıl yardımcı olabilirim?",
+  "support.chatbot.placeholder": "UCPG hakkında herhangi bir şey sorun...",
+  "support.chatbot.send": "Gönder",
+  "support.chatbot.close": "Kapat",
+  "support.chatbot.minimize": "Küçült",
+  "support.chatbot.typing": "Asistan yazıyor...",
+  "support.chatbot.welcome": "Merhaba! UCPG destek asistanınızım. Size şunlarda yardımcı olabilirim:",
+  "support.chatbot.helpTopics": "• Kontrol paneli ve hesap yönetimi\n• Kripto ödeme gönderme\n• Ödeme alma ve bağlantı oluşturma\n• Platform hizmetlerini kullanma\n• Profil ve ayar yönetimi\n• Genel platform navigasyonu",
+  "support.chatbot.askQuestion": "Ne hakkında bilgi almak istiyorsunuz?",
+  "support.chatbot.quickHelp": "Hızlı Yardım",
+  "support.chatbot.categories": "Yardım Kategorileri",
+  "support.chatbot.searchHelp": "Yardım konularında ara...",
+  "support.chatbot.noResults": "Sonuç bulunamadı. Bana doğrudan sormayı deneyin!",
+  "support.chatbot.contactSupport": "Destekle İletişim",
+  "support.chatbot.feedbackThanks": "Geri bildiriminiz için teşekkürler!",
+  "support.chatbot.rateHelpful": "Bu yardımcı oldu mu?",
+  "support.chatbot.yes": "Evet",
+  "support.chatbot.no": "Hayır",
+  "support.chatbot.thankYou": "Geri bildiriminiz için teşekkürler!",
+
+  // Support Categories
+  "support.category.dashboard": "Kontrol Paneli",
+  "support.category.sending": "Ödeme Gönderme",
+  "support.category.receiving": "Ödeme Alma", 
+  "support.category.services": "Hizmetler",
+  "support.category.profile": "Profil ve Ayarlar",
+  "support.category.general": "Genel Yardım",
+
+  // Support Quick Actions
+  "support.quick.howToSend": "Nasıl ödeme gönderilir?",
+  "support.quick.howToReceive": "Nasıl ödeme alınır?",
+  "support.quick.viewBalance": "Bakiye nasıl kontrol edilir?",
+  "support.quick.changeTheme": "Tema nasıl değiştirilir?",
+  "support.quick.changeLanguage": "Dil nasıl değiştirilir?",
+  "support.quick.anonymousTx": "Anonim ödeme nasıl çalışır?",
+
+  // Role Selection Modal
+  "roleSelection.title": "UCPG'ye Hoş Geldiniz",
+  "roleSelection.subtitle": "Admin yetkileriniz bulunmaktadır. Lütfen platforma nasıl erişmek istediğinizi seçin.",
+  "roleSelection.admin.title": "Yönetici",
+  "roleSelection.admin.subtitle": "Tam sistem erişimi ve yönetimi",
+  "roleSelection.admin.description": "Admin paneline erişim, kullanıcı yönetimi, sistem ayarları ve platform analitiği",
+  "roleSelection.user.title": "Kullanıcı Paneli", 
+  "roleSelection.user.subtitle": "Kişisel kripto ödeme yönetimi",
+  "roleSelection.user.description": "Kişisel panelinize erişim, ödeme gönderme/alma ve kripto işlemlerinizi yönetme",
+  "roleSelection.selected": "Seçildi",
+  "roleSelection.keyFeatures": "Temel Özellikler",
+  "roleSelection.proceed": "Devam Et",
+  "roleSelection.proceeding": "Devam ediliyor...",
+  "roleSelection.cancel": "İptal",
+  "roleSelection.securityNotice": "Güvenlik Bildirimi",
+  "roleSelection.securityText": "Oturumunuz uçtan uca şifreleme ile korunmaktadır. Admin erişimi ek güvenlik izleme ve denetim günlüğü içerir. Profil ayarlarınızdan istediğiniz zaman roller arasında geçiş yapabilirsiniz.",
+  "roleSelection.admin.features": {
+    "userManagement": "Kullanıcı Yönetimi",
+    "systemAnalytics": "Sistem Analitiği", 
+    "platformSettings": "Platform Ayarları",
+    "securityControls": "Güvenlik Kontrolleri",
+    "transactionMonitoring": "İşlem İzleme"
+  },
+  "roleSelection.user.features": {
+    "sendPayments": "Ödeme Gönderme",
+    "receivePayments": "Ödeme Alma",
+    "transactionHistory": "İşlem Geçmişi", 
+    "walletManagement": "Cüzdan Yönetimi",
+    "anonymousTransactions": "Anonim İşlemler"
+  },
 
   // NotFound Page
   "notFound.message": "Ops! Sayfa bulunamadı",
