@@ -98,7 +98,7 @@ export const ru = {
   "home.features.secureCrypto": "Безопасные криптоплатежи",
 
   // Dashboard
-  "dashboard.title": "Панель управления UCPG",
+  "dashboard.title": "UCPG",
   "dashboard.anonymityDisclaimer": "Эта платформа обеспечивает вашу анонимность. Персональные данные не собираются и не хранятся. Все транзакции используют анонимные идентификаторы. Для поддержки используйте ваш ID транзакции.",
   "dashboard.totalBalance": "Общий баланс",
   "dashboard.fromLastMonth": "с прошлого месяца",

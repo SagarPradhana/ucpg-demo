@@ -118,14 +118,14 @@ const App = () => (
                       }
                     />
 
-                    {/* User Routes - Require authentication, block admin users */}
+                    {/* User Routes - Require authentication, allow both user and admin access */}
                     <Route
                       path={ROUTE_CONFIG.USER.DASHBOARD}
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user"]}
-                          blockAdmins={true}
+                          allowedRoles={["user", "admin"]}
+                          blockAdmins={false}
                         >
                           <Dashboard />
                         </ProtectedRoute>
@@ -136,8 +136,8 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user"]}
-                          blockAdmins={true}
+                          allowedRoles={["user", "admin"]}
+                          blockAdmins={false}
                         >
                           <Send />
                         </ProtectedRoute>
@@ -148,8 +148,8 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user"]}
-                          blockAdmins={true}
+                          allowedRoles={["user", "admin"]}
+                          blockAdmins={false}
                         >
                           <Receive />
                         </ProtectedRoute>
@@ -160,8 +160,8 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user"]}
-                          blockAdmins={true}
+                          allowedRoles={["user", "admin"]}
+                          blockAdmins={false}
                         >
                           <Receive />
                         </ProtectedRoute>
@@ -172,8 +172,8 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user"]}
-                          blockAdmins={true}
+                          allowedRoles={["user", "admin"]}
+                          blockAdmins={false}
                         >
                           <Profile />
                         </ProtectedRoute>
@@ -184,8 +184,8 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user"]}
-                          blockAdmins={true}
+                          allowedRoles={["user", "admin"]}
+                          blockAdmins={false}
                         >
                           <Services />
                         </ProtectedRoute>

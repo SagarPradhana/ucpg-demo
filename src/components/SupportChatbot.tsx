@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useToast } from "@/hooks/use-toast";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
+import {
+  Bot,
+  TrendingUp,
+  RefreshCw,
+  Minimize2,
+  MessageCircle,
+} from "lucide-react";
+import { Button } from "./ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "../hooks/use-toast";
+import { useLanguage } from "../contexts/LanguageContext";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface Message {
   id: string;
@@ -15,10 +27,26 @@ const SupportChatbot: React.FC = () => {
   const { theme } = useTheme();
   const { toast } = useToast();
 
+  // Chatbot state
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Crypto chart state
+  const [cryptoPriceData, setCryptoPriceData] = useState([
+    { time: "1h", BTC: 42850, ETH: 2650, USDT: 1.0 },
+    { time: "2h", BTC: 42920, ETH: 2645, USDT: 1.0 },
+    { time: "3h", BTC: 43100, ETH: 2670, USDT: 1.0 },
+    { time: "4h", BTC: 43050, ETH: 2690, USDT: 1.0 },
+    { time: "5h", BTC: 43200, ETH: 2710, USDT: 1.0 },
+  ]);
+  const [cryptoTrend, setCryptoTrend] = useState<"up" | "down" | "neutral">(
+    "neutral"
+  );
+
+  // Tab state: "chat" or "chart"
+  const [activeTab, setActiveTab] = useState<"chat" | "chart">("chat");
 
   // Knowledge base for the chatbot
   const knowledgeBase = {
@@ -186,147 +214,416 @@ const SupportChatbot: React.FC = () => {
     }
   };
 
+  // Mock API for refreshing crypto price data
+  const mockRefreshCryptoPrices = (): Promise<any[]> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Generate new data points with slight variations
+        const newData = [...cryptoPriceData];
+
+        // Shift data and add a new point
+        const shiftedData = [
+          ...newData.slice(1),
+          {
+            time: `${parseInt(newData[newData.length - 1].time) + 1}h`,
+            BTC: newData[newData.length - 1].BTC + (Math.random() - 0.5) * 200,
+            ETH: newData[newData.length - 1].ETH + (Math.random() - 0.5) * 50,
+            USDT: 1.0 + (Math.random() - 0.5) * 0.01,
+          },
+        ];
+
+        resolve(shiftedData);
+      }, 500);
+    });
+  };
+
+  // Crypto price refresh mutation
+  const refreshCryptoPricesMutation = useMutation({
+    mutationFn: () => mockRefreshCryptoPrices(),
+    onSuccess: (result) => {
+      setCryptoPriceData(result);
+
+      // Calculate trend based on BTC
+      const lastIndex = result.length - 1;
+      const secondLastIndex = lastIndex - 1;
+
+      if (result[lastIndex].BTC > result[secondLastIndex].BTC) {
+        setCryptoTrend("up");
+      } else if (result[lastIndex].BTC < result[secondLastIndex].BTC) {
+        setCryptoTrend("down");
+      } else {
+        setCryptoTrend("neutral");
+      }
+    },
+    onError: (error) => {
+      console.error("Crypto price refresh failed:", error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to refresh crypto prices",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Auto-update crypto prices every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!refreshCryptoPricesMutation.isPending) {
+        refreshCryptoPricesMutation.mutate();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshCryptoPricesMutation]);
+
   return (
     <div
       style={{
         position: "fixed",
         bottom: "20px",
         right: "20px",
-        width: "350px",
-        maxHeight: "70vh",
+        width: chatOpen ? "350px" : "60px",
+        height: chatOpen ? "auto" : "60px",
+        maxHeight: chatOpen ? "70vh" : "60px",
         boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        borderRadius: "8px",
+        borderRadius: chatOpen ? "8px" : "50%",
         backgroundColor: theme === "dark" ? "#0f172a" : "#ffffff",
         color: theme === "dark" ? "#f1f5f9" : "#1e293b",
         display: "flex",
         flexDirection: "column",
         fontFamily: "Inter, system-ui, sans-serif",
         zIndex: 9999,
+        transition: "all 0.3s ease-in-out",
       }}
     >
       <div
         style={{
-          padding: "10px 15px",
+          padding: chatOpen ? "10px 15px" : "0",
           backgroundColor: theme === "dark" ? "#1e293b" : "#3b82f6",
           color: theme === "dark" ? "#f1f5f9" : "#ffffff",
           fontWeight: "bold",
           fontSize: "16px",
-          borderTopLeftRadius: "8px",
-          borderTopRightRadius: "8px",
+          borderTopLeftRadius: chatOpen ? "8px" : "50%",
+          borderTopRightRadius: chatOpen ? "8px" : "50%",
+          borderBottomLeftRadius: chatOpen ? "0" : "50%",
+          borderBottomRightRadius: chatOpen ? "0" : "50%",
           cursor: "pointer",
           userSelect: "none",
+          display: "flex",
+          justifyContent: chatOpen ? "space-between" : "center",
+          alignItems: "center",
+          width: "100%",
+          height: chatOpen ? "auto" : "60px",
+          transition: "all 0.3s ease-in-out",
         }}
-        onClick={() => setChatOpen(!chatOpen)}
+        onClick={!chatOpen ? () => setChatOpen(true) : undefined}
       >
-        {chatOpen
-          ? "🤖 UCPG Support - Click to Minimize"
-          : "💬 Need help? Chat with our AI assistant!"}
+        {!chatOpen ? (
+          <MessageCircle size={24} />
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Bot size={18} />
+              <span>UCPG Support</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ display: "flex", gap: "4px" }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab("chat");
+                  }}
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: "4px",
+                    backgroundColor:
+                      activeTab === "chat"
+                        ? theme === "dark"
+                          ? "#2563eb"
+                          : "#1e40af"
+                        : "transparent",
+                    color: "#fff",
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "12px",
+                  }}
+                >
+                  Chat
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab("chart");
+                  }}
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: "4px",
+                    backgroundColor:
+                      activeTab === "chart"
+                        ? theme === "dark"
+                          ? "#2563eb"
+                          : "#1e40af"
+                        : "transparent",
+                    color: "#fff",
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "12px",
+                  }}
+                >
+                  Chart
+                </button>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setChatOpen(false);
+                }}
+                style={{
+                  padding: "4px",
+                  borderRadius: "4px",
+                  backgroundColor: "transparent",
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                title="Minimize"
+              >
+                <Minimize2 size={16} />
+              </button>
+            </div>
+          </>
+        )}
       </div>
       {chatOpen && (
         <>
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "10px 15px",
-              backgroundColor: theme === "dark" ? "#0f172a" : "#f8fafc",
-              color: theme === "dark" ? "#f1f5f9" : "#1e293b",
-            }}
-          >
-            {messages.length === 0 && (
+          {activeTab === "chat" && (
+            <>
               <div
                 style={{
-                  fontStyle: "italic",
-                  color: theme === "dark" ? "#94a3b8" : "#64748b",
+                  flex: 1,
+                  overflowY: "auto",
+                  padding: "10px 15px",
+                  backgroundColor: theme === "dark" ? "#0f172a" : "#f8fafc",
+                  color: theme === "dark" ? "#f1f5f9" : "#1e293b",
                 }}
               >
-                Hello! 👋 I'm your UCPG support assistant. I can help you with
-                dashboard navigation, payments, exchanges, and account
-                management. How can I assist you today?
+                {messages.length === 0 && (
+                  <div
+                    style={{
+                      fontStyle: "italic",
+                      color: theme === "dark" ? "#94a3b8" : "#64748b",
+                    }}
+                  >
+                    Hello! 👋 I'm your UCPG support assistant. I can help you
+                    with dashboard navigation, payments, exchanges, and account
+                    management. How can I assist you today?
+                  </div>
+                )}
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      marginBottom: "10px",
+                      display: "flex",
+                      justifyContent:
+                        msg.sender === "user" ? "flex-end" : "flex-start",
+                    }}
+                  >
+                    <div
+                      style={{
+                        maxWidth: "70%",
+                        padding: "8px 12px",
+                        borderRadius: "15px",
+                        backgroundColor:
+                          msg.sender === "user"
+                            ? "#3b82f6"
+                            : theme === "dark"
+                            ? "#334155"
+                            : "#e2e8f0",
+                        color:
+                          msg.sender === "user"
+                            ? "#ffffff"
+                            : theme === "dark"
+                            ? "#f1f5f9"
+                            : "#1e293b",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
               </div>
-            )}
-            {messages.map((msg) => (
               <div
-                key={msg.id}
                 style={{
-                  marginBottom: "10px",
+                  padding: "10px 15px",
+                  borderTop: `1px solid ${
+                    theme === "dark" ? "#334155" : "#e2e8f0"
+                  }`,
+                  backgroundColor: theme === "dark" ? "#1e293b" : "#ffffff",
                   display: "flex",
-                  justifyContent:
-                    msg.sender === "user" ? "flex-end" : "flex-start",
+                  alignItems: "center",
                 }}
               >
-                <div
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask me anything about UCPG..."
                   style={{
-                    maxWidth: "70%",
+                    flex: 1,
                     padding: "8px 12px",
-                    borderRadius: "15px",
-                    backgroundColor:
-                      msg.sender === "user"
-                        ? "#3b82f6"
-                        : theme === "dark"
-                        ? "#334155"
-                        : "#e2e8f0",
-                    color:
-                      msg.sender === "user"
-                        ? "#ffffff"
-                        : theme === "dark"
-                        ? "#f1f5f9"
-                        : "#1e293b",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
+                    borderRadius: "20px",
+                    border: `1px solid ${
+                      theme === "dark" ? "#334155" : "#cbd5e1"
+                    }`,
+                    backgroundColor: theme === "dark" ? "#0f172a" : "#f8fafc",
+                    color: theme === "dark" ? "#f1f5f9" : "#1e293b",
+                    fontSize: "14px",
+                    outline: "none",
+                  }}
+                />
+                <button
+                  onClick={handleSend}
+                  style={{
+                    marginLeft: "10px",
+                    padding: "8px 16px",
+                    borderRadius: "20px",
+                    backgroundColor: "#3b82f6",
+                    color: "#ffffff",
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "14px",
                   }}
                 >
-                  {msg.content}
-                </div>
+                  Send
+                </button>
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-          <div
-            style={{
-              padding: "10px 15px",
-              borderTop: `1px solid ${
-                theme === "dark" ? "#334155" : "#e2e8f0"
-              }`,
-              backgroundColor: theme === "dark" ? "#1e293b" : "#ffffff",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask me anything about UCPG..."
+            </>
+          )}
+          {activeTab === "chart" && (
+            <div
               style={{
-                flex: 1,
-                padding: "8px 12px",
-                borderRadius: "20px",
-                border: `1px solid ${theme === "dark" ? "#334155" : "#cbd5e1"}`,
+                padding: "10px 15px",
                 backgroundColor: theme === "dark" ? "#0f172a" : "#f8fafc",
                 color: theme === "dark" ? "#f1f5f9" : "#1e293b",
-                fontSize: "14px",
-                outline: "none",
-              }}
-            />
-            <button
-              onClick={handleSend}
-              style={{
-                marginLeft: "10px",
-                padding: "8px 16px",
-                borderRadius: "20px",
-                backgroundColor: "#3b82f6",
-                color: "#ffffff",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: "14px",
+                display: "flex",
+                flexDirection: "column",
+                height: "100%",
               }}
             >
-              Send
-            </button>
-          </div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <Bot className="h-4 w-4 text-primary" />
+                  <h4 className="font-medium text-sm">Crypto Price Bot</h4>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => refreshCryptoPricesMutation.mutate()}
+                  disabled={refreshCryptoPricesMutation.isPending}
+                >
+                  <RefreshCw
+                    className={`h-3 w-3 ${
+                      refreshCryptoPricesMutation.isPending
+                        ? "animate-spin"
+                        : ""
+                    }`}
+                  />
+                </Button>
+              </div>
+
+              <div style={{ flex: 1, minHeight: 200 }}>
+                <ChartContainer
+                  config={{
+                    BTC: {
+                      label: "Bitcoin",
+                      theme: {
+                        light: "#F7931A",
+                        dark: "#F7931A",
+                      },
+                    },
+                    ETH: {
+                      label: "Ethereum",
+                      theme: {
+                        light: "#627EEA",
+                        dark: "#627EEA",
+                      },
+                    },
+                    USDT: {
+                      label: "Tether",
+                      theme: {
+                        light: "#26A17B",
+                        dark: "#26A17B",
+                      },
+                    },
+                  }}
+                >
+                  <LineChart data={cryptoPriceData}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                    <YAxis
+                      yAxisId="left"
+                      orientation="left"
+                      tick={{ fontSize: 10 }}
+                      width={30}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Legend wrapperStyle={{ fontSize: "10px" }} />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="BTC"
+                      stroke="var(--color-BTC)"
+                      strokeWidth={1.5}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="ETH"
+                      stroke="var(--color-ETH)"
+                      strokeWidth={1.5}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="USDT"
+                      stroke="var(--color-USDT)"
+                      strokeWidth={1.5}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                  </LineChart>
+                </ChartContainer>
+              </div>
+
+              <div className="text-xs text-muted-foreground flex items-center justify-between pt-2 border-t">
+                <span className="flex items-center">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  {cryptoTrend === "up"
+                    ? "Market trending up"
+                    : cryptoTrend === "down"
+                    ? "Market trending down"
+                    : "Market stable"}
+                </span>
+                <span>Updated {new Date().toLocaleTimeString()}</span>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

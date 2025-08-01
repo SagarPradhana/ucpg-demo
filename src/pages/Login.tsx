@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,14 +25,17 @@ import { useMutation } from "@tanstack/react-query";
 import { User, LoginCredentials, ApiResponse, LoginResponse } from "@/types";
 import { getMetadataValue } from "@/utils/metadataUtils";
 import RoleSelectionModal from "@/components/RoleSelectionModal";
+import { useAuth } from "@/hooks/useAuth";
 
 const Login = () => {
+  const { user, isLoading, isAuthenticated } = useAuth();
   const [loginObj, setLoginObj] = useState({
     email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [hasUsedRoleModal, setHasUsedRoleModal] = useState(false);
   const [userInfo, setUserInfo] = useState<{
     name: string;
     email: string;
@@ -41,6 +44,12 @@ const Login = () => {
   const { toast } = useToast();
   const dispatch = useDispatch();
   const { setLanguageFromProfile } = useLanguage();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && !showRoleModal && !hasUsedRoleModal) {
+      navigate("/dashboard");
+    }
+  }, [isLoading, isAuthenticated, navigate, showRoleModal, hasUsedRoleModal]);
 
   const loginMutation = useMutation({
     mutationFn: (loginData: LoginCredentials) => login(loginData),
@@ -52,43 +61,38 @@ const Login = () => {
       // Store both tokens using TokenManager
       const tokenManager = TokenManager.getInstance();
       tokenManager.storeTokens(
-        response.data.access_token,
-        response.data.refresh_token
+        response?.data?.access_token,
+        response?.data?.refresh_token
       );
 
-      // Decode user from access token
-      const decodedUser = jwtDecode<User>(response.data.access_token);
+      const decodedUser = jwtDecode<User>(response?.data?.access_token);
 
-      // Dispatch user details to Redux store
       dispatch(loginActions.setUserDetails(decodedUser));
 
-      // Initialize language from user profile if available
       const userLanguage = getMetadataValue(decodedUser?.metadata, "language");
       if (userLanguage) {
         setLanguageFromProfile(userLanguage as any);
       }
 
-      // Start token monitoring with refresh capability
       tokenManager.refreshTokenCheck();
 
-      // Show success toast
       toast({
         title: "Welcome to UCPG",
         description: response?.message || "Login successful",
       });
 
-      // Check if user has admin privileges
-      if (response.data.superadmin === true) {
-        // Set user info for the modal
+      if (decodedUser?.role === "admin") {
         setUserInfo({
-          name: response.data.user?.name || decodedUser.name || "User",
+          name: response?.data?.user?.name || decodedUser?.name || "User",
           email:
-            response.data.user?.email || decodedUser.email || loginObj.email,
+            response?.data?.user?.email ||
+            decodedUser?.email ||
+            loginObj?.email,
         });
-        // Show role selection modal
+        // Show role selection modal and prevent useEffect from interfering
+        setHasUsedRoleModal(true);
         setShowRoleModal(true);
       } else {
-        // Navigate directly to dashboard for regular users
         navigate("/dashboard");
       }
     },
@@ -105,16 +109,15 @@ const Login = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     loginMutation.mutate({
-      email: loginObj.email,
-      password: loginObj.password,
+      email: loginObj?.email,
+      password: loginObj?.password,
     });
   };
 
   const handleCloseRoleModal = () => {
     setShowRoleModal(false);
     setUserInfo(null);
-    // Navigate to dashboard as fallback if modal is closed without selection
-    navigate("/dashboard");
+    setHasUsedRoleModal(true);
   };
 
   return (

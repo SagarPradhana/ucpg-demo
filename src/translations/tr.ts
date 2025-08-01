@@ -98,7 +98,7 @@ export const tr = {
   "home.features.secureCrypto": "Güvenli kripto ödemeler",
 
   // Dashboard
-  "dashboard.title": "UCPG Kontrol Paneli",
+  "dashboard.title": "UCPG",
   "dashboard.anonymityDisclaimer": "Bu platform anonimliğinizi sağlar. Kişisel veri toplanmaz veya saklanmaz. Tüm işlemler anonim tanımlayıcılar kullanır. Destek için işlem kimliğinizi kullanın.",
   "dashboard.totalBalance": "Toplam Bakiye",
   "dashboard.fromLastMonth": "geçen aydan itibaren",

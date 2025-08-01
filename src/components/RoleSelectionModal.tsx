@@ -112,6 +112,7 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
   const handleCancel = () => {
     setSelectedRole(null);
     onClose();
+    navigate("/dashboard");
   };
 
   return (

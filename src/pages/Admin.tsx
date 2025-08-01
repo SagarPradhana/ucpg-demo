@@ -73,6 +73,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import UserProfile from "@/components/UserProfile";
 
 // Types
 interface Transaction {
@@ -1538,8 +1539,27 @@ const Admin = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-6">
-          <div className="max-w-7xl mx-auto">{renderSection()}</div>
+        <div className="flex-1 flex flex-col">
+          {/* Header with User Profile */}
+          <div className="bg-card border-b px-6 py-4">
+            <div className="max-w-7xl mx-auto flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Crown className="h-6 w-6 text-primary" />
+                <div>
+                  <h2 className="text-xl font-semibold">Admin Dashboard</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Welcome to the administration panel
+                  </p>
+                </div>
+              </div>
+              <UserProfile />
+            </div>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1 p-6">
+            <div className="max-w-7xl mx-auto">{renderSection()}</div>
+          </div>
         </div>
       </div>
     </div>

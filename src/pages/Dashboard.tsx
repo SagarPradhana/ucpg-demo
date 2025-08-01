@@ -52,13 +52,17 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { loginActions } from "@/store/loginReducer";
 import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import { getUser } from "@/service/auth";
-import { Input } from "@/components/ui/input";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import UserProfile from "@/components/UserProfile";
 import SingleUserDetailsCard from "@/components/SingleUserDetailsCard";
+import DashboardDebugInfo from "@/components/DashboardDebugInfo";
 import { RootState } from "@/types";
 import { debugToken } from "@/utils/debugToken";
 import { fixMalformedMetadata } from "@/utils/metadataUtils";
+import {
+  logDashboardState,
+  testManualUserFetch,
+  debugTokenDecoding,
+} from "@/utils/dashboardDebug";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -68,6 +72,32 @@ const Dashboard = () => {
   const singleUserDetails = useSelector(
     (store: RootState) => store.singleUserDetails
   );
+
+  console.log("🏠 Dashboard: Component rendered/re-rendered", {
+    authUserExists: !!authUser,
+    authUserId: authUser?.id,
+    singleUserExists: !!singleUserDetails.userDetails,
+    singleUserId: singleUserDetails.userDetails?.id,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Debug Redux state changes
+  useEffect(() => {
+    console.log("🔍 Dashboard: Redux state changed:", {
+      authUser: {
+        id: authUser?.id,
+        email: authUser?.email,
+        exists: !!authUser,
+      },
+      singleUserDetails: {
+        id: singleUserDetails.userDetails?.id,
+        email: singleUserDetails.userDetails?.email,
+        exists: !!singleUserDetails.userDetails,
+        loading: singleUserDetails.loading,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  }, [authUser, singleUserDetails]);
 
   // Use singleUserDetails as primary user data, fallback to authUser for ID when needed
   const userProfile = singleUserDetails.userDetails || authUser;
@@ -91,25 +121,50 @@ const Dashboard = () => {
     data: userData,
     isLoading: userDataLoading,
     refetch: refetchUserData,
+    error: userDataError,
   } = useQuery({
     queryKey: ["user", authUser?.id],
     queryFn: () => {
       if (!authUser?.id) {
+        console.error(
+          "❌ Dashboard: getUser query called but authUser.id is not available:",
+          authUser
+        );
         throw new Error("User ID not available");
       }
-      console.log("🔄 Fetching user data for ID:", authUser.id);
+      console.log("🔄 Dashboard: Fetching user data for ID:", authUser.id);
       return getUser(authUser.id);
     },
     enabled: !!authUser?.id, // Only run query if user ID exists
-    staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
-    retry: 3,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 1000 * 60 * 5, // Changed from cacheTime to gcTime
+    retry: 2,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
+
+  // Debug useQuery state changes
+  useEffect(() => {
+    console.log("🔍 Dashboard: useQuery state changed:", {
+      authUserId: authUser?.id,
+      queryEnabled: !!authUser?.id,
+      isLoading: userDataLoading,
+      hasData: !!userData,
+      hasError: !!userDataError,
+      timestamp: new Date().toISOString(),
+    });
+  }, [authUser?.id, userDataLoading, userData, userDataError]);
 
   // Update Redux state when query state changes
   useEffect(() => {
     if (userDataLoading) {
+      console.log("🔄 Dashboard: User data loading started...");
       dispatch(singleUserDetailsActions.setLoading(true));
     } else if (userData) {
+      console.log(
+        "✅ Dashboard: User data received, updating Redux:",
+        userData
+      );
       // Fix malformed metadata before storing in Redux
       const fixedUserData = {
         ...(userData as any),
@@ -119,8 +174,69 @@ const Dashboard = () => {
         singleUserDetailsActions.setSingleUserDetails(fixedUserData as any)
       );
       dispatch(singleUserDetailsActions.setLoading(false));
+    } else if (userDataError) {
+      console.error("❌ Dashboard: User data loading failed:", userDataError);
+      dispatch(singleUserDetailsActions.setLoading(false));
     }
-  }, [userDataLoading, dispatch, userData]);
+  }, [userDataLoading, dispatch, userData, userDataError]);
+
+  // Trigger user data fetch when authUser becomes available
+  useEffect(() => {
+    if (authUser?.id && !userData && !userDataLoading) {
+      console.log(
+        "🚀 Dashboard: authUser available, manually triggering user data fetch"
+      );
+      refetchUserData();
+    }
+  }, [authUser?.id, userData, userDataLoading, refetchUserData]);
+
+  // Comprehensive dashboard debug (runs after initial render)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      logDashboardState({
+        authUser,
+        singleUserDetails,
+        userData,
+        userDataLoading,
+        userDataError,
+        sessionToken,
+      });
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []); // Only run once on mount
+
+  // Add window debug functions for manual testing
+  useEffect(() => {
+    if (import.meta.env.MODE === "development") {
+      (window as any).dashboardDebug = {
+        logState: () =>
+          logDashboardState({
+            authUser,
+            singleUserDetails,
+            userData,
+            userDataLoading,
+            userDataError,
+            sessionToken,
+          }),
+        testUserFetch: (userId: string) => testManualUserFetch(userId),
+        debugToken: debugTokenDecoding,
+        refetchUserData,
+        authUser,
+        singleUserDetails,
+        userData,
+      };
+      console.log("🧪 Debug tools available: window.dashboardDebug");
+    }
+  }, [
+    authUser,
+    singleUserDetails,
+    userData,
+    userDataLoading,
+    userDataError,
+    sessionToken,
+    refetchUserData,
+  ]);
 
   // Mock API for refreshing balance data
   const mockRefreshBalance = (): Promise<{
@@ -181,10 +297,13 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
+    console.log("🔐 Dashboard: Checking session token...");
     const token = localStorage.getItem("sessionToken");
     if (!token) {
+      console.log("❌ Dashboard: No session token found, redirecting to login");
       navigate("/login");
     } else {
+      console.log("✅ Dashboard: Session token found, setting state");
       setSessionToken(token);
     }
   }, [navigate]);
@@ -192,8 +311,18 @@ const Dashboard = () => {
   // Load user data from token when component mounts if Redux state is empty
   useEffect(() => {
     const loadUserFromToken = () => {
+      console.log(
+        "🔄 Dashboard: loadUserFromToken called, authUser:",
+        authUser
+      );
+
       // If authUser is already loaded, don't reload
-      if (authUser) return;
+      if (authUser) {
+        console.log(
+          "✅ Dashboard: authUser already exists, skipping token load"
+        );
+        return;
+      }
 
       const token = localStorage.getItem("sessionToken");
       if (token) {
@@ -203,18 +332,36 @@ const Dashboard = () => {
           // Check if token is still valid
           const currentTime = Date.now() / 1000;
           if (decodedUser.exp > currentTime) {
+            console.log(
+              "🔄 Dashboard: Dispatching user details to Redux from token:",
+              decodedUser
+            );
             // Dispatch user details to Redux store
             dispatch(loginActions.setUserDetails(decodedUser));
+
+            // Force refetch user data after a short delay to ensure Redux is updated
+            setTimeout(() => {
+              console.log(
+                "🚀 Dashboard: Force triggering user data fetch after Redux update"
+              );
+              refetchUserData();
+            }, 100);
           } else {
             // Token is expired, remove it
+            console.log("❌ Dashboard: Token expired, redirecting to login");
             localStorage.removeItem("sessionToken");
             navigate("/login");
           }
         } catch (error) {
-          console.error("Error decoding token:", error);
+          console.error("❌ Dashboard: Error decoding token:", error);
           localStorage.removeItem("sessionToken");
           navigate("/login");
         }
+      } else {
+        console.log(
+          "❌ Dashboard: No session token found, redirecting to login"
+        );
+        navigate("/login");
       }
     };
 
@@ -224,7 +371,7 @@ const Dashboard = () => {
     if (import.meta.env.MODE === "development") {
       debugToken();
     }
-  }, [dispatch, navigate, authUser]);
+  }, [dispatch, navigate]); // Removed authUser from deps to prevent infinite loop
 
   // Auto-update balance every 30 seconds
   useEffect(() => {
@@ -327,8 +474,7 @@ const Dashboard = () => {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [localCurrency, setLocalCurrency] = useState("USD");
   const [cryptoCurrency, setCryptoCurrency] = useState("USDT");
-  const [paymentLink, setPaymentLink] = useState("");
-  const [qrCode, setQrCode] = useState("");
+
   const [convertedAmount, setConvertedAmount] = useState("");
   const [exchangeRate, setExchangeRate] = useState(1);
   const [paymentStatus, setPaymentStatus] = useState("idle"); // idle, processing, completed
@@ -363,67 +509,6 @@ const Dashboard = () => {
   const generateAnonymousContactInfo = () => {
     const contactId = Math.random().toString(36).substr(2, 9);
     return `anonymous-${contactId}@example.com`;
-  };
-
-  const handleSendPayment = async () => {
-    if (!paymentAmount || !convertedAmount) {
-      // Removed non-API validation toast - this is client-side validation
-      return;
-    }
-
-    setPaymentStatus("processing");
-
-    // Simulate payment processing
-    const newTransactionId = Math.random()
-      .toString(36)
-      .substr(2, 12)
-      .toUpperCase();
-    setTransactionId(newTransactionId);
-
-    // Simulate processing delay
-    setTimeout(() => {
-      // Generate single-use link and QR code
-      const singleUseId = Math.random().toString(36).substr(2, 16);
-      const link = `${window.location.origin}/claim/${singleUseId}`;
-      const qrData = JSON.stringify({
-        id: singleUseId,
-        amount: convertedAmount,
-        currency: cryptoCurrency,
-        expires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-        singleUse: true,
-      });
-
-      setSingleUseLink(link);
-      setSingleUseQR(qrData);
-      setPaymentStatus("completed");
-
-      const anonymousContact = generateAnonymousContactInfo();
-
-      // Removed mock payment completion toast - not a real API call
-    }, 3000);
-  };
-
-  const copySingleUseLink = () => {
-    navigator.clipboard.writeText(singleUseLink);
-    // Removed non-API copy toast
-  };
-
-  const mockStatistics = {
-    totalCommissionToday: 250.75,
-    incomeLastWeek: [
-      { day: "Mon", amount: 120 },
-      { day: "Tue", amount: 200 },
-      { day: "Wed", amount: 150 },
-      { day: "Thu", amount: 300 },
-      { day: "Fri", amount: 250 },
-      { day: "Sat", amount: 180 },
-      { day: "Sun", amount: 220 },
-    ],
-    topProviders: [
-      { name: "Provider A", commission: 500 },
-      { name: "Provider B", commission: 450 },
-      { name: "Provider C", commission: 400 },
-    ],
   };
 
   return (

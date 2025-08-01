@@ -17,7 +17,6 @@ import {
   Palette,
   Globe,
   LogOut,
-  Settings,
   Sun,
   Moon,
   Monitor,
@@ -49,8 +48,20 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   const location = useLocation();
   const { theme, setTheme, actualTheme } = useTheme();
   const { language, setLanguage, setLanguageFromProfile, t } = useLanguage();
-  const userProfile = useSelector((store: RootState) => store.auth.userDetails);
+
+  const userProfile = (
+    useSelector(
+      (state: RootState) => state.singleUserDetails.userDetails
+    ) as any
+  )?.data;
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (userProfile) {
+      setTheme(userProfile?.metadata?.theme || ("light" as any));
+      setLanguage(userProfile?.metadata?.language || ("en" as any));
+    }
+  }, [userProfile]);
 
   // Pages where theme/language updates should not trigger API calls
   const excludedPages = [
@@ -61,30 +72,20 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   ];
   const isExcludedPage = excludedPages.includes(location.pathname);
 
-  // updateUserProfile API function
-
   // Mutation for updating user profile
   const updateProfileMutation = useMutation({
     mutationFn: (payload: any) => updateUserProfile(payload, userProfile?.id),
     onSuccess: (data: any, variables: any) => {
-      console.log("Profile update successful:", data, variables);
-
       // Create updated user profile with new metadata
       const updatedUserProfile = {
         ...userProfile,
         metadata: updateMetadata(userProfile?.metadata, variables.metadata),
       };
-
-      console.log("Updating Redux with:", updatedUserProfile);
-
-      // Update Redux store with new metadata
       dispatch(loginActions.setUserDetails(updatedUserProfile));
-
-      // Show success toast only if not on excluded pages
       if (!isExcludedPage) {
         toast({
           title: t("profile.profileUpdated"),
-          description: t("profile.profileUpdatedDesc"),
+          description: data?.message,
         });
       }
     },
@@ -107,11 +108,6 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   const displayEmail = userProfile?.email || userEmail || "user@example.com";
   const displayAvatar = userAvatar;
 
-  // Debug useEffect to track Redux state changes
-  useEffect(() => {
-    console.log("UserProfile Redux state changed:", userProfile);
-  }, [userProfile]);
-
   // Initialize language from user profile metadata when available
   useEffect(() => {
     const profileLanguage = getMetadataValue(
@@ -119,19 +115,9 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
       "language"
     ) as Language;
     if (profileLanguage) {
-      console.log("Initializing language from profile:", profileLanguage);
       setLanguageFromProfile(profileLanguage);
     }
   }, [userProfile?.metadata, setLanguageFromProfile]);
-
-  // Debug useEffect to track theme and language changes
-  useEffect(() => {
-    console.log("Theme or language changed:", {
-      theme,
-      language,
-      userProfileMetadata: userProfile?.metadata,
-    });
-  }, [theme, language, userProfile?.metadata]);
 
   const handleProfileClick = () => {
     navigate("/profile");
@@ -139,27 +125,17 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   };
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
-    console.log("Theme change:", newTheme, "Current user:", userProfile);
     setTheme(newTheme);
 
     // Don't update profile API on excluded pages (login, signup, forgot password)
     if (!isExcludedPage && userProfile) {
       // Update user profile with new theme using utility function
-      const updatedMetadata = updateMetadata(userProfile?.metadata, {
-        language: language,
-        theme: newTheme,
-      });
-
-      console.log("Updating theme in profile:", {
-        originalMetadata: userProfile?.metadata,
-        updatedMetadata,
-        newTheme,
-        language,
-      });
-
       updateProfileMutation.mutate({
         ...userProfile,
-        metadata: updatedMetadata,
+        metadata: {
+          ...userProfile.metadata,
+          theme: newTheme,
+        },
       });
     } else {
       console.log(
@@ -169,72 +145,23 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   };
 
   const handleLanguageChange = (newLanguage: Language) => {
-    console.log("Language change:", newLanguage, "Current user:", userProfile);
     setLanguage(newLanguage);
 
     // Don't update profile API on excluded pages (login, signup, forgot password)
     if (!isExcludedPage && userProfile) {
       // Update user profile with new language using utility function
-      const updatedMetadata = updateMetadata(userProfile?.metadata, {
-        language: newLanguage,
-        theme: theme,
-      });
-
-      console.log("Updating language in profile:", {
-        originalMetadata: userProfile?.metadata,
-        updatedMetadata,
-        newLanguage,
-        theme,
-      });
 
       updateProfileMutation.mutate({
         ...userProfile,
-        metadata: updatedMetadata,
+        metadata: {
+          ...userProfile?.metadata,
+          language: newLanguage,
+        },
       });
     } else {
       console.log(
         "Skipping language API update - excluded page or no user profile"
       );
-    }
-  };
-
-  const getLanguageName = (lang: Language): string => {
-    switch (lang) {
-      case "en":
-        return "english";
-      case "ru":
-        return "russian";
-      case "tr":
-        return "turkish";
-      default:
-        return "english";
-    }
-  };
-
-  const handleLogoutClick = () => {
-    console.log("Logout clicked");
-
-    // Safely logout while preserving user preferences
-    const tokenManager = TokenManager.getInstance();
-    tokenManager.safeLogout();
-
-    // Clear user from Redux store
-    dispatch(loginActions.clearUserDetails());
-
-    // Navigate to login page
-    navigate("/login");
-  };
-
-  const getThemeIcon = (themeType: "light" | "dark" | "system") => {
-    switch (themeType) {
-      case "light":
-        return <Sun className="mr-2 h-4 w-4" />;
-      case "dark":
-        return <Moon className="mr-2 h-4 w-4" />;
-      case "system":
-        return <Monitor className="mr-2 h-4 w-4" />;
-      default:
-        return <Monitor className="mr-2 h-4 w-4" />;
     }
   };
 

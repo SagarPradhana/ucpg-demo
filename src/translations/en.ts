@@ -98,7 +98,7 @@ export const en = {
   "home.features.secureCrypto": "Secure crypto payments",
 
   // Dashboard
-  "dashboard.title": "UCPG Dashboard",
+  "dashboard.title": "UCPG",
   "dashboard.anonymityDisclaimer": "This platform ensures your anonymity. No personal data is collected or stored. All transactions use anonymous identifiers. For support, use your transaction ID.",
   "dashboard.totalBalance": "Total Balance",
   "dashboard.fromLastMonth": "from last month",

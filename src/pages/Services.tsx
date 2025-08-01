@@ -67,146 +67,16 @@ interface Service {
   discount?: number;
 }
 
-// Mock services data
-const mockServices: Service[] = [
-  {
-    id: "steam-games",
-    name: "Steam Game Keys",
-    category: "games",
-    description: "Access to premium Steam game keys with instant delivery",
-    price: 29.99,
-    currency: "USDT",
-    rating: 4.8,
-    totalUsers: 15420,
-    provider: "GameHub Pro",
-    thumbnail: "/api/placeholder/300/200",
-    tags: ["Instant", "Premium", "Popular"],
-    features: [
-      "Instant delivery",
-      "24/7 support",
-      "Lifetime access",
-      "Multiple platforms",
-    ],
-    redirectUrl: "https://steamgames-provider.com/auth",
-    isPopular: true,
-  },
-  {
-    id: "premium-vpn",
-    name: "Premium VPN Access",
-    category: "vpn",
-    description:
-      "Anonymous VPN service with global servers and unlimited bandwidth",
-    price: 9.99,
-    currency: "USDT",
-    rating: 4.9,
-    totalUsers: 28350,
-    provider: "SecureNet VPN",
-    thumbnail: "/api/placeholder/300/200",
-    tags: ["Anonymous", "Global", "Unlimited"],
-    features: [
-      "50+ countries",
-      "No logs policy",
-      "Unlimited bandwidth",
-      "Multiple devices",
-    ],
-    apiEndpoint: "/api/vpn/access",
-    isPopular: true,
-  },
-  {
-    id: "design-software",
-    name: "Creative Design Suite",
-    category: "software",
-    description:
-      "Professional design software with all premium features unlocked",
-    price: 49.99,
-    currency: "USDT",
-    rating: 4.7,
-    totalUsers: 8920,
-    provider: "CreativeTech",
-    thumbnail: "/api/placeholder/300/200",
-    tags: ["Professional", "Creative", "Premium"],
-    features: [
-      "All premium tools",
-      "Cloud storage",
-      "Templates library",
-      "Video tutorials",
-    ],
-    redirectUrl: "https://creativetech.com/premium",
-    discount: 20,
-  },
-  {
-    id: "digital-courses",
-    name: "Crypto Trading Courses",
-    category: "digital_goods",
-    description:
-      "Complete cryptocurrency trading masterclass with expert guidance",
-    price: 199.99,
-    currency: "USDT",
-    rating: 4.6,
-    totalUsers: 5430,
-    provider: "CryptoAcademy",
-    thumbnail: "/api/placeholder/300/200",
-    tags: ["Education", "Expert", "Comprehensive"],
-    features: [
-      "10+ hours content",
-      "Live sessions",
-      "Trading signals",
-      "Community access",
-    ],
-    apiEndpoint: "/api/courses/access",
-    isNew: true,
-  },
-  {
-    id: "streaming-service",
-    name: "Premium Streaming",
-    category: "digital_goods",
-    description:
-      "Access to premium streaming content worldwide with 4K quality",
-    price: 15.99,
-    currency: "USDT",
-    rating: 4.5,
-    totalUsers: 12780,
-    provider: "StreamMax",
-    thumbnail: "/api/placeholder/300/200",
-    tags: ["4K Quality", "Worldwide", "Premium"],
-    features: [
-      "4K streaming",
-      "Multiple devices",
-      "Offline downloads",
-      "Family sharing",
-    ],
-    redirectUrl: "https://streammax.com/premium",
-  },
-  {
-    id: "cloud-storage",
-    name: "Secure Cloud Storage",
-    category: "software",
-    description:
-      "Encrypted cloud storage with unlimited space and privacy protection",
-    price: 19.99,
-    currency: "USDT",
-    rating: 4.8,
-    totalUsers: 9650,
-    provider: "CloudSafe",
-    thumbnail: "/api/placeholder/300/200",
-    tags: ["Encrypted", "Unlimited", "Secure"],
-    features: [
-      "End-to-end encryption",
-      "Unlimited storage",
-      "File versioning",
-      "Team collaboration",
-    ],
-    apiEndpoint: "/api/storage/access",
-  },
-];
-
 const Services = () => {
-  const [services, setServices] = useState<Service[]>(mockServices);
-  const [filteredServices, setFilteredServices] =
-    useState<Service[]>(mockServices);
+  const [services, setServices] = useState<Service[]>([]);
+  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isLoadingServices, setIsLoadingServices] = useState(true);
+  const [updatedServiceIds, setUpdatedServiceIds] = useState<Set<string>>(
+    new Set()
+  );
 
   const userProfile = useSelector((store: any) => store.auth.userDetails);
   const dispatch = useDispatch();
