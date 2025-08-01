@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types";
+import { getMetadataValue } from "@/utils/metadataUtils";
 
 type Theme = "light" | "dark" | "system";
 
@@ -43,19 +44,27 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     // Only apply user theme preferences for authenticated users
     if (isAuthenticated) {
       // Check singleUserDetails first (primary source)
-      if (singleUserDetails?.metadata?.theme) {
-        const userTheme = singleUserDetails.metadata.theme as Theme;
-        if (["light", "dark", "system"].includes(userTheme)) {
-          return userTheme;
-        }
+      const singleUserTheme = getMetadataValue(
+        singleUserDetails?.metadata,
+        "theme"
+      ) as Theme;
+      if (
+        singleUserTheme &&
+        ["light", "dark", "system"].includes(singleUserTheme)
+      ) {
+        return singleUserTheme;
       }
 
       // Check authUser as fallback
-      if (authUser?.metadata?.theme) {
-        const userTheme = authUser.metadata.theme as Theme;
-        if (["light", "dark", "system"].includes(userTheme)) {
-          return userTheme;
-        }
+      const authUserTheme = getMetadataValue(
+        authUser?.metadata,
+        "theme"
+      ) as Theme;
+      if (
+        authUserTheme &&
+        ["light", "dark", "system"].includes(authUserTheme)
+      ) {
+        return authUserTheme;
       }
 
       // For authenticated users without theme metadata, default to light
@@ -76,11 +85,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       setTheme(newTheme);
       console.log(`🎨 Theme updated from user metadata: ${newTheme}`);
     }
-  }, [
-    isAuthenticated,
-    authUser?.metadata?.theme,
-    singleUserDetails?.metadata?.theme,
-  ]);
+  }, [isAuthenticated, authUser?.metadata, singleUserDetails?.metadata]);
 
   // Function to get system preference
   const getSystemTheme = (): "light" | "dark" => {
@@ -128,7 +133,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     // Log the theme source for debugging
     if (isAuthenticated) {
       const userTheme =
-        singleUserDetails?.metadata?.theme || authUser?.metadata?.theme;
+        getMetadataValue(singleUserDetails?.metadata, "theme") ||
+        getMetadataValue(authUser?.metadata, "theme");
       if (userTheme) {
         console.log(`🎨 Theme applied from user metadata: ${theme}`);
       } else {
@@ -146,12 +152,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       // For non-authenticated users, don't save to localStorage
       // This ensures public pages always start with light theme
     }
-  }, [
-    theme,
-    isAuthenticated,
-    authUser?.metadata?.theme,
-    singleUserDetails?.metadata?.theme,
-  ]);
+  }, [theme, isAuthenticated, authUser?.metadata, singleUserDetails?.metadata]);
 
   const value: ThemeContextType = {
     theme,

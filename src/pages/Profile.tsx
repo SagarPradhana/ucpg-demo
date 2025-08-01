@@ -44,6 +44,7 @@ import {
 
 import { RootState } from "@/types";
 import { updateUserPessword, updateUserProfile } from "@/service/auth";
+import { updateMetadata, getMetadataValue } from "@/utils/metadataUtils";
 import TokenDebugPanel from "@/components/TokenDebugPanel";
 import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 
@@ -62,7 +63,7 @@ const Profile = () => {
   const userProfile = singleUserDetails.userDetails.data || authUser;
   const dispatch = useDispatch();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, setLanguageFromProfile } = useLanguage();
   const queryClient = useQueryClient();
   console.log("UserProfile from Redux:", userProfile);
 
@@ -90,11 +91,10 @@ const Profile = () => {
         const updatedUser = {
           ...userProfile,
           name: profileData.name,
-          metadata: {
-            ...userProfile.metadata,
+          metadata: updateMetadata(userProfile.metadata, {
             country: profileData.country,
             currency: profileData.currency,
-          },
+          }),
         };
 
         // Update the singleUserDetails store
@@ -105,11 +105,10 @@ const Profile = () => {
           const updatedAuthUser = {
             ...authUser,
             name: profileData.name,
-            metadata: {
-              ...authUser.metadata,
+            metadata: updateMetadata(authUser.metadata, {
               country: profileData.country,
               currency: profileData.currency,
-            },
+            }),
           };
           dispatch(loginActions.setUserDetails(updatedAuthUser));
         }
@@ -219,11 +218,21 @@ const Profile = () => {
         ...prev,
         name: userProfile.name || prev.name,
         email: userProfile.email || prev.email,
-        country: userProfile.metadata?.country || prev.country,
-        currency: userProfile.metadata?.currency || prev.currency,
+        country:
+          (getMetadataValue(userProfile.metadata, "country") as string) ||
+          prev.country,
+        currency:
+          (getMetadataValue(userProfile.metadata, "currency") as string) ||
+          prev.currency,
       }));
+
+      // Initialize language from user profile metadata if available
+      const userLanguage = getMetadataValue(userProfile?.metadata, "language");
+      if (userLanguage) {
+        setLanguageFromProfile(userLanguage as any);
+      }
     }
-  }, [userProfile]);
+  }, [userProfile, setLanguageFromProfile]);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -256,8 +265,10 @@ const Profile = () => {
     }
 
     updateProfileMutation.mutate({
+      ...userProfile,
       name: profileData.name,
       metadata: {
+        ...userProfile.metadata,
         country: profileData.country,
         currency: profileData.currency,
       },

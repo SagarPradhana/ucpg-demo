@@ -17,11 +17,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useDispatch } from "react-redux";
 import { loginActions } from "@/store/loginReducer";
 import { useLanguage } from "@/contexts/LanguageContext";
+
 import { jwtDecode } from "jwt-decode";
 import { login } from "@/service/auth";
 import TokenManager from "@/utils/tokenManager";
 import { useMutation } from "@tanstack/react-query";
 import { User, LoginCredentials, ApiResponse, LoginResponse } from "@/types";
+import { getMetadataValue } from "@/utils/metadataUtils";
 import RoleSelectionModal from "@/components/RoleSelectionModal";
 
 const Login = () => {
@@ -38,7 +40,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const dispatch = useDispatch();
-  const { t } = useLanguage();
+  const { setLanguageFromProfile } = useLanguage();
 
   const loginMutation = useMutation({
     mutationFn: (loginData: LoginCredentials) => login(loginData),
@@ -60,17 +62,23 @@ const Login = () => {
       // Dispatch user details to Redux store
       dispatch(loginActions.setUserDetails(decodedUser));
 
+      // Initialize language from user profile if available
+      const userLanguage = getMetadataValue(decodedUser?.metadata, "language");
+      if (userLanguage) {
+        setLanguageFromProfile(userLanguage as any);
+      }
+
       // Start token monitoring with refresh capability
       tokenManager.refreshTokenCheck();
 
       // Show success toast
       toast({
-        title: t("auth.welcomeToUCPG"),
+        title: "Welcome to UCPG",
         description: response?.message || "Login successful",
       });
 
       // Check if user has admin privileges
-      if (response.data.admin === true) {
+      if (response.data.superadmin === true) {
         // Set user info for the modal
         setUserInfo({
           name: response.data.user?.name || decodedUser.name || "User",
@@ -87,7 +95,7 @@ const Login = () => {
     onError: (error: any) => {
       console.error("Login failed:", error);
       toast({
-        title: t("auth.incorrectCredentials"),
+        title: "Incorrect Credentials",
         description: error?.message || "Login failed. Please try again.",
         variant: "destructive",
       });
@@ -118,30 +126,30 @@ const Login = () => {
             <div className="bg-primary/10 p-2 rounded-lg">
               <Coins className="h-6 w-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold">{t("app.title")}</h1>
+            <h1 className="text-2xl font-bold">UCPG</h1>
           </div>
-          <p className="text-muted-foreground text-sm">{t("app.fullName")}</p>
+          <p className="text-muted-foreground text-sm">
+            Universal Crypto Payment Gateway
+          </p>
         </div>
 
         {/* Login Card */}
         <Card className="animate-scale-in">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">
-              {t("auth.welcomeBack")}
-            </CardTitle>
+            <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
             <CardDescription className="text-center">
-              {t("auth.signInDescription")}
+              Sign in to your account to continue
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">{t("auth.email")}</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder={t("auth.enterEmail")}
+                  placeholder="Enter your email"
                   value={loginObj?.email}
                   onChange={(e) =>
                     setLoginObj((prev) => ({ ...prev, email: e.target.value }))
@@ -152,12 +160,12 @@ const Login = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">{t("auth.password")}</Label>
+                <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder={t("auth.enterPassword")}
+                    placeholder="Enter your password"
                     value={loginObj?.password}
                     onChange={(e) =>
                       setLoginObj((prev) => ({
@@ -198,11 +206,11 @@ const Login = () => {
                 {loginMutation.isPending ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    <span>{t("auth.signingIn")}</span>
+                    <span>Signing In...</span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
-                    <span>{t("auth.signIn")}</span>
+                    <span>Sign In</span>
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
                 )}
@@ -214,19 +222,19 @@ const Login = () => {
             <div className="flex items-center justify-center space-x-1 text-sm">
               <Shield className="h-4 w-4 text-primary" />
               <span className="text-muted-foreground">
-                {t("home.features.secureCrypto")}
+                Secure Cryptocurrency Payments
               </span>
             </div>
           </CardContent>
 
           <CardFooter className="justify-center">
             <p className="text-sm text-muted-foreground">
-              {t("auth.dontHaveAccount")}{" "}
+              Don't have an account?{" "}
               <Link
                 to="/signup"
                 className="text-primary hover:underline font-medium"
               >
-                {t("auth.signup")}
+                Sign Up
               </Link>
             </p>
           </CardFooter>
@@ -236,21 +244,15 @@ const Login = () => {
         <div className="grid grid-cols-3 gap-4 text-center animate-fade-in">
           <div className="space-y-1">
             <div className="text-2xl">🌍</div>
-            <p className="text-xs text-muted-foreground">
-              {t("home.features.global")}
-            </p>
+            <p className="text-xs text-muted-foreground">Global Payments</p>
           </div>
           <div className="space-y-1">
             <div className="text-2xl">🔒</div>
-            <p className="text-xs text-muted-foreground">
-              {t("home.features.anonymous")}
-            </p>
+            <p className="text-xs text-muted-foreground">Anonymous & Secure</p>
           </div>
           <div className="space-y-1">
             <div className="text-2xl">⚡</div>
-            <p className="text-xs text-muted-foreground">
-              {t("home.features.instant")}
-            </p>
+            <p className="text-xs text-muted-foreground">Instant Processing</p>
           </div>
         </div>
       </div>

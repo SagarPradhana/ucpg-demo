@@ -58,6 +58,7 @@ import UserProfile from "@/components/UserProfile";
 import SingleUserDetailsCard from "@/components/SingleUserDetailsCard";
 import { RootState } from "@/types";
 import { debugToken } from "@/utils/debugToken";
+import { fixMalformedMetadata } from "@/utils/metadataUtils";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -108,8 +109,15 @@ const Dashboard = () => {
   useEffect(() => {
     if (userDataLoading) {
       dispatch(singleUserDetailsActions.setLoading(true));
-    } else {
-      dispatch(singleUserDetailsActions.setSingleUserDetails(userData as any));
+    } else if (userData) {
+      // Fix malformed metadata before storing in Redux
+      const fixedUserData = {
+        ...(userData as any),
+        metadata: fixMalformedMetadata((userData as any)?.metadata),
+      };
+      dispatch(
+        singleUserDetailsActions.setSingleUserDetails(fixedUserData as any)
+      );
       dispatch(singleUserDetailsActions.setLoading(false));
     }
   }, [userDataLoading, dispatch, userData]);

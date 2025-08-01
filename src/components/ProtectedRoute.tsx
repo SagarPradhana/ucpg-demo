@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/types";
+import { getMetadataValue } from "@/utils/metadataUtils";
 import { loginActions } from "@/store/loginReducer";
 import { jwtDecode } from "jwt-decode";
 import TokenManager from "@/utils/tokenManager";
@@ -77,7 +78,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
             if (decodedUser.exp > currentTime) {
               // Token is valid, set user in Redux
-              dispatch(loginActions.setUserDetails(decodedUser));
+              dispatch(loginActions.setUserDetails(decodedUser as any));
 
               // Initialize token manager
               const tokenManager = TokenManager.getInstance();

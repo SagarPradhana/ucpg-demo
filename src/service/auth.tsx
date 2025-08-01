@@ -86,6 +86,18 @@ export const getUser = (id: string) => {
 
 export const updateUserProfile = (data: object, id: string) => {
   console.log("🔄 updateUserProfile called with:", { data, id });
+  console.log("📊 Metadata being sent:", (data as any)?.metadata);
+
+  // Check if metadata has malformed structure and warn
+  if ((data as any)?.metadata) {
+    const metadata = (data as any).metadata;
+    const keys = Object.keys(metadata);
+    if (keys.some((key) => !isNaN(Number(key)))) {
+      console.warn("⚠️ MALFORMED METADATA DETECTED in API payload:", metadata);
+      console.warn("📍 This should be fixed using updateMetadata utility");
+    }
+  }
+
   const formatedUrl = FormatUrl(UPDATEUSERPROFILE.url, id);
   console.log("📡 Profile update URL:", formatedUrl);
 

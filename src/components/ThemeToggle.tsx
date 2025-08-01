@@ -11,6 +11,7 @@ import { Sun, Moon, Monitor, Check } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { RootState } from "@/types";
 import { updateUserProfile } from "@/service/auth";
+import { updateMetadata } from "@/utils/metadataUtils";
 import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import { useToast } from "@/hooks/use-toast";
 
@@ -72,18 +73,16 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({
       try {
         console.log(`🎨 Updating user profile with theme: ${newTheme}`);
 
-        // Prepare the metadata update payload
-        const currentMetadata = singleUserDetails.metadata || {};
-        const updatedMetadata = {
-          ...currentMetadata,
+        // Prepare the metadata update payload using utility function
+        const updatedMetadata = updateMetadata(singleUserDetails.metadata, {
           theme: newTheme,
-        };
+        });
 
         // Call the updateUserProfile API
-        const response = await updateUserProfile(
+        const response = (await updateUserProfile(
           { metadata: updatedMetadata },
           singleUserDetails.id
-        );
+        )) as any;
 
         if (response?.status === 200 || response?.data) {
           // Update Redux store with new user data

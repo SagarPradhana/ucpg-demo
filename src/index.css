@@ -131,3 +131,52 @@ All colors MUST be HSL.
 .animate-fade-in {
   animation: fade-in 0.3s ease-in-out;
 }
+
+/* Select dropdown positioning - Force dropdowns to appear below triggers */
+@layer components {
+  /* Radix Select Content - Force bottom positioning */
+  [data-radix-select-content] {
+    transform-origin: var(--radix-select-content-transform-origin) !important;
+  }
+  
+  /* Ensure Radix Popper positions below by default */
+  [data-side="top"][data-radix-popper-content-wrapper] {
+    transform: translateY(8px) !important;
+  }
+  
+  /* Custom dropdown positioning utilities */
+  .dropdown-bottom {
+    transform-origin: top !important;
+  }
+  
+  .dropdown-bottom[data-state="open"] {
+    animation: slide-down 0.2s ease-out;
+  }
+  
+  .dropdown-bottom[data-state="closed"] {
+    animation: slide-up 0.15s ease-in;
+  }
+}
+
+/* Dropdown animations */
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+}

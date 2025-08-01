@@ -35,6 +35,7 @@ import { useMutation } from "@tanstack/react-query";
 
 import { RootState } from "@/types";
 import { updateUserProfile } from "@/service/auth";
+import { getMetadataValue, updateMetadata } from "@/utils/metadataUtils";
 
 interface UserProfileProps {
   userName?: string;
@@ -47,7 +48,7 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, setTheme, actualTheme } = useTheme();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, setLanguageFromProfile, t } = useLanguage();
   const userProfile = useSelector((store: RootState) => store.auth.userDetails);
   const dispatch = useDispatch();
 
@@ -71,10 +72,7 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
       // Create updated user profile with new metadata
       const updatedUserProfile = {
         ...userProfile,
-        metadata: {
-          ...(userProfile?.metadata || {}),
-          ...variables.metadata,
-        },
+        metadata: updateMetadata(userProfile?.metadata, variables.metadata),
       };
 
       console.log("Updating Redux with:", updatedUserProfile);
@@ -114,6 +112,18 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
     console.log("UserProfile Redux state changed:", userProfile);
   }, [userProfile]);
 
+  // Initialize language from user profile metadata when available
+  useEffect(() => {
+    const profileLanguage = getMetadataValue(
+      userProfile?.metadata,
+      "language"
+    ) as Language;
+    if (profileLanguage) {
+      console.log("Initializing language from profile:", profileLanguage);
+      setLanguageFromProfile(profileLanguage);
+    }
+  }, [userProfile?.metadata, setLanguageFromProfile]);
+
   // Debug useEffect to track theme and language changes
   useEffect(() => {
     console.log("Theme or language changed:", {
@@ -134,21 +144,22 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
 
     // Don't update profile API on excluded pages (login, signup, forgot password)
     if (!isExcludedPage && userProfile) {
-      // Update user profile with new theme
-      const currentMetadata = userProfile?.metadata || {};
+      // Update user profile with new theme using utility function
+      const updatedMetadata = updateMetadata(userProfile?.metadata, {
+        language: language,
+        theme: newTheme,
+      });
+
       console.log("Updating theme in profile:", {
-        currentMetadata,
+        originalMetadata: userProfile?.metadata,
+        updatedMetadata,
         newTheme,
         language,
       });
 
       updateProfileMutation.mutate({
         ...userProfile,
-        metadata: {
-          ...currentMetadata,
-          language: language,
-          theme: newTheme,
-        },
+        metadata: updatedMetadata,
       });
     } else {
       console.log(
@@ -163,21 +174,22 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
 
     // Don't update profile API on excluded pages (login, signup, forgot password)
     if (!isExcludedPage && userProfile) {
-      // Update user profile with new language
-      const currentMetadata = userProfile?.metadata || {};
+      // Update user profile with new language using utility function
+      const updatedMetadata = updateMetadata(userProfile?.metadata, {
+        language: newLanguage,
+        theme: theme,
+      });
+
       console.log("Updating language in profile:", {
-        currentMetadata,
+        originalMetadata: userProfile?.metadata,
+        updatedMetadata,
         newLanguage,
         theme,
       });
 
       updateProfileMutation.mutate({
         ...userProfile,
-        metadata: {
-          ...currentMetadata,
-          language: newLanguage,
-          theme: theme,
-        },
+        metadata: updatedMetadata,
       });
     } else {
       console.log(

@@ -145,6 +145,73 @@ export const en = {
   "send.enterValidAmount": "Please enter a valid amount",
   "send.error": "Error",
 
+  // ChangeNOW Integration
+  "send.commissionRate": "Commission Rate",
+  "send.commissionAmount": "Commission Amount",
+  "send.netAmount": "Net Amount (after commission)",
+  "send.estimatedReceive": "Estimated Receive",
+  "send.networkFee": "Network Fee",
+  "send.serviceFee": "Service Fee",
+  "send.totalFees": "Total Fees",
+  "send.exchangeRateRefresh": "Refresh Rate",
+  "send.minAmount": "Minimum Amount",
+  "send.maxAmount": "Maximum Amount",
+  "send.paymentStep1": "Step 1: Enter Payment Details",
+  "send.paymentStep2": "Step 2: Complete Fiat Payment",
+  "send.paymentStep3": "Step 3: Enter Crypto Wallet Address",
+  "send.paymentStep4": "Step 4: Confirm & Convert",
+  "send.waitingForPayment": "Waiting for fiat payment confirmation...",
+  "send.paymentReceived": "Fiat payment received successfully",
+  "send.enterWalletAddress": "Enter your crypto wallet address",
+  "send.walletAddress": "Wallet Address",
+  "send.validateAddress": "Validate Address",
+  "send.addressValid": "Address is valid",
+  "send.addressInvalid": "Invalid wallet address",
+  "send.confirmConversion": "Confirm Conversion",
+  "send.converting": "Converting to crypto...",
+  "send.conversionCompleted": "Conversion completed successfully",
+  "send.paymentInstructions": "Complete payment using the details below:",
+  "send.qrPayment": "Scan QR code to complete payment",
+  "send.selectNetwork": "Select Network",
+  "send.depositType": "Deposit Type",
+  "send.payoutType": "Payout Type",
+  "send.cardPayment": "Card Payment",
+  "send.sepaTransfer": "SEPA Transfer",
+  "send.bankWire": "Bank Wire",
+  "send.cryptoNetwork": "Crypto Network",
+  "send.loadingRates": "Loading exchange rates...",
+  "send.rateExpires": "Rate expires in",
+  "send.paymentTimeout": "Payment timeout",
+  "send.transactionPending": "Transaction pending confirmation",
+  "send.transactionSuccess": "Transaction completed successfully",
+  "send.transactionFailed": "Transaction failed",
+  "send.retryPayment": "Retry Payment",
+  "send.contactSupport": "Contact Support",
+  "send.paymentSentSuccessfully": "Payment sent successfully",
+  "send.paymentFailed": "Payment failed",
+  "send.paymentFailedDesc": "Payment processing failed. Please try again.",
+  "send.transactionIdResult": "Transaction ID: {{transactionId}}",
+  "send.convertTo": "Convert To",
+  "send.refreshRate": "Refresh Rate",
+  "send.convertedAmount": "Converted Amount",
+  "send.exchangeRateDisplay": "1 {{localCurrency}} = {{rate}} {{cryptoCurrency}}",
+  "send.bankCard": "Bank Card",
+  "send.paymentCreated": "Payment Created",
+ 
+  "send.transactionMonitoring": "Transaction Monitoring",
+  "send.transactionCompleted": "Transaction Completed Successfully",
+  
+  "send.monitoringTransaction": "Monitoring transaction status...",
+  "send.networkFeeLabel": "Network Fee",
+  "send.serviceFeeLabel": "Service Fee",
+  "send.totalFeesLabel": "Total Fees",
+  "send.finalAmountLabel": "Final Amount",
+  "send.processingPayment": "Processing your payment...",
+  "send.paymentInProgress": "Payment in progress",
+  "send.waitingForConfirmation": "Waiting for confirmation",
+  "send.conversionStarted": "Crypto conversion started",
+  "send.fundsSent": "Funds sent to your wallet",
+
   // Receive Page  
   "receive.title": "Receive Payment",
   "receive.subtitle": "Generate payment links to receive cryptocurrency",
@@ -343,13 +410,7 @@ export const en = {
   "notFound.returnHome": "Return to Home",
 
   // Send Page - Additional keys
-  "send.paymentSentSuccessfully": "Payment Sent Successfully",
-  "send.transactionIdResult": "Transaction ID: {{transactionId}}",
-  "send.paymentFailed": "Payment Failed",
-  "send.paymentFailedDesc": "Failed to send payment. Please try again.",
-  "send.bankCard": "Bank Card",
-  "send.convertedAmount": "Converted amount",
-  "send.exchangeRateDisplay": "Rate: 1 {{localCurrency}} = {{rate}} {{cryptoCurrency}}",
+ 
   "send.paymentSummary": "Payment Summary",
   "send.convertsTo": "Converts to",
   "send.transactionIdCopied": "Transaction ID Copied",
@@ -431,8 +492,7 @@ export const en = {
 
   // Send Page
   
-  "send.convertTo": "Convert to Cryptocurrency",
-  "send.refreshRate": "Refresh Rate",
+  
   "send.rate": "Rate",
  
   "send.processingDescription": "Processing your {{method}} payment of {{amount}} {{currency}}...",
@@ -539,7 +599,27 @@ export const en = {
   "profile.country": "Country",
   "profile.currency": "Currency",
   "profile.selectCountry": "Select Country",
-  "profile.selectCurrency": "Select Currency"
+  "profile.selectCurrency": "Select Currency",
+  // New keys added for missing translations in Send.tsx
+  "send.configurePayment": "Configure your payment amount and currencies",
+  "send.paymentRequired": "Payment Required",
+  "send.paymentConfirmed": "Payment Confirmed",
+  "send.conversionInProgress": "Conversion in Progress",
+ 
+  "send.securityNotice": "Security Notice",
+ 
+  "send.clickToViewDetails": "Click below to view payment details",
+  "send.monitoringPaymentStatus": "Monitoring payment status...",
+  "send.processingConversion": "Processing crypto conversion...",
+  "send.paymentSuccessMessage": "Your crypto has been successfully sent to your wallet",
+  "send.startNewPayment": "Start New Payment",
+  "send.backToDashboard": "Back to Dashboard",
+  "send.paymentProgress": "Payment Progress",
+  "send.amountLabel": "Amount",
+  "send.paymentLabel": "Payment",
+  "send.walletLabel": "Wallet",
+  "send.convertLabel": "Convert",
+  "send.doneLabel": "Done",
 };
 
 export type TranslationKey = keyof typeof en;

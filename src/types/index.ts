@@ -28,6 +28,7 @@ export interface LoginResponse {
   expires_in?: number;
   token_type?: string;
   admin?: boolean;
+  superadmin?: boolean;
   user?: {
     id: string;
     name: string;
@@ -126,3 +127,213 @@ export type PaymentStatus = 'idle' | 'processing' | 'completed' | 'failed' | 'wa
 export type Theme = 'light' | 'dark' | 'system';
 
 export type Language = 'en' | 'ru' | 'tr';
+
+// ChangeNOW API Types
+export interface ChangeNowFiatCurrency {
+  ticker: string;
+  name: string;
+  image: string;
+  hasExternalId: boolean;
+  isStable: boolean;
+  supportsFixedRate: boolean;
+}
+
+export interface ChangeNowCryptoCurrency {
+  ticker: string;
+  name: string;
+  image: string;
+  hasExternalId: boolean;
+  isFiat: boolean;
+  featured: boolean;
+  isStable: boolean;
+  supportsFixedRate: boolean;
+  network: string;
+  tokenContract?: string;
+  buy: boolean;
+  sell: boolean;
+}
+
+export interface ChangeNowEstimate {
+  fromCurrency: string;
+  fromNetwork: string;
+  toCurrency: string;
+  toNetwork: string;
+  fromAmount: number;
+  toAmount: number;
+  type: string;
+  validUntil: string;
+  transactionSpeedForecast: string;
+  warningMessage?: string;
+}
+
+export interface ChangeNowMarketInfo {
+  fromCurrency: string;
+  fromNetwork: string;
+  toCurrency: string;
+  toNetwork: string;
+  depositType: string;
+  payoutType: string;
+  fromAmount: number;
+  toAmount: number;
+  min: number;
+  max: number;
+}
+
+export interface ChangeNowFiatTransaction {
+  id: string;
+  depositType: string;
+  payoutType: string;
+  fromCurrency: string;
+  toCurrency: string;
+  fromNetwork?: string;
+  toNetwork: string;
+  fromAmount: number;
+  toAmount: number;
+  payoutAddress: string;
+  payoutExtraId?: string;
+  status: string;
+  payinAddress?: string;
+  payinExtraId?: string;
+  fromLegacyTicker?: string;
+  toLegacyTicker?: string;
+  updatedAt: string;
+  depositReceivedAt?: string;
+  purchaseId?: string;
+  userId?: string;
+  payoutHashLink?: string;
+  payinHashLink?: string;
+  depositReceivedAmount?: number;
+  purchaseAmount?: number;
+  amountSentToUser?: number;
+  refundAddress?: string;
+  refundExtraId?: string;
+  externalPartnerLinkId?: string;
+  userId2?: string;
+  depositFee?: number;
+  withdrawalFee?: number;
+  networkFee?: number;
+  serviceFee?: number;
+  payoutCurrency?: string;
+  isPartner?: boolean;
+}
+
+export interface ChangeNowExchangeTransaction {
+  id: string;
+  fromCurrency: string;
+  toCurrency: string;
+  fromNetwork: string;
+  toNetwork: string;
+  fromAmount: number;
+  toAmount: number;
+  address: string;
+  extraId?: string;
+  refundAddress?: string;
+  refundExtraId?: string;
+  payinAddress?: string;
+  payoutAddress?: string;
+  payinExtraId?: string;
+  payoutExtraId?: string;
+  status: string;
+  updatedAt: string;
+  depositReceivedAt?: string;
+  payinHash?: string;
+  payoutHash?: string;
+  amountSent?: number;
+  amountReceived?: number;
+  networkFee?: number;
+  serviceFee?: number;
+  flow: string;
+  type: string;
+  validUntil?: string;
+}
+
+export interface ChangeNowValidateAddress {
+  result: boolean;
+  message?: string;
+}
+
+export interface ChangeNowNetworkFee {
+  networkFee: number;
+  serviceFee: number;
+  totalFee: number;
+  fromCurrency: string;
+  toCurrency: string;
+  fromNetwork: string;
+  toNetwork: string;
+  fromAmount: number;
+}
+
+export interface ChangeNowCreateFiatTransactionRequest {
+  from_amount: number;
+  from_currency: string;
+  to_currency: string;
+  from_network?: string;
+  to_network: string;
+  payout_address: string;
+  payout_extra_id?: string;
+  deposit_type: string;
+  payout_type: string;
+  external_partner_link_id?: string;
+  customer: {
+    contact_info: {
+      email: string;
+      phone_number?: string;
+    };
+  };
+}
+
+export interface ChangeNowCreateExchangeRequest {
+  fromCurrency: string;
+  toCurrency: string;
+  fromNetwork: string;
+  toNetwork: string;
+  fromAmount: string;
+  toAmount?: string;
+  address: string;
+  extraId?: string;
+  refundAddress?: string;
+  refundExtraId?: string;
+  userId?: string;
+  payload?: string;
+  contactEmail?: string;
+  source?: string;
+  flow: 'standard' | 'fixed-rate';
+  type: 'direct' | 'reverse';
+  rateId?: string;
+}
+
+// Commission Configuration
+export interface CommissionConfig {
+  globalRate: number; // Default commission rate (e.g., 5%)
+  currencyRates?: {
+    [currency: string]: number; // Currency-specific rates
+  };
+}
+
+// Payment Flow Types
+export interface PaymentFlowData {
+  fiatAmount: number;
+  fiatCurrency: string;
+  cryptoCurrency: string;
+  cryptoNetwork: string;
+  paymentMethod: string;
+  commission: number;
+  estimatedCryptoAmount: number;
+  exchangeRate: number;
+  userWalletAddress?: string;
+  networkFee?: number;
+  serviceFee?: number;
+  totalFee?: number;
+  originalAmount?: number;
+  netAmount?: number;
+  commissionRate?: number;
+}
+
+export interface PaymentStep {
+  step: 'amount_selection' | 'fiat_payment' | 'payment_confirmation' | 'wallet_input' | 'crypto_conversion' | 'completed';
+  data: PaymentFlowData;
+  transactionId?: string;
+  qrCodeData?: string;
+  paymentLink?: string;
+  status: PaymentStatus;
+}

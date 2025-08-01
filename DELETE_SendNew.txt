@@ -1,0 +1,2 @@
+This file exists to indicate that SendNew.tsx should be deleted as it's a duplicate of Send.tsx
+Please delete src/pages/SendNew.tsx manually as it's no longer needed.

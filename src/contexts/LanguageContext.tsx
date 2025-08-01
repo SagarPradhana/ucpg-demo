@@ -8,6 +8,7 @@ export type Language = "en" | "ru" | "tr";
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
+  setLanguageFromProfile: (language: Language) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -43,6 +44,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
     const savedLanguage = localStorage.getItem("ucpg-language") as Language;
     return savedLanguage || defaultLanguage;
   });
+  const [profileLanguageLoaded, setProfileLanguageLoaded] = useState(false);
 
   // Save language to localStorage
   useEffect(() => {
@@ -50,6 +52,18 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
     // Set document language
     document.documentElement.lang = language;
   }, [language]);
+
+  // Function to set language from user profile (without saving to localStorage immediately)
+  const setLanguageFromProfile = (profileLanguage: Language) => {
+    if (
+      !profileLanguageLoaded &&
+      profileLanguage &&
+      profileLanguage !== language
+    ) {
+      setLanguage(profileLanguage);
+      setProfileLanguageLoaded(true);
+    }
+  };
 
   // Translation function with parameter substitution
   const t = (key: string, params?: Record<string, string | number>): string => {
@@ -77,6 +91,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
   const value: LanguageContextType = {
     language,
     setLanguage,
+    setLanguageFromProfile,
     t,
   };
 

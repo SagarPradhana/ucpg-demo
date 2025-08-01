@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Shield, ArrowRight, Mail, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+
 import { forgotPassword, resendOtp, sendOtp } from "@/service/auth";
 import { useMutation } from "@tanstack/react-query";
 
@@ -176,9 +177,11 @@ const ForgotPassword = () => {
             <div className="bg-primary/10 p-2 rounded-lg">
               <KeyRound className="h-6 w-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold">{t("app.title")}</h1>
+            <h1 className="text-2xl font-bold">UCPG</h1>
           </div>
-          <p className="text-muted-foreground text-sm">{t("app.fullName")}</p>
+          <p className="text-muted-foreground text-sm">
+            Universal Crypto Payment Gateway
+          </p>
         </div>
 
         {/* Forgot Password Card */}

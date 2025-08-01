@@ -14,7 +14,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Shield, ArrowRight, Mail, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import { GoogleLogin } from "@react-oauth/google";
 import { LoginButton } from "@telegram-auth/react";
 import { resendOtp, signUp, verifyOtp } from "@/service/auth";
@@ -50,7 +50,6 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t } = useLanguage();
 
   // Signup mutation
   const signupMutation = useMutation({
