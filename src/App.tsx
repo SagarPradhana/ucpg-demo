@@ -124,7 +124,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user", "admin"]}
+                          allowedRoles={["user", "super_admin"]}
                           blockAdmins={false}
                         >
                           <Dashboard />
@@ -136,7 +136,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user", "admin"]}
+                          allowedRoles={["user", "admin", "super_admin"]}
                           blockAdmins={false}
                         >
                           <Send />
@@ -148,7 +148,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user", "admin"]}
+                          allowedRoles={["user", "admin", "super_admin"]}
                           blockAdmins={false}
                         >
                           <Receive />
@@ -198,7 +198,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin"]}
+                          allowedRoles={["admin", "super_admin"]}
                           blockAdmins={false}
                         >
                           <Admin />

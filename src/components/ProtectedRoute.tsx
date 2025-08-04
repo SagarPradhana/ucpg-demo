@@ -123,7 +123,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // Check various places where role might be stored
     if (user.role) return user.role;
     if (user.metadata?.role) return user.metadata.role;
-    if (user.metadata?.isAdmin) return "admin";
+    if (user.metadata?.isAdmin) return "super_admin";
     return "user"; // Default to user role
   };
 
@@ -131,7 +131,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     const userRole = checkUserRole(user);
 
     // If route blocks admins and user is admin, deny access
-    if (blockAdmins && userRole === "admin") {
+    if (blockAdmins && userRole === "super_admin") {
       return false;
     }
 
