@@ -379,16 +379,16 @@ const Admin = () => {
 
   // Sidebar navigation
   const sidebarItems = [
-    { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-    { id: "transactions", label: "Transactions", icon: CreditCard },
-    { id: "promo-codes", label: "Promo Codes", icon: QrCode },
-    { id: "providers", label: "Providers", icon: Building2 },
-    { id: "commission", label: "Commission Settings", icon: Percent },
-    { id: "exchange-rates", label: "Exchange Rates", icon: TrendingUp },
-    { id: "user-roles", label: "User Roles", icon: Users },
-    { id: "settings", label: "Settings", icon: Settings },
-    { id: "error-logs", label: "Error Logs", icon: AlertTriangle },
-    { id: "reports", label: "Reports & Export", icon: Download },
+    { id: "dashboard", label: t("admin.dashboard"), icon: BarChart3 },
+    { id: "transactions", label: t("admin.transactions"), icon: CreditCard },
+    { id: "promo-codes", label: t("admin.promoCodes"), icon: QrCode },
+    { id: "providers", label: t("admin.providers"), icon: Building2 },
+    { id: "commission", label: t("admin.commission"), icon: Percent },
+    { id: "exchange-rates", label: t("admin.exchangeRates"), icon: TrendingUp },
+    { id: "user-roles", label: t("admin.userRoles"), icon: Users },
+    { id: "settings", label: t("admin.settings"), icon: Settings },
+    { id: "error-logs", label: t("admin.errorLogs"), icon: AlertTriangle },
+    { id: "reports", label: t("admin.reports"), icon: Download },
   ];
 
   // Functions
@@ -437,7 +437,7 @@ const Admin = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Today's Payments
+                  {t("admin.dashboard.todayPayments")}
                 </p>
                 <p className="text-2xl font-bold">
                   {dashboardStats.todayPayments.count}
@@ -456,7 +456,7 @@ const Admin = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Active Promo Links
+                  {t("admin.dashboard.activePromoLinks")}
                 </p>
                 <p className="text-2xl font-bold">
                   {dashboardStats.last24Hours.activePromoLinks}
@@ -473,7 +473,8 @@ const Admin = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Commission (Daily)
+                  {t("admin.dashboard.commissionIncome")} (
+                  {t("admin.dashboard.daily")})
                 </p>
                 <p className="text-2xl font-bold">
                   ${dashboardStats.commissionIncome.daily.toLocaleString()}
@@ -507,7 +508,7 @@ const Admin = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Weekly Transaction Trends</CardTitle>
+            <CardTitle>{t("admin.dashboard.transactionVolume")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -525,7 +526,7 @@ const Admin = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Currency Distribution</CardTitle>
+            <CardTitle>{t("admin.dashboard.currencyDistribution")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -553,17 +554,17 @@ const Admin = () => {
       {/* Recent Transactions */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
+          <CardTitle>{t("admin.transactions.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Commission</TableHead>
+                <TableHead>{t("admin.transactions.transactionId")}</TableHead>
+                <TableHead>{t("admin.transactions.date")}</TableHead>
+                <TableHead>{t("admin.transactions.amount")}</TableHead>
+                <TableHead>{t("admin.transactions.status")}</TableHead>
+                <TableHead>{t("admin.transactions.commission")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1546,9 +1547,9 @@ const Admin = () => {
               <div className="flex items-center space-x-3">
                 <Crown className="h-6 w-6 text-primary" />
                 <div>
-                  <h2 className="text-xl font-semibold">Admin Dashboard</h2>
+                  <h2 className="text-xl font-semibold">{t("admin.title")}</h2>
                   <p className="text-sm text-muted-foreground">
-                    Welcome to the administration panel
+                    {t("admin.subtitle")}
                   </p>
                 </div>
               </div>

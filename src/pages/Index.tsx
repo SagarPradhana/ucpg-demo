@@ -16,11 +16,8 @@ import {
   ArrowRight,
   ChevronRight,
 } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
-  const { t } = useLanguage();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
@@ -31,14 +28,14 @@ const Index = () => {
               <div className="bg-primary/10 p-2 rounded-lg">
                 <Coins className="h-6 w-6 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold">{t("app.title")}</h1>
+              <h1 className="text-2xl font-bold">UCPG</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/login">
-                <Button variant="ghost">{t("auth.signIn")}</Button>
+                <Button variant="ghost">Sign in</Button>
               </Link>
               <Link to="/login">
-                <Button>{t("home.hero.getStarted")}</Button>
+                <Button>Get Started</Button>
               </Link>
             </div>
           </div>
@@ -50,30 +47,32 @@ const Index = () => {
         <div className="container mx-auto">
           <div className="text-center max-w-4xl mx-auto space-y-8 animate-fade-in">
             <Badge variant="secondary" className="text-sm">
-              {t("home.hero.badge")}
+              Global • Anonymous • Instant
             </Badge>
 
             <h1 className="text-5xl md:text-6xl font-extrabold leading-tight tracking-tighter">
-              {t("home.hero.title")}
+              Universal Crypto
               <br />
               <span className="text-primary bg-clip-text  bg-gradient-to-r from-primary to-primary-light">
-                {t("home.hero.titleHighlight")}
+                Payment Gateway
               </span>
             </h1>
 
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              {t("home.hero.subtitle")}
+              Pay in your local currency, receive anonymous cryptocurrency
+              payments. Connecting the world through seamless crypto
+              transactions.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/login">
                 <Button size="lg" className="group">
-                  {t("home.hero.startTrading")}
+                  Start Trading
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               </Link>
               <Button size="lg" variant="outline">
-                {t("home.hero.learnMore")}
+                Learn More
               </Button>
             </div>
           </div>
@@ -84,11 +83,10 @@ const Index = () => {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">
-              {t("home.features.title")}
-            </h2>
+            <h2 className="text-3xl font-bold mb-4">Why Choose UCPG?</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t("home.features.subtitle")}
+              Experience the future of global payments with our innovative
+              crypto gateway
             </p>
           </div>
 
@@ -97,24 +95,24 @@ const Index = () => {
               icon={
                 <Globe className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               }
-              title={t("home.features.globalAccess")}
-              description={t("home.features.globalAccessDesc")}
+              title="Global Access"
+              description="Accept payments from 190+ countries in their local currencies"
               color="blue"
             />
             <FeatureCard
               icon={
                 <Shield className="h-6 w-6 text-green-600 dark:text-green-400" />
               }
-              title={t("home.features.anonymousSecure")}
-              description={t("home.features.anonymousSecureDesc")}
+              title="Anonymous & Secure"
+              description="Complete privacy with encrypted transactions and anonymous crypto receipts"
               color="green"
             />
             <FeatureCard
               icon={
                 <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               }
-              title={t("home.features.instantProcessing")}
-              description={t("home.features.instantProcessingDesc")}
+              title="Instant Processing"
+              description="Lightning-fast transactions with real-time currency conversion"
               color="purple"
             />
           </div>
@@ -125,29 +123,27 @@ const Index = () => {
       <section className="py-20">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">
-              {t("home.howItWorks.title")}
-            </h2>
+            <h2 className="text-3xl font-bold mb-4">How It Works</h2>
             <p className="text-muted-foreground">
-              {t("home.howItWorks.subtitle")}
+              Simple, secure, and anonymous in just 3 steps
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <StepCard
               number={1}
-              title={t("home.howItWorks.step1.title")}
-              description={t("home.howItWorks.step1.desc")}
+              title="Choose Currency"
+              description="Select your local currency and enter the payment amount"
             />
             <StepCard
               number={2}
-              title={t("home.howItWorks.step2.title")}
-              description={t("home.howItWorks.step2.desc")}
+              title="Process Payment"
+              description="Complete the payment using your preferred local payment method"
             />
             <StepCard
               number={3}
-              title={t("home.howItWorks.step3.title")}
-              description={t("home.howItWorks.step3.desc")}
+              title="Receive Crypto"
+              description="Get anonymous cryptocurrency instantly in your wallet"
             />
           </div>
         </div>
@@ -157,13 +153,14 @@ const Index = () => {
       <section className="py-20 bg-primary text-primary-foreground">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto space-y-8 animate-fade-in">
-            <h2 className="text-3xl font-bold">{t("home.cta.title")}</h2>
+            <h2 className="text-3xl font-bold">Ready to Get Started?</h2>
             <p className="text-primary-foreground/80">
-              {t("home.cta.subtitle")}
+              Join thousands of users who trust UCPG for their crypto payment
+              needs
             </p>
             <Link to="/login">
               <Button size="lg" variant="secondary" className="group">
-                {t("home.cta.startJourney")}
+                Start Your Journey
                 <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
@@ -179,10 +176,10 @@ const Index = () => {
               <div className="bg-primary/10 p-2 rounded-lg">
                 <Coins className="h-5 w-5 text-primary" />
               </div>
-              <span className="font-bold">{t("app.title")}</span>
+              <span className="font-bold">UCPG</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              {t("home.footer.copyright")}
+              © 2024 Universal Crypto Payment Gateway. All rights reserved.
             </p>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/types";
 import { getMetadataValue } from "@/utils/metadataUtils";
 import { loginActions } from "@/store/loginReducer";
+import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import { jwtDecode } from "jwt-decode";
 import TokenManager from "@/utils/tokenManager";
 import NotFound from "@/pages/NotFound";
@@ -117,6 +118,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     const tokenManager = TokenManager.getInstance();
     tokenManager.safeLogout();
     dispatch(loginActions.clearUserDetails());
+    dispatch(singleUserDetailsActions.clearSingleUserDetails());
   };
 
   const checkUserRole = (user: any): string => {

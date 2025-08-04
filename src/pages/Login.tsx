@@ -16,14 +16,15 @@ import { Shield, Coins, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useDispatch } from "react-redux";
 import { loginActions } from "@/store/loginReducer";
+import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 import { jwtDecode } from "jwt-decode";
-import { login } from "@/service/auth";
+import { login, getUser } from "@/service/auth";
 import TokenManager from "@/utils/tokenManager";
 import { useMutation } from "@tanstack/react-query";
 import { User, LoginCredentials, ApiResponse, LoginResponse } from "@/types";
-import { getMetadataValue } from "@/utils/metadataUtils";
+import { getMetadataValue, fixMalformedMetadata } from "@/utils/metadataUtils";
 import RoleSelectionModal from "@/components/RoleSelectionModal";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -50,6 +51,44 @@ const Login = () => {
       navigate("/dashboard");
     }
   }, [isLoading, isAuthenticated, navigate, showRoleModal, hasUsedRoleModal]);
+
+  // Mutation for fetching user profile after login
+  const getUserProfileMutation = useMutation({
+    mutationFn: (userId: string) => {
+      console.log("🔄 Login: Fetching user profile for ID:", userId);
+      return getUser(userId);
+    },
+    onSuccess: (userData: any) => {
+      console.log("✅ Login: User profile data received:", userData);
+
+      // Fix malformed metadata before storing in Redux
+      const fixedUserData = {
+        ...userData,
+        metadata: fixMalformedMetadata(userData?.metadata),
+      };
+
+      // Store user profile in Redux
+      dispatch(
+        singleUserDetailsActions.setSingleUserDetails(fixedUserData as User)
+      );
+
+      console.log("✅ Login: User profile stored in Redux");
+    },
+    onError: (error: any) => {
+      console.error("❌ Login: Failed to fetch user profile:", error);
+      dispatch(
+        singleUserDetailsActions.setSingleUserError(
+          error?.message || "Failed to fetch user profile"
+        )
+      );
+
+      toast({
+        title: "Profile Loading Failed",
+        description: "Could not load user profile. Please refresh the page.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const loginMutation = useMutation({
     mutationFn: (loginData: LoginCredentials) => login(loginData),
@@ -80,6 +119,16 @@ const Login = () => {
         title: "Welcome to UCPG",
         description: response?.message || "Login successful",
       });
+
+      // Fetch user profile data immediately after login
+      if (decodedUser?.id) {
+        console.log(
+          "🔄 Login: Starting user profile fetch for ID:",
+          decodedUser.id
+        );
+        dispatch(singleUserDetailsActions.setLoading(true));
+        getUserProfileMutation.mutate(decodedUser.id);
+      }
 
       if (decodedUser?.role === "super_admin") {
         setUserInfo({
@@ -204,12 +253,19 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full group"
-                disabled={loginMutation.isPending}
+                disabled={
+                  loginMutation.isPending || getUserProfileMutation.isPending
+                }
               >
                 {loginMutation.isPending ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     <span>Signing In...</span>
+                  </div>
+                ) : getUserProfileMutation.isPending ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>Loading Profile...</span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">

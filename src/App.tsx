@@ -22,6 +22,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import TokenManager from "./utils/tokenManager";
 import StorageDebugger from "./utils/storageDebugger";
 import { loginActions } from "./store/loginReducer";
+import { singleUserDetailsActions } from "./store/singleUserDetailsReducer";
 import { useEffect } from "react";
 import SupportChatbot from "./components/SupportChatbot";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -45,6 +46,7 @@ const AppInitializer = () => {
     tokenManager.initialize(() => {
       // Clear Redux state on token expiration
       store.dispatch(loginActions.clearUserDetails());
+      store.dispatch(singleUserDetailsActions.clearSingleUserDetails());
       console.log("Token expired, user should be redirected to login");
     });
 
@@ -160,7 +162,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user", "admin"]}
+                          allowedRoles={["user", "admin", "super_admin"]}
                           blockAdmins={false}
                         >
                           <Receive />
@@ -172,7 +174,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user", "admin"]}
+                          allowedRoles={["user", "admin", "super_admin"]}
                           blockAdmins={false}
                         >
                           <Profile />
@@ -184,7 +186,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user", "admin"]}
+                          allowedRoles={["user", "admin", "super_admin"]}
                           blockAdmins={false}
                         >
                           <Services />

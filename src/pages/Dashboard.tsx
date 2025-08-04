@@ -48,27 +48,18 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { loginActions } from "@/store/loginReducer";
-import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
-import { getUser } from "@/service/auth";
 import UserProfile from "@/components/UserProfile";
 import SingleUserDetailsCard from "@/components/SingleUserDetailsCard";
 import DashboardDebugInfo from "@/components/DashboardDebugInfo";
 import { RootState } from "@/types";
-import { debugToken } from "@/utils/debugToken";
-import { fixMalformedMetadata } from "@/utils/metadataUtils";
-import {
-  logDashboardState,
-  testManualUserFetch,
-  debugTokenDecoding,
-} from "@/utils/dashboardDebug";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
-  const authUser = useSelector((store: RootState) => store.auth.userDetails); // For getting user ID and initial auth
+  const authUser = useSelector((store: RootState) => store.auth.userDetails);
   const singleUserDetails = useSelector(
     (store: RootState) => store.singleUserDetails
   );
@@ -80,6 +71,23 @@ const Dashboard = () => {
     singleUserId: singleUserDetails.userDetails?.id,
     timestamp: new Date().toISOString(),
   });
+
+  // Use singleUserDetails as primary user data, fallback to authUser for ID when needed
+  const userProfile = singleUserDetails.userDetails || authUser;
+  const dispatch = useDispatch();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [totalBalance, setTotalBalance] = useState(2350.0);
+  const [activePayments, setActivePayments] = useState(7);
+  const [pendingCount, setPendingCount] = useState(3);
+  const [balanceChange, setBalanceChange] = useState(12.5);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [expandedTransaction, setExpandedTransaction] = useState<number | null>(
+    null
+  );
+  const [isActionProcessing, setIsActionProcessing] = useState<string | null>(
+    null
+  );
 
   // Debug Redux state changes
   useEffect(() => {
@@ -99,144 +107,17 @@ const Dashboard = () => {
     });
   }, [authUser, singleUserDetails]);
 
-  // Use singleUserDetails as primary user data, fallback to authUser for ID when needed
-  const userProfile = singleUserDetails.userDetails || authUser;
-  const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [totalBalance, setTotalBalance] = useState(2350.0);
-  const [activePayments, setActivePayments] = useState(7);
-  const [pendingCount, setPendingCount] = useState(3);
-  const [balanceChange, setBalanceChange] = useState(12.5);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [expandedTransaction, setExpandedTransaction] = useState<number | null>(
-    null
-  );
-  const [isActionProcessing, setIsActionProcessing] = useState<string | null>(
-    null
-  );
-
-  // Get user data using useQuery
-  const {
-    data: userData,
-    isLoading: userDataLoading,
-    refetch: refetchUserData,
-    error: userDataError,
-  } = useQuery({
-    queryKey: ["user", authUser?.id],
-    queryFn: () => {
-      if (!authUser?.id) {
-        console.error(
-          "❌ Dashboard: getUser query called but authUser.id is not available:",
-          authUser
-        );
-        throw new Error("User ID not available");
-      }
-      console.log("🔄 Dashboard: Fetching user data for ID:", authUser.id);
-      return getUser(authUser.id);
-    },
-    enabled: !!authUser?.id, // Only run query if user ID exists
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 1000 * 60 * 5, // Changed from cacheTime to gcTime
-    retry: 2,
-    refetchOnMount: true,
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-  });
-
-  // Debug useQuery state changes
+  // Show loading state if user profile is still being fetched
   useEffect(() => {
-    console.log("🔍 Dashboard: useQuery state changed:", {
-      authUserId: authUser?.id,
-      queryEnabled: !!authUser?.id,
-      isLoading: userDataLoading,
-      hasData: !!userData,
-      hasError: !!userDataError,
-      timestamp: new Date().toISOString(),
-    });
-  }, [authUser?.id, userDataLoading, userData, userDataError]);
-
-  // Update Redux state when query state changes
-  useEffect(() => {
-    if (userDataLoading) {
-      console.log("🔄 Dashboard: User data loading started...");
-      dispatch(singleUserDetailsActions.setLoading(true));
-    } else if (userData) {
+    if (singleUserDetails.loading) {
+      console.log("🔄 Dashboard: User profile is loading...");
+    } else if (singleUserDetails.userDetails) {
       console.log(
-        "✅ Dashboard: User data received, updating Redux:",
-        userData
+        "✅ Dashboard: User profile is ready:",
+        singleUserDetails.userDetails.id
       );
-      // Fix malformed metadata before storing in Redux
-      const fixedUserData = {
-        ...(userData as any),
-        metadata: fixMalformedMetadata((userData as any)?.metadata),
-      };
-      dispatch(
-        singleUserDetailsActions.setSingleUserDetails(fixedUserData as any)
-      );
-      dispatch(singleUserDetailsActions.setLoading(false));
-    } else if (userDataError) {
-      console.error("❌ Dashboard: User data loading failed:", userDataError);
-      dispatch(singleUserDetailsActions.setLoading(false));
     }
-  }, [userDataLoading, dispatch, userData, userDataError]);
-
-  // Trigger user data fetch when authUser becomes available
-  useEffect(() => {
-    if (authUser?.id && !userData && !userDataLoading) {
-      console.log(
-        "🚀 Dashboard: authUser available, manually triggering user data fetch"
-      );
-      refetchUserData();
-    }
-  }, [authUser?.id, userData, userDataLoading, refetchUserData]);
-
-  // Comprehensive dashboard debug (runs after initial render)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      logDashboardState({
-        authUser,
-        singleUserDetails,
-        userData,
-        userDataLoading,
-        userDataError,
-        sessionToken,
-      });
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []); // Only run once on mount
-
-  // Add window debug functions for manual testing
-  useEffect(() => {
-    if (import.meta.env.MODE === "development") {
-      (window as any).dashboardDebug = {
-        logState: () =>
-          logDashboardState({
-            authUser,
-            singleUserDetails,
-            userData,
-            userDataLoading,
-            userDataError,
-            sessionToken,
-          }),
-        testUserFetch: (userId: string) => testManualUserFetch(userId),
-        debugToken: debugTokenDecoding,
-        refetchUserData,
-        authUser,
-        singleUserDetails,
-        userData,
-      };
-      console.log("🧪 Debug tools available: window.dashboardDebug");
-    }
-  }, [
-    authUser,
-    singleUserDetails,
-    userData,
-    userDataLoading,
-    userDataError,
-    sessionToken,
-    refetchUserData,
-  ]);
+  }, [singleUserDetails.loading, singleUserDetails.userDetails]);
 
   // Mock API for refreshing balance data
   const mockRefreshBalance = (): Promise<{
@@ -344,7 +225,7 @@ const Dashboard = () => {
               console.log(
                 "🚀 Dashboard: Force triggering user data fetch after Redux update"
               );
-              refetchUserData();
+              // refetchUserData();
             }, 100);
           } else {
             // Token is expired, remove it
@@ -369,7 +250,7 @@ const Dashboard = () => {
 
     // Debug token info in development
     if (import.meta.env.MODE === "development") {
-      debugToken();
+      // debugToken();
     }
   }, [dispatch, navigate]); // Removed authUser from deps to prevent infinite loop
 
@@ -510,6 +391,48 @@ const Dashboard = () => {
     const contactId = Math.random().toString(36).substr(2, 9);
     return `anonymous-${contactId}@example.com`;
   };
+
+  // Show loading state while user profile is being fetched
+  if (singleUserDetails.loading && !singleUserDetails.userDetails) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Loading user profile...</p>
+          <p className="text-sm text-muted-foreground">
+            Please wait while we prepare your dashboard
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if user profile failed to load
+  if (singleUserDetails.error && !singleUserDetails.userDetails) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
+            <AlertCircle className="h-6 w-6 text-destructive" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-medium">Failed to load profile</p>
+            <p className="text-sm text-muted-foreground">
+              {singleUserDetails.error}
+            </p>
+          </div>
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+            className="mt-4"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
