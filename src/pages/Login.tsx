@@ -81,7 +81,7 @@ const Login = () => {
         description: response?.message || "Login successful",
       });
 
-      if (decodedUser?.role === "admin") {
+      if (decodedUser?.role === "super_admin") {
         setUserInfo({
           name: response?.data?.user?.name || decodedUser?.name || "User",
           email:
