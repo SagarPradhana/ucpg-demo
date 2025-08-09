@@ -1,7 +1,11 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -9,7 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Send from "./pages/Send";
 import Receive from "./pages/Receive";
 import NotFound from "./pages/NotFound";
-import { Provider } from "react-redux";
+import { Provider, useSelector, useDispatch } from "react-redux";
 import { store } from "./store";
 import Signup from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -27,6 +31,8 @@ import { useEffect } from "react";
 import SupportChatbot from "./components/SupportChatbot";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { jwtDecode } from "jwt-decode";
+import { RootState } from "./types";
 // import RouteProtectionDebug from "./components/RouteProtectionDebug";
 import { ROUTE_CONFIG } from "./config/routes";
 
@@ -58,6 +64,61 @@ const AppInitializer = () => {
   return null;
 };
 
+// Component to initialize user profile from token
+const UserProfileInitializer = () => {
+  const dispatch = useDispatch();
+  const authUser = useSelector((state: RootState) => state.auth.userDetails);
+  const singleUserDetails = useSelector(
+    (state: RootState) => state.singleUserDetails
+  );
+
+  // Load user from token if not already in Redux
+  useEffect(() => {
+    const loadUserFromToken = () => {
+      // If we already have user profile data, don't reload
+      if (singleUserDetails.userDetails) {
+        console.log("✅ App: User profile already loaded in Redux");
+        return;
+      }
+
+      const token = localStorage.getItem("sessionToken");
+      if (token) {
+        try {
+          const decodedUser = jwtDecode<any>(token);
+
+          // Check if token is still valid
+          const currentTime = Date.now() / 1000;
+          if (decodedUser.exp > currentTime) {
+            console.log(
+              "🔄 App: Token valid, storing auth user and fetching profile",
+              decodedUser
+            );
+
+            // Store auth user from token
+            dispatch(loginActions.setUserDetails(decodedUser));
+
+            console.log(
+              "🔄 App: Auth user stored, profile will be fetched by pages"
+            );
+          } else {
+            console.log("❌ App: Token expired, clearing storage");
+            localStorage.removeItem("sessionToken");
+            dispatch(loginActions.clearUserDetails());
+            dispatch(singleUserDetailsActions.clearSingleUserDetails());
+          }
+        } catch (error) {
+          console.error("❌ App: Error decoding token:", error);
+          localStorage.removeItem("sessionToken");
+        }
+      }
+    };
+
+    loadUserFromToken();
+  }, [dispatch, singleUserDetails.userDetails]);
+
+  return null;
+};
+
 // Component to conditionally render Support Chatbot
 const ConditionalSupportChatbot = () => {
   const location = useLocation();
@@ -81,6 +142,7 @@ const App = () => (
           <LanguageProvider defaultLanguage="en">
             <ThemeProvider defaultTheme="light">
               <AppInitializer />
+              <UserProfileInitializer />
               <TooltipProvider>
                 <Toaster />
                 <Sonner />

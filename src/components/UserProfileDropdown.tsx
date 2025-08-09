@@ -21,7 +21,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import TokenManager from "@/utils/tokenManager";
 import { loginActions } from "@/store/loginReducer";
-import { useDispatch } from "react-redux";
+import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/types";
 
 interface UserProfileDropdownProps {
   user?: {
@@ -36,12 +38,27 @@ const UserProfileDropdown = ({ user }: UserProfileDropdownProps) => {
   const { toast } = useToast();
   const dispatch = useDispatch();
 
-  // Default user data if none provided
-  const userData = user || {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    avatar: "",
-  };
+  // Get user profile from Redux store (primary source)
+  const userProfile = useSelector(
+    (state: RootState) => state.singleUserDetails.userDetails
+  ) as any;
+
+  // Use Redux data if available, otherwise fall back to props, then defaults
+  const userData = userProfile ||
+    user || {
+      name: "John Doe",
+      email: "john.doe@example.com",
+      avatar: "",
+    };
+
+  console.log("🔍 UserProfileDropdown: User data source", {
+    hasReduxData: !!userProfile,
+    hasPropsData: !!user,
+    finalData: {
+      name: userData?.name,
+      email: userData?.email,
+    },
+  });
 
   const handleProfileClick = () => {
     navigate("/profile");
@@ -57,10 +74,11 @@ const UserProfileDropdown = ({ user }: UserProfileDropdownProps) => {
     tokenManager.destroy();
     tokenManager.clearTokens();
 
-    // Clear Redux state
+    // Clear all Redux state
     dispatch(loginActions.clearUserDetails());
+    dispatch(singleUserDetailsActions.clearSingleUserDetails());
 
-    // Removed non-API logout toast
+    console.log("✅ UserProfileDropdown: All user data cleared on logout");
 
     navigate("/login");
   };

@@ -33,8 +33,10 @@ import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
 import { useMutation } from "@tanstack/react-query";
 import { loginActions } from "@/store/loginReducer";
+import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import { debugToken } from "@/utils/debugToken";
 import { servicesApi, handleApiError } from "@/utils/api";
+import { RootState } from "@/types";
 
 interface DecodedUser {
   id: string;
@@ -78,11 +80,22 @@ const Services = () => {
     new Set()
   );
 
-  const userProfile = useSelector((store: any) => store.auth.userDetails);
+  // Get user profile from Redux store (primary source)
+  const userProfile = useSelector(
+    (state: RootState) => state.singleUserDetails.userDetails
+  ) as any;
+  const authUser = useSelector((store: RootState) => store.auth.userDetails); // For ID when needed
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
+
+  console.log("🛍️ Services: User profile data", {
+    hasUserProfile: !!userProfile,
+    hasAuthUser: !!authUser,
+    userProfileName: userProfile?.name,
+    authUserName: authUser?.name,
+  });
 
   // Service access mutation
   const serviceAccessMutation = useMutation({

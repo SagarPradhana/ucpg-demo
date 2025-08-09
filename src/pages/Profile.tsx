@@ -45,7 +45,6 @@ import {
 import { RootState } from "@/types";
 import { updateUserPessword, updateUserProfile } from "@/service/auth";
 import { updateMetadata, getMetadataValue } from "@/utils/metadataUtils";
-import TokenDebugPanel from "@/components/TokenDebugPanel";
 import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 
 const Profile = () => {
@@ -60,7 +59,7 @@ const Profile = () => {
   ) as any;
 
   // Use singleUserDetails as primary user data, fallback to authUser for ID when needed
-  const userProfile = singleUserDetails.userDetails.data || authUser;
+  const userProfile = singleUserDetails?.userDetails?.data || authUser;
   const dispatch = useDispatch();
   const { toast } = useToast();
   const { t, setLanguageFromProfile } = useLanguage();
@@ -84,14 +83,15 @@ const Profile = () => {
       updateUserProfile(profileData, authUser?.id || userProfile?.id),
     onSuccess: (res: any) => {
       setIsEditing(false);
-      queryClient.invalidateQueries({ queryKey: ["user"] });
+
+      // Invalidate both user queries to trigger refetch and update store
 
       // Update both stores with the new profile data
       if (userProfile) {
         const updatedUser = {
           ...userProfile,
           name: profileData.name,
-          metadata: updateMetadata(userProfile.metadata, {
+          metadata: updateMetadata(userProfile?.metadata || {}, {
             country: profileData.country,
             currency: profileData.currency,
           }),
@@ -142,7 +142,7 @@ const Profile = () => {
     mutationFn: (passwordData: any) =>
       updateUserPessword(passwordData, authUser?.id || userProfile?.id),
     onSuccess: (res: any) => {
-      queryClient.invalidateQueries({ queryKey: ["user"] });
+      // Invalidate both user queries to trigger refetch and update store
       setPasswordData({
         currentPassword: "",
         newPassword: "",
@@ -216,13 +216,13 @@ const Profile = () => {
     if (userProfile) {
       setProfileData((prev: any) => ({
         ...prev,
-        name: userProfile.name || prev.name,
-        email: userProfile.email || prev.email,
+        name: userProfile?.name || prev.name,
+        email: userProfile?.email || prev.email,
         country:
-          (getMetadataValue(userProfile.metadata, "country") as string) ||
+          (getMetadataValue(userProfile?.metadata, "country") as string) ||
           prev.country,
         currency:
-          (getMetadataValue(userProfile.metadata, "currency") as string) ||
+          (getMetadataValue(userProfile?.metadata, "currency") as string) ||
           prev.currency,
       }));
 
@@ -268,7 +268,7 @@ const Profile = () => {
       ...userProfile,
       name: profileData.name,
       metadata: {
-        ...userProfile.metadata,
+        ...userProfile?.metadata,
         country: profileData.country,
         currency: profileData.currency,
       },

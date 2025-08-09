@@ -28,6 +28,29 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
   BarChart,
   Bar,
   XAxis,
@@ -61,19 +84,31 @@ import {
   Search,
   RefreshCw,
   FileText,
-  Shield,
-  Globe,
   Wallet,
-  Activity,
   DollarSign,
   Link,
   Lock,
-  UserCheck,
   Crown,
+  User,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useSelector, useDispatch } from "react-redux";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
+import { getUser } from "@/service/auth";
 import UserProfile from "@/components/UserProfile";
+import { RootState } from "@/types";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  createUserRole,
+  getAllPermissions,
+  getErrorLogs,
+  getUserRole,
+} from "@/service/adminservices";
+import { epochToCustomLocalStringTime } from "@/Common";
 
 // Types
 interface Transaction {
@@ -150,10 +185,88 @@ interface AdminUser {
   isActive: boolean;
 }
 
+// Form schema for user creation
+const createUserSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.enum(
+    ["super-admin", "transaction-admin", "provider-admin", "statistics-admin"],
+    {
+      required_error: "Please select a role",
+    }
+  ),
+});
+
+type CreateUserFormData = z.infer<typeof createUserSchema>;
+
+interface CreateUserWithPermissionsFormData extends CreateUserFormData {
+  permissions: string[];
+}
+
 const Admin = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const { toast } = useToast();
   const { t } = useLanguage();
+
+  // Redux state
+  const dispatch = useDispatch();
+  const authUser = useSelector((store: RootState) => store.auth.userDetails);
+  const singleUserDetails = useSelector(
+    (store: RootState) => store.singleUserDetails
+  );
+  const { data: getRoleUserResponse, refetch } = useQuery({
+    queryKey: ["userRole"],
+    queryFn: () => getUserRole(),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+
+  const { data: getAllPermissionResponse } = useQuery({
+    queryKey: ["allPermissions"],
+    queryFn: () => getAllPermissions(),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+
+  console.log("getAllPermissionResponse", getAllPermissionResponse);
+
+  // Fetch user profile from API when Admin mounts
+  const {
+    data: userProfileData,
+    isLoading: isLoadingProfile,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useQuery({
+    queryKey: ["adminUserProfile", authUser?.id],
+    queryFn: () => {
+      console.log("🔄 Admin: Fetching user profile for ID:", authUser?.id);
+      return getUser(authUser?.id);
+    },
+    enabled: !!authUser?.id,
+  });
+
+  // Handle user profile data when it's fetched
+  useEffect(() => {
+    if (userProfileData && !singleUserDetails.userDetails) {
+      console.log("✅ Admin: Storing user profile in Redux:", userProfileData);
+      dispatch(
+        singleUserDetailsActions.setSingleUserDetails(userProfileData as any)
+      );
+    }
+  }, [userProfileData, singleUserDetails.userDetails, dispatch]);
+
+  // Handle profile fetch errors
+  useEffect(() => {
+    if (profileError) {
+      console.error("❌ Admin: Profile fetch error:", profileError);
+      dispatch(
+        singleUserDetailsActions.setSingleUserError(
+          (profileError as any)?.message || "Failed to fetch user profile"
+        )
+      );
+    }
+  }, [profileError, dispatch]);
 
   // Dashboard data
   const [dashboardStats, setDashboardStats] = useState({
@@ -166,6 +279,76 @@ const Admin = () => {
     },
     commissionIncome: { daily: 1284.3, weekly: 8950.75 },
   });
+
+  // State for create user modal
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+
+  console.log("selectedPermissions", selectedPermissions);
+
+  // Form for creating new user
+  const createUserForm = useForm<CreateUserFormData>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      role: undefined,
+    },
+  });
+
+  // Mutation for creating new user
+  const createUserMutation = useMutation({
+    mutationFn: createUserRole,
+    onSuccess: (data: any) => {
+      toast({
+        title: "✅ User Created Successfully",
+        description: data?.message,
+      });
+
+      // Reset form and close modal
+      createUserForm.reset();
+      setIsCreateUserModalOpen(false);
+      refetch();
+
+      // TODO: Add functionality to refresh admin users list
+      // You might want to implement a query to fetch admin users and invalidate it here
+      // queryClient.invalidateQueries(['adminUsers']);
+    },
+    onError: (error: any) => {
+      console.error("❌ Admin: Failed to create user:", error);
+
+      // Handle specific error cases
+      let errorMessage = "Failed to create user. Please try again.";
+
+      if (error.message?.includes("email")) {
+        errorMessage = "Email address is already in use.";
+      } else if (error.message?.includes("password")) {
+        errorMessage = "Password does not meet security requirements.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast({
+        title: "❌ Failed to Create User",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle create user form submission
+  const handleCreateUser = () => {
+    const payload = {
+      name: createUserForm.getValues()?.fullName,
+      email: createUserForm.getValues()?.email,
+      password: createUserForm.getValues()?.password,
+      role: createUserForm.getValues()?.role,
+      permissions: selectedPermissions ?? [],
+    };
+
+    createUserMutation.mutate(payload);
+  };
 
   // Sample data for different sections
   const [transactions, setTransactions] = useState<Transaction[]>([
@@ -273,6 +456,15 @@ const Admin = () => {
     },
   ]);
 
+  const { data: getErrorLogResponse } = useQuery({
+    queryKey: ["errorLogs"],
+    queryFn: () => getErrorLogs(),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+
+  console.log("getErrorLogResponse", getErrorLogResponse);
+
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([
     {
       id: "ERR001",
@@ -291,25 +483,24 @@ const Admin = () => {
       severity: "medium",
     },
   ]);
+  console.log("getRoleUserResponse", getRoleUserResponse);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
 
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([
-    {
-      id: "ADM001",
-      name: "John Smith",
-      email: "john@ucpg.com",
-      role: "super-admin",
-      lastLogin: "2024-01-15 14:00:00",
-      isActive: true,
-    },
-    {
-      id: "ADM002",
-      name: "Sarah Johnson",
-      email: "sarah@ucpg.com",
-      role: "transaction-admin",
-      lastLogin: "2024-01-15 09:30:00",
-      isActive: true,
-    },
-  ]);
+  useEffect(() => {
+    if (getRoleUserResponse) {
+      const filterUserDetails = ((getRoleUserResponse as any)?.data ?? [])?.map(
+        (user: any) => ({
+          id: user?.id,
+          name: user?.name,
+          email: user?.email,
+          role: user?.role,
+          lastLogin: epochToCustomLocalStringTime(user?.last_login),
+          isActive: user?.is_active,
+        })
+      );
+      setAdminUsers(filterUserDetails);
+    }
+  }, [getRoleUserResponse]);
 
   // Commission settings (existing)
   const [globalPercentage, setGlobalPercentage] = useState<number>(2.5);
@@ -1020,10 +1211,246 @@ const Admin = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>User Roles and Permissions</CardTitle>
-          <CardDescription>
-            Manage admin users and their access levels
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>User Roles and Permissions</CardTitle>
+              <CardDescription>
+                Manage admin users and their access levels
+              </CardDescription>
+            </div>
+            <Dialog
+              open={isCreateUserModalOpen}
+              onOpenChange={setIsCreateUserModalOpen}
+            >
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add User
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent className="sm:max-w-[500px] p-0 flex flex-col max-h-[90vh] overflow-visible">
+                {/* HEADER */}
+                <div className="p-4 border-b">
+                  <DialogHeader>
+                    <DialogTitle>Create New Admin User</DialogTitle>
+                    <DialogDescription>
+                      Add a new admin user with specific role permissions.
+                    </DialogDescription>
+                  </DialogHeader>
+                </div>
+
+                {/* BODY - scrollable */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  <Form {...createUserForm}>
+                    <form id="create-user-form" className="space-y-5">
+                      {/* Full Name */}
+                      <FormField
+                        control={createUserForm.control}
+                        name="fullName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter full name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Email */}
+                      <FormField
+                        control={createUserForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="email"
+                                placeholder="Enter email address"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Password */}
+                      <FormField
+                        control={createUserForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="password"
+                                placeholder="Enter password"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Role */}
+                      <FormField
+                        control={createUserForm.control}
+                        name="role"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Role</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a role" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="super_admin">
+                                  <div className="flex items-center">
+                                    <Crown className="h-4 w-4 mr-2 text-yellow-600" />
+                                    Super Admin
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="transaction_admin">
+                                  <div className="flex items-center">
+                                    <CreditCard className="h-4 w-4 mr-2 text-blue-600" />
+                                    Transaction Admin
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="provider_admin">
+                                  <div className="flex items-center">
+                                    <Building2 className="h-4 w-4 mr-2 text-green-600" />
+                                    Provider Admin
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="statistics_admin">
+                                  <div className="flex items-center">
+                                    <BarChart3 className="h-4 w-4 mr-2 text-purple-600" />
+                                    Statistics Admin
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="user">
+                                  <div className="flex items-center">
+                                    <User className="h-4 w-4 mr-2 text-gray-600" />
+                                    User
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Permissions Accordion */}
+                      <div className="space-y-2">
+                        <Accordion
+                          type="single"
+                          collapsible
+                          className="border rounded-md"
+                        >
+                          <AccordionItem value="permissions">
+                            <AccordionTrigger className="px-4">
+                              User Permissions
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4 py-2 space-y-4">
+                              {(getAllPermissionResponse as any)?.data &&
+                                Object.entries(
+                                  (
+                                    getAllPermissionResponse as any
+                                  )?.data.reduce((acc: any, p: any) => {
+                                    const category = p.category || "General";
+                                    (acc[category] = acc[category] || []).push(
+                                      p
+                                    );
+                                    return acc;
+                                  }, {})
+                                ).map(
+                                  ([category, permissions]: [string, any]) => (
+                                    <div key={category} className="space-y-2">
+                                      <h4 className="font-medium text-sm">
+                                        {category}
+                                      </h4>
+                                      {permissions.map((permission: any) => (
+                                        <div
+                                          key={permission.code}
+                                          className="flex items-center space-x-2"
+                                        >
+                                          <Checkbox
+                                            id={permission.code}
+                                            checked={selectedPermissions.includes(
+                                              permission.code
+                                            )}
+                                            onCheckedChange={(checked) =>
+                                              checked
+                                                ? setSelectedPermissions(
+                                                    (prev) => [
+                                                      ...prev,
+                                                      permission.code,
+                                                    ]
+                                                  )
+                                                : setSelectedPermissions(
+                                                    (prev) =>
+                                                      prev.filter(
+                                                        (p) =>
+                                                          p !== permission.code
+                                                      )
+                                                  )
+                                            }
+                                          />
+                                          <Label
+                                            htmlFor={permission.code}
+                                            className="text-sm"
+                                          >
+                                            {permission.label}
+                                          </Label>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
+                                )}
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      </div>
+                    </form>
+                  </Form>
+                </div>
+
+                {/* FOOTER */}
+                <div className="p-4 border-t flex justify-end space-x-2 bg-white">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      createUserForm.reset();
+                      setIsCreateUserModalOpen(false);
+                      setSelectedPermissions([]);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    form="create-user-form"
+                    onClick={handleCreateUser}
+                    disabled={createUserMutation.isPending}
+                  >
+                    {createUserMutation.isPending ? "Creating..." : "Save"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -1503,6 +1930,56 @@ const Admin = () => {
         return renderDashboard();
     }
   };
+
+  // Show loading state while user profile is being fetched
+  if (
+    (singleUserDetails.loading || isLoadingProfile) &&
+    !singleUserDetails.userDetails
+  ) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Loading admin profile...</p>
+          <p className="text-sm text-muted-foreground">
+            Please wait while we prepare your admin panel
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if user profile failed to load
+  if (
+    (singleUserDetails.error || profileError) &&
+    !singleUserDetails.userDetails
+  ) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-medium">Failed to load admin profile</p>
+            <p className="text-sm text-muted-foreground">
+              {singleUserDetails.error ||
+                (profileError as any)?.message ||
+                "Failed to load user profile"}
+            </p>
+          </div>
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+            className="mt-4"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">

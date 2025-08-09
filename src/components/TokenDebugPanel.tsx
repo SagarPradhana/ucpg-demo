@@ -31,7 +31,13 @@ const TokenDebugPanel: React.FC = () => {
     error: null,
   });
 
-  const userProfile = useSelector((store: RootState) => store.auth.userDetails);
+  // Get user profiles from both stores for debug comparison
+  const authUserProfile = useSelector(
+    (store: RootState) => store.auth.userDetails
+  );
+  const singleUserProfile = useSelector(
+    (store: RootState) => store.singleUserDetails.userDetails
+  );
 
   const updateDebugInfo = () => {
     try {
@@ -58,7 +64,7 @@ const TokenDebugPanel: React.FC = () => {
         sessionToken,
         refreshToken,
         decodedUser,
-        reduxUser: userProfile,
+        reduxUser: singleUserProfile || authUserProfile, // Prefer singleUserProfile
         isTokenValid,
         error,
       });
@@ -74,7 +80,7 @@ const TokenDebugPanel: React.FC = () => {
     updateDebugInfo();
     const interval = setInterval(updateDebugInfo, 2000);
     return () => clearInterval(interval);
-  }, [userProfile]);
+  }, [authUserProfile, singleUserProfile]);
 
   return (
     <Card className="w-full">

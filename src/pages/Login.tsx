@@ -22,7 +22,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { jwtDecode } from "jwt-decode";
 import { login, getUser } from "@/service/auth";
 import TokenManager from "@/utils/tokenManager";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, LoginCredentials, ApiResponse, LoginResponse } from "@/types";
 import { getMetadataValue, fixMalformedMetadata } from "@/utils/metadataUtils";
 import RoleSelectionModal from "@/components/RoleSelectionModal";
@@ -41,10 +41,20 @@ const Login = () => {
     name: string;
     email: string;
   } | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [shouldFetchProfile, setShouldFetchProfile] = useState(false);
+
+  // Initialize userId from auth state if available
+  useEffect(() => {
+    if (user?.id && !userId) {
+      setUserId(user.id);
+    }
+  }, [user?.id, userId]);
   const navigate = useNavigate();
   const { toast } = useToast();
   const dispatch = useDispatch();
   const { setLanguageFromProfile } = useLanguage();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && !showRoleModal && !hasUsedRoleModal) {
@@ -52,43 +62,95 @@ const Login = () => {
     }
   }, [isLoading, isAuthenticated, navigate, showRoleModal, hasUsedRoleModal]);
 
-  // Mutation for fetching user profile after login
-  const getUserProfileMutation = useMutation({
-    mutationFn: (userId: string) => {
+  // Query for fetching user profile - enabled when user is authenticated
+  const getUserProfileQuery = useQuery({
+    queryKey: ["userProfile", userId],
+    queryFn: () => {
+      if (!userId) {
+        throw new Error("User ID not available");
+      }
       console.log("🔄 Login: Fetching user profile for ID:", userId);
       return getUser(userId);
     },
-    onSuccess: (userData: any) => {
-      console.log("✅ Login: User profile data received:", userData);
+    enabled: (shouldFetchProfile || isAuthenticated) && !!userId,
+    staleTime: 1000 * 60 * 5, // Consider data stale after 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+  });
 
-      // Fix malformed metadata before storing in Redux
-      const fixedUserData = {
-        ...userData,
-        metadata: fixMalformedMetadata(userData?.metadata),
-      };
-
-      // Store user profile in Redux
-      dispatch(
-        singleUserDetailsActions.setSingleUserDetails(fixedUserData as User)
+  // Handle query success and error with useEffect
+  useEffect(() => {
+    if (getUserProfileQuery.isSuccess && getUserProfileQuery.data) {
+      console.log(
+        "✅ User profile data received and updating Redux:",
+        getUserProfileQuery.data
       );
 
-      console.log("✅ Login: User profile stored in Redux");
-    },
-    onError: (error: any) => {
-      console.error("❌ Login: Failed to fetch user profile:", error);
       dispatch(
-        singleUserDetailsActions.setSingleUserError(
-          error?.message || "Failed to fetch user profile"
+        singleUserDetailsActions.setSingleUserDetails(
+          getUserProfileQuery.data as User
         )
       );
 
-      toast({
-        title: "Profile Loading Failed",
-        description: "Could not load user profile. Please refresh the page.",
-        variant: "destructive",
+      console.log("✅ User profile stored in Redux");
+
+      // Only reset the fetch trigger if it was initiated by login
+      if (shouldFetchProfile) {
+        setShouldFetchProfile(false);
+      }
+    }
+  }, [
+    getUserProfileQuery.isSuccess,
+    getUserProfileQuery.data,
+    dispatch,
+    shouldFetchProfile,
+  ]);
+
+  useEffect(() => {
+    if (getUserProfileQuery.isError) {
+      console.error(
+        "❌ Failed to fetch user profile:",
+        getUserProfileQuery.error
+      );
+      dispatch(
+        singleUserDetailsActions.setSingleUserError(
+          getUserProfileQuery.error?.message || "Failed to fetch user profile"
+        )
+      );
+
+      // Show error toast only if it was triggered by login, not by background refetch
+      if (shouldFetchProfile) {
+        toast({
+          title: "Profile Loading Failed",
+          description: "Could not load user profile. Please refresh the page.",
+          variant: "destructive",
+        });
+
+        // Reset the fetch trigger only if it was initiated by login
+        setShouldFetchProfile(false);
+      }
+    }
+  }, [
+    getUserProfileQuery.isError,
+    getUserProfileQuery.error,
+    dispatch,
+    toast,
+    shouldFetchProfile,
+  ]);
+
+  // Utility functions for manual profile refetch
+  const refetchProfile = (targetUserId?: string) => {
+    const userIdToFetch = targetUserId || userId;
+    if (userIdToFetch) {
+      queryClient.invalidateQueries({
+        queryKey: ["userProfile", userIdToFetch],
       });
-    },
-  });
+    }
+  };
+
+  const refetchAllUserQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+    queryClient.invalidateQueries({ queryKey: ["user"] });
+  };
 
   const loginMutation = useMutation({
     mutationFn: (loginData: LoginCredentials) => login(loginData),
@@ -127,7 +189,8 @@ const Login = () => {
           decodedUser.id
         );
         dispatch(singleUserDetailsActions.setLoading(true));
-        getUserProfileMutation.mutate(decodedUser.id);
+        setUserId(decodedUser.id);
+        setShouldFetchProfile(true);
       }
 
       if (decodedUser?.role === "super_admin") {
@@ -254,7 +317,7 @@ const Login = () => {
                 type="submit"
                 className="w-full group"
                 disabled={
-                  loginMutation.isPending || getUserProfileMutation.isPending
+                  loginMutation.isPending || getUserProfileQuery.isLoading
                 }
               >
                 {loginMutation.isPending ? (
@@ -262,7 +325,7 @@ const Login = () => {
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     <span>Signing In...</span>
                   </div>
-                ) : getUserProfileMutation.isPending ? (
+                ) : getUserProfileQuery.isLoading ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     <span>Loading Profile...</span>

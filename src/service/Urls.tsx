@@ -67,3 +67,21 @@ export const REFRESH_TOKEN: Api = {
   url: `${BACKEND_KPIX}/auth/refreshtoken`,
   method: HttpMethods.POST,
 };
+
+export const GET_ROLE_USER: Api = {
+  url: `${BACKEND_KPIX}/admin/user_roles/users`,
+  method: HttpMethods.GET,
+};
+export const CREATE_ROLE_USER: Api = {
+  url: `${BACKEND_KPIX}/admin/user_roles/users/create`,
+  method: HttpMethods.POST,
+};
+
+export const GET_PERMISSION: Api = {
+  url: `${BACKEND_KPIX}/admin/user_roles/permissions`,
+  method: HttpMethods.GET,
+};
+export const GET_ERROR_LOGS: Api = {
+  url: `${BACKEND_KPIX}/admin/error_logs/error_logs`,
+  method: HttpMethods.GET,
+};

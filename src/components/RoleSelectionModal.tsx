@@ -117,7 +117,11 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        hideCloseButton={true}
+        preventOutsideClose={true}
+      >
         <DialogHeader className="text-center space-y-3">
           <div className="flex items-center justify-center space-x-2">
             <div className="bg-primary/10 p-2 rounded-lg">

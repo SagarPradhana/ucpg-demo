@@ -48,8 +48,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { loginActions } from "@/store/loginReducer";
+import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
+import { getUser } from "@/service/auth";
 import UserProfile from "@/components/UserProfile";
 import SingleUserDetailsCard from "@/components/SingleUserDetailsCard";
 import DashboardDebugInfo from "@/components/DashboardDebugInfo";
@@ -63,14 +65,6 @@ const Dashboard = () => {
   const singleUserDetails = useSelector(
     (store: RootState) => store.singleUserDetails
   );
-
-  console.log("🏠 Dashboard: Component rendered/re-rendered", {
-    authUserExists: !!authUser,
-    authUserId: authUser?.id,
-    singleUserExists: !!singleUserDetails.userDetails,
-    singleUserId: singleUserDetails.userDetails?.id,
-    timestamp: new Date().toISOString(),
-  });
 
   // Use singleUserDetails as primary user data, fallback to authUser for ID when needed
   const userProfile = singleUserDetails.userDetails || authUser;
@@ -88,7 +82,6 @@ const Dashboard = () => {
   const [isActionProcessing, setIsActionProcessing] = useState<string | null>(
     null
   );
-
   // Debug Redux state changes
   useEffect(() => {
     console.log("🔍 Dashboard: Redux state changed:", {
@@ -265,6 +258,8 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [refreshBalanceMutation]);
 
+  // Fetch user profile from API when Dashboard mounts
+
   const handleRefresh = () => {
     refreshBalanceMutation.mutate();
   };
@@ -350,18 +345,8 @@ const Dashboard = () => {
     },
   ];
 
-  const walletAddress = "1A2B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S";
-
-  const [paymentAmount, setPaymentAmount] = useState("");
-  const [localCurrency, setLocalCurrency] = useState("USD");
-  const [cryptoCurrency, setCryptoCurrency] = useState("USDT");
-
   const [convertedAmount, setConvertedAmount] = useState("");
   const [exchangeRate, setExchangeRate] = useState(1);
-  const [paymentStatus, setPaymentStatus] = useState("idle"); // idle, processing, completed
-  const [singleUseLink, setSingleUseLink] = useState("");
-  const [singleUseQR, setSingleUseQR] = useState("");
-  const [transactionId, setTransactionId] = useState("");
 
   // Mock exchange rates (in real app, this would come from an API)
   const exchangeRates = {
@@ -372,28 +357,8 @@ const Dashboard = () => {
     GBP: { USDT: 1.26, BTC: 0.000029, ETH: 0.0005 },
   };
 
-  const calculateConversion = (amount: string) => {
-    if (!amount || isNaN(Number(amount))) {
-      setConvertedAmount("");
-      return;
-    }
-
-    const rate =
-      exchangeRates[localCurrency as keyof typeof exchangeRates]?.[
-        cryptoCurrency as keyof typeof exchangeRates.USD
-      ] || 1;
-    const converted = Number(amount) * rate;
-    setConvertedAmount(converted.toFixed(8));
-    setExchangeRate(rate);
-  };
-
-  const generateAnonymousContactInfo = () => {
-    const contactId = Math.random().toString(36).substr(2, 9);
-    return `anonymous-${contactId}@example.com`;
-  };
-
   // Show loading state while user profile is being fetched
-  if (singleUserDetails.loading && !singleUserDetails.userDetails) {
+  if (singleUserDetails?.loading && !singleUserDetails?.userDetails) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -408,7 +373,7 @@ const Dashboard = () => {
   }
 
   // Show error state if user profile failed to load
-  if (singleUserDetails.error && !singleUserDetails.userDetails) {
+  if (singleUserDetails?.error && !singleUserDetails?.userDetails) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -418,7 +383,7 @@ const Dashboard = () => {
           <div className="space-y-2">
             <p className="text-lg font-medium">Failed to load profile</p>
             <p className="text-sm text-muted-foreground">
-              {singleUserDetails.error}
+              {singleUserDetails.error || "Failed to load user profile"}
             </p>
           </div>
           <Button

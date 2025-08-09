@@ -9,6 +9,9 @@ export interface User {
   is_active: boolean;
   timezone: number;
   exp: number;
+  data?: any;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface ApiResponse<T = unknown> {
