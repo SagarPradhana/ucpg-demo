@@ -243,13 +243,16 @@ const Profile = () => {
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("🔄 Updating profile for user ID:", userProfile?.id);
-    console.log("📝 Profile data:", {
+    console.log("🔄 Profile: Updating profile for user ID:", userProfile?.id);
+
+    const updatedMetadata = updateMetadata(userProfile?.metadata || {}, {
+      country: profileData.country,
+      currency: profileData.currency,
+    });
+
+    console.log("📝 Profile: Profile data:", {
       name: profileData.name,
-      metadata: {
-        country: profileData.country,
-        currency: profileData.currency,
-      },
+      metadata: updatedMetadata,
     });
 
     // Use authUser.id for API calls since that's always available from JWT
@@ -265,13 +268,8 @@ const Profile = () => {
     }
 
     updateProfileMutation.mutate({
-      ...userProfile,
       name: profileData.name,
-      metadata: {
-        ...userProfile?.metadata,
-        country: profileData.country,
-        currency: profileData.currency,
-      },
+      metadata: updatedMetadata,
     });
   };
 

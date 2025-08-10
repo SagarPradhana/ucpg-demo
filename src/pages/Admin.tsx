@@ -1,76 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
-  Settings,
-  Calculator,
-  Percent,
-  Coins,
-  Building2,
-  Plus,
-  Trash2,
-  Save,
   BarChart3,
   CreditCard,
   QrCode,
@@ -78,19 +8,24 @@ import {
   TrendingUp,
   Download,
   AlertTriangle,
-  Eye,
-  Edit,
-  X,
-  Search,
+  Building2,
+  Percent,
+  Settings,
   RefreshCw,
-  FileText,
-  Wallet,
-  DollarSign,
-  Link,
-  Lock,
   Crown,
-  User,
 } from "lucide-react";
+import {
+  AdminDashboard,
+  AdminTransactions,
+  AdminPromoCodes,
+  AdminProviders,
+  AdminExchangeRates,
+  AdminUserRoles,
+  AdminSettings,
+  AdminErrorLogs,
+  AdminReports,
+  AdminCommissionSettings,
+} from "@/components/admin";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSelector, useDispatch } from "react-redux";
@@ -188,23 +123,6 @@ interface AdminUser {
 }
 
 // Form schema for user creation
-const createUserSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(
-    ["super-admin", "transaction-admin", "provider-admin", "statistics-admin"],
-    {
-      required_error: "Please select a role",
-    }
-  ),
-});
-
-type CreateUserFormData = z.infer<typeof createUserSchema>;
-
-interface CreateUserWithPermissionsFormData extends CreateUserFormData {
-  permissions: string[];
-}
 
 const Admin = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -217,21 +135,6 @@ const Admin = () => {
   const singleUserDetails = useSelector(
     (store: RootState) => store.singleUserDetails
   );
-  const { data: getRoleUserResponse, refetch } = useQuery({
-    queryKey: ["userRole"],
-    queryFn: () => getUserRole(),
-    gcTime: 60000,
-    staleTime: 60000,
-  });
-
-  const { data: getAllPermissionResponse } = useQuery({
-    queryKey: ["allPermissions"],
-    queryFn: () => getAllPermissions(),
-    gcTime: 60000,
-    staleTime: 60000,
-  });
-
-  console.log("getAllPermissionResponse", getAllPermissionResponse);
 
   // Fetch user profile from API when Admin mounts
   const {
@@ -283,84 +186,21 @@ const Admin = () => {
   });
 
   // State for create user modal
-  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [errorLogsTime, SetErrorLogsTime] = useState<string>("24h");
-
-  console.log("selectedPermissions", selectedPermissions);
+  // Menu items for navigation
+  const menuItems = [
+    { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+    { id: "transactions", label: "Transactions", icon: CreditCard },
+    { id: "promo-codes", label: "Promo Codes", icon: QrCode },
+    { id: "providers", label: "Providers", icon: Building2 },
+    { id: "exchange-rates", label: "Exchange Rates", icon: TrendingUp },
+    { id: "user-roles", label: "User Roles", icon: Users },
+    { id: "commission", label: "Commission", icon: Percent },
+    { id: "settings", label: "Settings", icon: Settings },
+    { id: "error-logs", label: "Error Logs", icon: AlertTriangle },
+    { id: "reports", label: "Reports", icon: Download },
+  ];
 
   // Form for creating new user
-  const createUserForm = useForm<CreateUserFormData>({
-    resolver: zodResolver(createUserSchema),
-    defaultValues: {
-      fullName: "",
-      email: "",
-      password: "",
-      role: undefined,
-    },
-  });
-  const [isEdit, setIsEdit] = useState<boolean>(false);
-
-  // Mutation for creating new user
-  const createUserMutation = useMutation({
-    mutationFn: isEdit ? updateUserRoles : createUserRole,
-    onSuccess: (data: any) => {
-      toast({
-        title: isEdit
-          ? "✅ User Updated Successfully"
-          : "✅ User Created Successfully",
-        description: data?.message,
-      });
-
-      // Reset form and close modal
-      createUserForm.reset();
-      setIsCreateUserModalOpen(false);
-      refetch();
-
-      // TODO: Add functionality to refresh admin users list
-      // You might want to implement a query to fetch admin users and invalidate it here
-      // queryClient.invalidateQueries(['adminUsers']);
-    },
-    onError: (error: any) => {
-      console.error("❌ Admin: Failed to create user:", error);
-
-      // Handle specific error cases
-      let errorMessage = "Failed to create user. Please try again.";
-
-      if (error.message?.includes("email")) {
-        errorMessage = "Email address is already in use.";
-      } else if (error.message?.includes("password")) {
-        errorMessage = "Password does not meet security requirements.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      toast({
-        title: isEdit ? "❌ Failed to Update User" : "❌ Failed to Create User",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Handle create user form submission
-  const handleCreateUser = () => {
-    const addpayload = {
-      name: createUserForm.getValues()?.fullName,
-      email: createUserForm.getValues()?.email,
-
-      role: createUserForm.getValues()?.role,
-    };
-
-    const editPayload = {
-      name: createUserForm.getValues()?.fullName,
-      user_email: createUserForm.getValues()?.email,
-      role: createUserForm.getValues()?.role,
-      permissions: selectedPermissions ?? [],
-    };
-
-    createUserMutation.mutate(isEdit ? editPayload : addpayload);
-  };
 
   // Sample data for different sections
   const [transactions, setTransactions] = useState<Transaction[]>([
@@ -469,98 +309,8 @@ const Admin = () => {
   ]);
 
   // Calculate epoch dates based on time filter
-  const calculateEpochDates = (
-    filter: string
-  ): { from: number; to: number } => {
-    const now = Math.floor(Date.now() / 1000);
-    let from = now;
-    let to = now;
-
-    switch (filter) {
-      case "1h":
-        from = now - 3600;
-        break;
-      case "6h":
-        from = now - 21600;
-        break;
-      case "24h":
-        from = now - 86400;
-        break;
-      case "7d":
-        from = now - 604800;
-        break;
-      case "30d":
-        from = now - 2592000;
-        break;
-      case "90d":
-        from = now - 7776000;
-        break;
-      case "custom":
-        // Use custom dates set by user
-        from = errorLogFromDate;
-        to = errorLogToDate;
-        break;
-      default:
-        from = now - 86400;
-    }
-
-    return { from, to };
-  };
 
   // Time filter state for error logs
-  const { from, to } = calculateEpochDates("24h");
-  const [errorLogFromDate, setErrorLogFromDate] = useState<number>(from);
-  const [errorLogToDate, setErrorLogToDate] = useState<number>(to);
-
-  // Update error logs query with time filter
-  const { data: getErrorLogResponse } = useQuery<any>({
-    queryKey: ["errorLogs", errorLogFromDate, errorLogToDate],
-    queryFn: () => {
-      const payload = {
-        from_date: errorLogFromDate,
-        to_date: errorLogToDate,
-      };
-      return getErrorLogs(payload);
-    },
-    gcTime: 60000,
-    staleTime: 60000,
-  });
-
-  console.log("getErrorLogResponse", getErrorLogResponse);
-
-  const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
-
-  useEffect(() => {
-    if (getErrorLogResponse) {
-      const FilteredErrorLogs = getErrorLogResponse?.data?.map((item) => ({
-        id: item?.id,
-        timestamp: epochToCustomLocalStringTime(item?.created_date),
-        errorCode: item?.error_code,
-        message: item?.error,
-        endpoint: item?.endpoint,
-        severity: item?.severity,
-      }));
-      setErrorLogs(FilteredErrorLogs);
-    }
-  }, [getErrorLogResponse]);
-
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
-  useEffect(() => {
-    if (getRoleUserResponse) {
-      const filterUserDetails = ((getRoleUserResponse as any)?.data ?? [])?.map(
-        (user: any) => ({
-          id: user?.id,
-          name: user?.name,
-          email: user?.email,
-          role: user?.role,
-          lastLogin: epochToCustomLocalStringTime(user?.last_login),
-          isActive: user?.is_active,
-          permissions: user?.permissions ?? [],
-        })
-      );
-      setAdminUsers(filterUserDetails);
-    }
-  }, [getRoleUserResponse]);
 
   // Commission settings (existing)
   const [globalPercentage, setGlobalPercentage] = useState<number>(2.5);
@@ -628,6 +378,52 @@ const Admin = () => {
     search: "",
   });
 
+  // Helper functions
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "sent":
+      case "active":
+        return "default";
+      case "received":
+        return "secondary";
+      case "expired":
+        return "destructive";
+      case "cancelled":
+        return "outline";
+      default:
+        return "secondary";
+    }
+  };
+
+  const getSeverityBadge = (severity: string) => {
+    switch (severity) {
+      case "critical":
+        return "destructive";
+      case "high":
+        return "destructive";
+      case "medium":
+        return "secondary";
+      case "low":
+        return "outline";
+      default:
+        return "secondary";
+    }
+  };
+
+  const handleTransactionCancel = (transactionId: string) => {
+    toast({
+      title: "Transaction Cancelled",
+      description: `Transaction ${transactionId} has been cancelled.`,
+    });
+  };
+
+  const exportData = (type: string, format: string) => {
+    toast({
+      title: "Export Started",
+      description: `Exporting ${type} data in ${format} format...`,
+    });
+  };
+
   // Sidebar navigation
   const sidebarItems = [
     { id: "dashboard", label: t("admin.dashboard"), icon: BarChart3 },
@@ -642,1396 +438,79 @@ const Admin = () => {
     { id: "reports", label: t("admin.reports"), icon: Download },
   ];
 
-  // Functions
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      sent: "default",
-      received: "default",
-      expired: "secondary",
-      cancelled: "destructive",
-      active: "default",
-      used: "secondary",
-      inactive: "outline",
-    };
-    return variants[status as keyof typeof variants] || "outline";
-  };
-
-  const getSeverityBadge = (severity: string) => {
-    const variants = {
-      low: "secondary",
-      medium: "outline",
-      high: "destructive",
-      critical: "destructive",
-    };
-    return variants[severity as keyof typeof variants] || "outline";
-  };
-
-  const exportData = (type: string, format: string) => {
-    // Removed non-API export toast
-  };
-
-  const handleTransactionCancel = (transactionId: string) => {
-    setTransactions((prev) =>
-      prev.map((tx) =>
-        tx.id === transactionId ? { ...tx, status: "cancelled" as const } : tx
-      )
-    );
-    // Removed non-API transaction cancel toast
-  };
-
-  const renderDashboard = () => (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t("admin.dashboard.todayPayments")}
-                </p>
-                <p className="text-2xl font-bold">
-                  {dashboardStats.todayPayments.count}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  ${dashboardStats.todayPayments.amount.toLocaleString()}
-                </p>
-              </div>
-              <DollarSign className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t("admin.dashboard.activePromoLinks")}
-                </p>
-                <p className="text-2xl font-bold">
-                  {dashboardStats.last24Hours.activePromoLinks}
-                </p>
-                <p className="text-xs text-green-600">+12% from yesterday</p>
-              </div>
-              <QrCode className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t("admin.dashboard.commissionIncome")} (
-                  {t("admin.dashboard.daily")})
-                </p>
-                <p className="text-2xl font-bold">
-                  ${dashboardStats.commissionIncome.daily.toLocaleString()}
-                </p>
-                <p className="text-xs text-green-600">+8.2% from yesterday</p>
-              </div>
-              <Percent className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Unclaimed Funds
-                </p>
-                <p className="text-2xl font-bold">
-                  ${dashboardStats.last24Hours.unclaimedFunds.toLocaleString()}
-                </p>
-                <p className="text-xs text-orange-600">Requires attention</p>
-              </div>
-              <Wallet className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.dashboard.transactionVolume")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={transactionChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="sent" fill="#8884d8" />
-                <Bar dataKey="received" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.dashboard.currencyDistribution")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={currencyDistribution}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}%`}
-                >
-                  {currencyDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Transactions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("admin.transactions.title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("admin.transactions.transactionId")}</TableHead>
-                <TableHead>{t("admin.transactions.date")}</TableHead>
-                <TableHead>{t("admin.transactions.amount")}</TableHead>
-                <TableHead>{t("admin.transactions.status")}</TableHead>
-                <TableHead>{t("admin.transactions.commission")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.slice(0, 5).map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="font-medium">{tx.id}</TableCell>
-                  <TableCell>
-                    {new Date(tx.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {tx.amount} {tx.currency}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadge(tx.status) as any}>
-                      {tx.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>${tx.commission.toFixed(2)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderTransactions = () => (
-    <div className="space-y-6">
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaction Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <Label>Search</Label>
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Transaction ID..."
-                  className="pl-8"
-                  value={transactionFilters.search}
-                  onChange={(e) =>
-                    setTransactionFilters((prev) => ({
-                      ...prev,
-                      search: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Select
-                value={transactionFilters.status}
-                onValueChange={(value) =>
-                  setTransactionFilters((prev) => ({ ...prev, status: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="sent">Sent</SelectItem>
-                  <SelectItem value="received">Received</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Currency</Label>
-              <Select
-                value={transactionFilters.currency}
-                onValueChange={(value) =>
-                  setTransactionFilters((prev) => ({
-                    ...prev,
-                    currency: value,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All currencies" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All currencies</SelectItem>
-                  <SelectItem value="BTC">Bitcoin</SelectItem>
-                  <SelectItem value="ETH">Ethereum</SelectItem>
-                  <SelectItem value="USDT">USDT</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Date From</Label>
-              <Input
-                type="date"
-                value={transactionFilters.dateFrom}
-                onChange={(e) =>
-                  setTransactionFilters((prev) => ({
-                    ...prev,
-                    dateFrom: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div>
-              <Label>Date To</Label>
-              <Input
-                type="date"
-                value={transactionFilters.dateTo}
-                onChange={(e) =>
-                  setTransactionFilters((prev) => ({
-                    ...prev,
-                    dateTo: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Transactions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Currency</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Commission</TableHead>
-                <TableHead>Net Amount</TableHead>
-                <TableHead>QR Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="font-medium">{tx.id}</TableCell>
-                  <TableCell>{new Date(tx.date).toLocaleString()}</TableCell>
-                  <TableCell>{tx.amount}</TableCell>
-                  <TableCell>{tx.currency}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadge(tx.status) as any}>
-                      {tx.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{tx.commission}</TableCell>
-                  <TableCell>{tx.netAmount}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadge(tx.qrStatus) as any}>
-                      {tx.qrStatus}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="ghost">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleTransactionCancel(tx.id)}
-                        disabled={tx.status === "cancelled"}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderPromoCodes = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Promo Codes Management</CardTitle>
-          <CardDescription>Manage QR links and promo codes</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Add New Promo Code */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/20">
-              <Input placeholder="Code" />
-              <Input placeholder="Amount" type="number" />
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BTC">Bitcoin</SelectItem>
-                  <SelectItem value="ETH">Ethereum</SelectItem>
-                  <SelectItem value="USDT">USDT</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Code
-              </Button>
-            </div>
-
-            {/* Promo Codes Table */}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Currency</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Expires</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>QR Link</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {promoCodes.map((code) => (
-                  <TableRow key={code.id}>
-                    <TableCell className="font-medium">{code.code}</TableCell>
-                    <TableCell>{code.amount}</TableCell>
-                    <TableCell>{code.currency}</TableCell>
-                    <TableCell>
-                      {new Date(code.createdDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(code.expirationDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusBadge(code.usageStatus) as any}>
-                        {code.usageStatus}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="ghost">
-                        <Link className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button size="sm" variant="ghost">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderProviders = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Service Providers</CardTitle>
-          <CardDescription>
-            Manage connected services and providers
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Add New Provider */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg bg-muted/20">
-              <div>
-                <Label>Provider Name</Label>
-                <Input placeholder="Enter provider name" />
-              </div>
-              <div>
-                <Label>Service Type</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="gaming">Gaming</SelectItem>
-                    <SelectItem value="vpn">VPN Service</SelectItem>
-                    <SelectItem value="digital">Digital Services</SelectItem>
-                    <SelectItem value="sms">SMS Gateway</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end">
-                <Button className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Provider
-                </Button>
-              </div>
-            </div>
-
-            {/* Providers Table */}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Transactions</TableHead>
-                  <TableHead>Total Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Activity</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {providers.map((provider) => (
-                  <TableRow key={provider.id}>
-                    <TableCell className="font-medium">
-                      {provider.name}
-                    </TableCell>
-                    <TableCell>{provider.type}</TableCell>
-                    <TableCell>
-                      {provider.transactionCount.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      ${provider.totalAmount.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={provider.isActive ? "default" : "secondary"}
-                      >
-                        {provider.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(provider.lastActivity).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button size="sm" variant="ghost">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderExchangeRates = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            Currency Exchange Monitoring
-            <Button
-              size="sm"
-              onClick={() => {
-                // Removed non-API rates update toast
-              }}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          </CardTitle>
-          <CardDescription>Real-time exchange rate monitoring</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Settings */}
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <p className="font-medium">Auto-refresh rates</p>
-                <p className="text-sm text-muted-foreground">
-                  Update rates every {systemSettings.rateUpdateInterval} minutes
-                </p>
-              </div>
-              <Switch
-                checked={systemSettings.exchangeRateMonitoring}
-                onCheckedChange={(checked) =>
-                  setSystemSettings((prev) => ({
-                    ...prev,
-                    exchangeRateMonitoring: checked,
-                  }))
-                }
-              />
-            </div>
-
-            {/* Exchange Rates Table */}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Currency Pair</TableHead>
-                  <TableHead>Current Price</TableHead>
-                  <TableHead>24h Change</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {exchangeRates.map((rate, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{rate.symbol}</TableCell>
-                    <TableCell>${rate.price.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <span
-                        className={
-                          rate.change24h >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }
-                      >
-                        {rate.change24h >= 0 ? "+" : ""}
-                        {rate.change24h}%
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(rate.lastUpdated).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="default">Live</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderUserRoles = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>User Roles and Permissions</CardTitle>
-              <CardDescription>
-                Manage admin users and their access levels
-              </CardDescription>
-            </div>
-            <Dialog
-              open={isCreateUserModalOpen}
-              onOpenChange={setIsCreateUserModalOpen}
-            >
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add User
-                </Button>
-              </DialogTrigger>
-
-              <DialogContent className="sm:max-w-[500px] p-0 flex flex-col max-h-[90vh] overflow-visible">
-                {/* HEADER */}
-                <div className="p-4 border-b">
-                  <DialogHeader>
-                    <DialogTitle>Create New Admin User</DialogTitle>
-                    <DialogDescription>
-                      Add a new admin user with specific role permissions.
-                    </DialogDescription>
-                  </DialogHeader>
-                </div>
-
-                {/* BODY - scrollable */}
-                <div className="flex-1 overflow-y-auto p-4">
-                  <Form {...createUserForm}>
-                    <form id="create-user-form" className="space-y-5">
-                      {/* Full Name */}
-                      <FormField
-                        control={createUserForm.control}
-                        name="fullName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Full Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter full name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Email */}
-                      <FormField
-                        control={createUserForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="email"
-                                placeholder="Enter email address"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Role */}
-                      <FormField
-                        control={createUserForm.control}
-                        name="role"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Role</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a role" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="super_admin">
-                                  <div className="flex items-center">
-                                    <Crown className="h-4 w-4 mr-2 text-yellow-600" />
-                                    Super Admin
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="transaction_admin">
-                                  <div className="flex items-center">
-                                    <CreditCard className="h-4 w-4 mr-2 text-blue-600" />
-                                    Transaction Admin
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="provider_admin">
-                                  <div className="flex items-center">
-                                    <Building2 className="h-4 w-4 mr-2 text-green-600" />
-                                    Provider Admin
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="statistics_admin">
-                                  <div className="flex items-center">
-                                    <BarChart3 className="h-4 w-4 mr-2 text-purple-600" />
-                                    Statistics Admin
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="user">
-                                  <div className="flex items-center">
-                                    <User className="h-4 w-4 mr-2 text-gray-600" />
-                                    User
-                                  </div>
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Permissions Accordion */}
-                      {isEdit &&
-                        singleUserDetails?.userDetails?.data?.role !==
-                          "user" && (
-                          <div className="space-y-2">
-                            <Accordion
-                              type="single"
-                              collapsible
-                              className="border rounded-md"
-                            >
-                              <AccordionItem value="permissions">
-                                <AccordionTrigger className="px-4">
-                                  User Permissions
-                                </AccordionTrigger>
-                                <AccordionContent className="px-4 py-2 space-y-4">
-                                  {(getAllPermissionResponse as any)?.data &&
-                                    Object.entries(
-                                      (
-                                        getAllPermissionResponse as any
-                                      )?.data.reduce((acc: any, p: any) => {
-                                        const category =
-                                          p.category || "General";
-                                        (acc[category] =
-                                          acc[category] || []).push(p);
-                                        return acc;
-                                      }, {})
-                                    )?.map(
-                                      ([category, permissions]: [
-                                        string,
-                                        any
-                                      ]) => (
-                                        <div
-                                          key={category}
-                                          className="space-y-2"
-                                        >
-                                          <h4 className="font-medium text-sm">
-                                            {category}
-                                          </h4>
-                                          {permissions?.map(
-                                            (permission: any) => (
-                                              <div
-                                                key={permission.code}
-                                                className="flex items-center space-x-2"
-                                              >
-                                                <Checkbox
-                                                  id={permission.code}
-                                                  checked={selectedPermissions?.includes(
-                                                    permission.code
-                                                  )}
-                                                  onCheckedChange={(checked) =>
-                                                    checked
-                                                      ? setSelectedPermissions(
-                                                          (prev) => [
-                                                            ...prev,
-                                                            permission.code,
-                                                          ]
-                                                        )
-                                                      : setSelectedPermissions(
-                                                          (prev) =>
-                                                            prev.filter(
-                                                              (p) =>
-                                                                p !==
-                                                                permission.code
-                                                            )
-                                                        )
-                                                  }
-                                                />
-                                                <Label
-                                                  htmlFor={permission.code}
-                                                  className="text-sm"
-                                                >
-                                                  {permission.label}
-                                                </Label>
-                                              </div>
-                                            )
-                                          )}
-                                        </div>
-                                      )
-                                    )}
-                                </AccordionContent>
-                              </AccordionItem>
-                            </Accordion>
-                          </div>
-                        )}
-                    </form>
-                  </Form>
-                </div>
-
-                {/* FOOTER */}
-                <div className="p-4 border-t flex justify-end space-x-2 bg-white">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      createUserForm.reset();
-                      setIsCreateUserModalOpen(false);
-                      setSelectedPermissions([]);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    form="create-user-form"
-                    onClick={handleCreateUser}
-                    disabled={createUserMutation.isPending}
-                  >
-                    {createUserMutation.isPending ? "Creating..." : "Save"}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Role Descriptions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Crown className="h-5 w-5 text-yellow-600" />
-                    <h4 className="font-medium">Super Admin</h4>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Full access to all modules, commission management, user
-                    management
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <CreditCard className="h-5 w-5 text-blue-600" />
-                    <h4 className="font-medium">Transaction Admin</h4>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    View and manage transactions, cancel payments
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Building2 className="h-5 w-5 text-green-600" />
-                    <h4 className="font-medium">Provider Admin</h4>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Add, edit, and delete service providers
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <BarChart3 className="h-5 w-5 text-purple-600" />
-                    <h4 className="font-medium">Statistics Admin</h4>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    View-only access to dashboard, charts, and reports
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Admin Users Table */}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {adminUsers?.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{user.role}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(user.lastLogin).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.isActive ? "default" : "secondary"}>
-                        {user.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            createUserForm.reset({
-                              fullName: user.name,
-                              email: user.email,
-                              role: user.role,
-                            });
-                            setSelectedPermissions(user?.permissions);
-                            setIsCreateUserModalOpen(true);
-                            setIsEdit(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost">
-                          <Lock className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderSettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>System Settings</CardTitle>
-          <CardDescription>
-            Configure system parameters and preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {/* QR Settings */}
-            <div>
-              <h4 className="font-medium mb-4">QR Code Settings</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Default QR Expiration (hours)</Label>
-                  <Input
-                    type="number"
-                    value={systemSettings.defaultQRExpiration}
-                    onChange={(e) =>
-                      setSystemSettings((prev) => ({
-                        ...prev,
-                        defaultQRExpiration: parseInt(e.target.value),
-                      }))
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Max Daily Transaction Limit ($)</Label>
-                  <Input
-                    type="number"
-                    value={systemSettings.maxDailyTransactionLimit}
-                    onChange={(e) =>
-                      setSystemSettings((prev) => ({
-                        ...prev,
-                        maxDailyTransactionLimit: parseInt(e.target.value),
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* System Status */}
-            <div>
-              <h4 className="font-medium mb-4">System Status</h4>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Maintenance Mode</p>
-                    <p className="text-sm text-muted-foreground">
-                      Show maintenance banner to users
-                    </p>
-                  </div>
-                  <Switch
-                    checked={systemSettings.maintenanceMode}
-                    onCheckedChange={(checked) =>
-                      setSystemSettings((prev) => ({
-                        ...prev,
-                        maintenanceMode: checked,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Telegram Notifications</p>
-                    <p className="text-sm text-muted-foreground">
-                      Send notifications to Telegram channel
-                    </p>
-                  </div>
-                  <Switch
-                    checked={systemSettings.telegramNotifications}
-                    onCheckedChange={(checked) =>
-                      setSystemSettings((prev) => ({
-                        ...prev,
-                        telegramNotifications: checked,
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Notification Settings */}
-            <div>
-              <h4 className="font-medium mb-4">Notification Settings</h4>
-              <div className="space-y-4">
-                <div>
-                  <Label>Telegram Bot Token</Label>
-                  <Input placeholder="Enter bot token" type="password" />
-                </div>
-                <div>
-                  <Label>Telegram Channel ID</Label>
-                  <Input placeholder="Enter channel ID" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderErrorLogs = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Error Logs</span>
-            <Badge variant="outline" className="ml-2">
-              {getErrorLogResponse?.data?.length ?? 0} entries
-            </Badge>
-          </CardTitle>
-          <CardDescription>
-            System errors and API failures with time-based filtering
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Time Filter Controls */}
-          <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-            <div className="flex flex-wrap items-center gap-4">
-              <div>
-                <Label className="text-sm font-medium mb-2 block">
-                  Time Range
-                </Label>
-                <Select
-                  value={errorLogsTime}
-                  onValueChange={(value) => {
-                    SetErrorLogsTime(value);
-                    const { from, to } = calculateEpochDates(value);
-                    setErrorLogFromDate(from);
-                    setErrorLogToDate(to);
-                  }}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1h">Last 1 hour</SelectItem>
-                    <SelectItem value="6h">Last 6 hours</SelectItem>
-                    <SelectItem value="24h">Last 24 hours</SelectItem>
-                    <SelectItem value="7d">Last 7 days</SelectItem>
-                    <SelectItem value="30d">Last 30 days</SelectItem>
-                    <SelectItem value="90d">Last 90 days</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Error Code</TableHead>
-                <TableHead>Message</TableHead>
-                <TableHead>Endpoint</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {errorLogs?.map((error: any) => (
-                <TableRow key={error.id}>
-                  <TableCell>{error?.timestamp}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{error?.errorCode}</Badge>
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {error?.message}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {error?.endpoint}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getSeverityBadge(error.severity) as any}>
-                      {error?.severity}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="ghost">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderReports = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Reports & Export</CardTitle>
-          <CardDescription>Generate and export various reports</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Transaction Reports */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Transaction Reports</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => exportData("transactions", "csv")}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Export Transactions (CSV)
-                </Button>
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => exportData("transactions", "xlsx")}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Export Transactions (Excel)
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Commission Reports */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Commission Reports</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => exportData("commissions", "csv")}
-                >
-                  <Percent className="h-4 w-4 mr-2" />
-                  Export Commissions (CSV)
-                </Button>
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => exportData("commissions", "xlsx")}
-                >
-                  <Percent className="h-4 w-4 mr-2" />
-                  Export Commissions (Excel)
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Provider Reports */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Provider Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => exportData("providers", "csv")}
-                >
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Export Provider Stats (CSV)
-                </Button>
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => exportData("providers", "xlsx")}
-                >
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Export Provider Stats (Excel)
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Date Range Reports */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Date Range Reports</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <Input type="date" placeholder="From" />
-                  <Input type="date" placeholder="To" />
-                </div>
-                <Button className="w-full">
-                  <Download className="h-4 w-4 mr-2" />
-                  Generate Custom Report
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderCommissionSettings = () => (
-    <div className="space-y-6">
-      {/* Global Percentage */}
-      <Card className="animate-scale-in">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Percent className="h-5 w-5" />
-            <span>Global Commission Settings</span>
-          </CardTitle>
-          <CardDescription>
-            Default commission rate applied when no specific currency or
-            provider rate is set
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-end space-x-4">
-            <div className="flex-1">
-              <Label htmlFor="global-percentage">Global Percentage (%)</Label>
-              <Input
-                id="global-percentage"
-                type="number"
-                step="0.1"
-                min="0"
-                max="100"
-                value={globalPercentage}
-                onChange={(e) =>
-                  setGlobalPercentage(parseFloat(e.target.value) || 0)
-                }
-                className="transition-all duration-200 focus:scale-[1.02]"
-              />
-            </div>
-            <Button
-              onClick={() => {
-                // Removed non-API global commission update toast
-              }}
-              className="flex items-center space-x-2"
-            >
-              <Save className="h-4 w-4" />
-              <span>Save</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Test Calculator */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Calculator className="h-5 w-5" />
-            <span>Commission Calculator</span>
-          </CardTitle>
-          <CardDescription>Test commission calculations</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            <Input placeholder="Amount" type="number" />
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Currency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="BTC">Bitcoin</SelectItem>
-                <SelectItem value="ETH">Ethereum</SelectItem>
-                <SelectItem value="USDT">USDT</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Provider" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="binance">Binance</SelectItem>
-                <SelectItem value="coinbase">Coinbase</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button>
-              <Calculator className="h-4 w-4 mr-2" />
-              Calculate
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  // All render functions have been moved to separate components
 
   const renderSection = () => {
     switch (activeSection) {
       case "dashboard":
-        return renderDashboard();
+        return (
+          <AdminDashboard
+            dashboardStats={dashboardStats}
+            transactions={transactions}
+            transactionChartData={transactionChartData}
+            currencyDistribution={currencyDistribution}
+            getStatusBadge={getStatusBadge}
+          />
+        );
       case "transactions":
-        return renderTransactions();
+        return (
+          <AdminTransactions
+            transactions={transactions}
+            transactionFilters={transactionFilters}
+            setTransactionFilters={setTransactionFilters}
+            getStatusBadge={getStatusBadge}
+            handleTransactionCancel={handleTransactionCancel}
+          />
+        );
       case "promo-codes":
-        return renderPromoCodes();
+        return (
+          <AdminPromoCodes
+            promoCodes={promoCodes}
+            getStatusBadge={getStatusBadge}
+          />
+        );
       case "providers":
-        return renderProviders();
+        return <AdminProviders providers={providers} />;
       case "commission":
-        return renderCommissionSettings();
+        return (
+          <AdminCommissionSettings
+            globalPercentage={globalPercentage}
+            setGlobalPercentage={setGlobalPercentage}
+            currencySettings={currencySettings}
+            setCurrencySettings={setCurrencySettings}
+          />
+        );
       case "exchange-rates":
-        return renderExchangeRates();
+        return (
+          <AdminExchangeRates
+            exchangeRates={exchangeRates}
+            systemSettings={systemSettings}
+            setSystemSettings={setSystemSettings}
+          />
+        );
       case "user-roles":
-        return renderUserRoles();
+        return <AdminUserRoles />;
       case "settings":
-        return renderSettings();
+        return (
+          <AdminSettings
+            systemSettings={systemSettings}
+            setSystemSettings={setSystemSettings}
+          />
+        );
       case "error-logs":
-        return renderErrorLogs();
+        return <AdminErrorLogs getSeverityBadge={getSeverityBadge} />;
       case "reports":
-        return renderReports();
+        return <AdminReports exportData={exportData} />;
       default:
-        return renderDashboard();
+        return (
+          <AdminDashboard
+            dashboardStats={dashboardStats}
+            transactions={transactions}
+            transactionChartData={transactionChartData}
+            currencyDistribution={currencyDistribution}
+            getStatusBadge={getStatusBadge}
+          />
+        );
     }
   };
 
@@ -2041,37 +520,22 @@ const Admin = () => {
     !singleUserDetails.userDetails
   ) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground">Loading admin profile...</p>
-          <p className="text-sm text-muted-foreground">
-            Please wait while we prepare your admin panel
-          </p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading admin panel...</p>
         </div>
       </div>
     );
   }
 
   // Show error state if user profile failed to load
-  if (
-    (singleUserDetails.error || profileError) &&
-    !singleUserDetails.userDetails
-  ) {
+  if (singleUserDetails.error && !singleUserDetails.userDetails) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
-            <AlertTriangle className="h-6 w-6 text-destructive" />
-          </div>
-          <div className="space-y-2">
-            <p className="text-lg font-medium">Failed to load admin profile</p>
-            <p className="text-sm text-muted-foreground">
-              {singleUserDetails.error ||
-                (profileError as any)?.message ||
-                "Failed to load user profile"}
-            </p>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-4" />
+          <p className="text-destructive mb-4">Failed to load admin panel</p>
           <Button
             onClick={() => window.location.reload()}
             variant="outline"
@@ -2086,60 +550,70 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="flex">
+    <div className="min-h-screen bg-background">
+      <div className="flex h-screen">
         {/* Sidebar */}
-        <div className="w-64 min-h-screen bg-card border-r">
-          <div className="p-6">
-            <div className="flex items-center space-x-2 mb-6">
+        <div className="w-64 bg-card border-r shadow-sm">
+          {/* Sidebar Header */}
+          <div className="p-6 border-b">
+            <div className="flex items-center space-x-3">
               <div className="bg-primary/10 p-2 rounded-lg">
-                <Settings className="h-6 w-6 text-primary" />
+                <Crown className="h-6 w-6 text-primary" />
               </div>
-              <h1 className="text-xl font-bold">Admin Panel</h1>
+              <div>
+                <h2 className="text-lg font-semibold">{t("admin.title")}</h2>
+                <p className="text-xs text-muted-foreground">
+                  {t("admin.subtitle")}
+                </p>
+              </div>
             </div>
+          </div>
 
+          {/* Sidebar Navigation */}
+          <div className="p-4">
             <nav className="space-y-2">
-              {sidebarItems?.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item?.id}
-                    onClick={() => setActiveSection(item?.id)}
-                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                      activeSection === item.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm">{item.label}</span>
-                  </button>
-                );
-              })}
+              {menuItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 ${
+                    activeSection === item.id
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <item.icon className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </button>
+              ))}
             </nav>
           </div>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          {/* Header with User Profile */}
+          {/* Top Header */}
           <div className="bg-card border-b px-6 py-4">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <Crown className="h-6 w-6 text-primary" />
                 <div>
-                  <h2 className="text-xl font-semibold">{t("admin.title")}</h2>
+                  <h1 className="text-xl font-semibold capitalize">
+                    {menuItems.find((item) => item.id === activeSection)
+                      ?.label || "Dashboard"}
+                  </h1>
                   <p className="text-sm text-muted-foreground">
-                    {t("admin.subtitle")}
+                    Manage your {activeSection.replace("-", " ")} settings
                   </p>
                 </div>
               </div>
-              <UserProfile />
+              <div className="flex items-center space-x-4">
+                <UserProfile />
+              </div>
             </div>
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 p-6">
+          <div className="flex-1 overflow-auto p-6">
             <div className="max-w-7xl mx-auto">{renderSection()}</div>
           </div>
         </div>

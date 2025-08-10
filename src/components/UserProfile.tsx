@@ -29,6 +29,7 @@ import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { jwtDecode } from "jwt-decode";
 import { loginActions } from "@/store/loginReducer";
+import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import TokenManager from "@/utils/tokenManager";
 import { useMutation } from "@tanstack/react-query";
 
@@ -76,12 +77,18 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   const updateProfileMutation = useMutation({
     mutationFn: (payload: any) => updateUserProfile(payload, userProfile?.id),
     onSuccess: (data: any, variables: any) => {
-      // Create updated user profile with new metadata
+      // Create updated user profile with new metadata using utility function
       const updatedUserProfile = {
         ...userProfile,
         metadata: updateMetadata(userProfile?.metadata, variables.metadata),
       };
+
+      // Update both Redux stores for consistency
       dispatch(loginActions.setUserDetails(updatedUserProfile));
+      dispatch(
+        singleUserDetailsActions.setSingleUserDetails(updatedUserProfile)
+      );
+
       if (!isExcludedPage) {
         toast({
           title: t("profile.profileUpdated"),
@@ -130,12 +137,15 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
     // Don't update profile API on excluded pages (login, signup, forgot password)
     if (!isExcludedPage && userProfile) {
       // Update user profile with new theme using utility function
+      const updatedMetadata = updateMetadata(userProfile.metadata, {
+        theme: newTheme,
+      });
+
+      console.log("🎨 UserProfile: Updating theme to:", newTheme);
+      console.log("📊 UserProfile: Metadata payload:", updatedMetadata);
+
       updateProfileMutation.mutate({
-        ...userProfile,
-        metadata: {
-          ...userProfile.metadata,
-          theme: newTheme,
-        },
+        metadata: updatedMetadata,
       });
     } else {
       console.log(
@@ -150,13 +160,15 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
     // Don't update profile API on excluded pages (login, signup, forgot password)
     if (!isExcludedPage && userProfile) {
       // Update user profile with new language using utility function
+      const updatedMetadata = updateMetadata(userProfile.metadata, {
+        language: newLanguage,
+      });
+
+      console.log("🌍 UserProfile: Updating language to:", newLanguage);
+      console.log("📊 UserProfile: Metadata payload:", updatedMetadata);
 
       updateProfileMutation.mutate({
-        ...userProfile,
-        metadata: {
-          ...userProfile?.metadata,
-          language: newLanguage,
-        },
+        metadata: updatedMetadata,
       });
     } else {
       console.log(
