@@ -25,10 +25,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Eye, Download, Trash2 } from "lucide-react";
+import { Eye, Download, Trash2, Loader2 } from "lucide-react";
 import { epochToCustomLocalStringTime } from "@/Common";
 import { getErrorLogs } from "@/service/adminservices";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination";
 
 interface ErrorLog {
   id: string;
@@ -89,18 +96,25 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
   const [errorLogsTime, SetErrorLogsTime] = useState<string>("24h");
 
   // Update error logs query with time filter
-  const { data: getErrorLogResponse } = useQuery<any>({
-    queryKey: ["errorLogs", errorLogFromDate, errorLogToDate],
-    queryFn: () => {
-      const payload = {
-        from_date: errorLogFromDate,
-        to_date: errorLogToDate,
-      };
-      return getErrorLogs(payload);
-    },
-    gcTime: 60000,
-    staleTime: 60000,
-  });
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  const { data: getErrorLogResponse, isLoading: isLoadingLogs } = useQuery<any>(
+    {
+      queryKey: ["errorLogs", errorLogFromDate, errorLogToDate, page, pageSize],
+      queryFn: () => {
+        const payload = {
+          from_date: errorLogFromDate,
+          to_date: errorLogToDate,
+          page,
+          per_page: pageSize,
+        };
+        return getErrorLogs(payload);
+      },
+      gcTime: 60000,
+      staleTime: 60000,
+    }
+  );
 
   console.log("getErrorLogResponse", getErrorLogResponse);
 
@@ -181,37 +195,105 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {errorLogs?.map((error: any) => (
-                <TableRow key={error.id}>
-                  <TableCell>{error?.timestamp}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{error?.errorCode}</Badge>
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {error?.message}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {error?.endpoint}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getSeverityBadge(error.severity) as any}>
-                      {error?.severity}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="ghost">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+              {isLoadingLogs && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-10 text-center">
+                    <div className="flex items-center justify-center text-muted-foreground">
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Loading...
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
+
+              {!isLoadingLogs && errorLogs.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-10 text-center text-muted-foreground"
+                  >
+                    No data
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!isLoadingLogs &&
+                errorLogs.map((error: any) => (
+                  <TableRow key={error.id}>
+                    <TableCell>{error?.timestamp}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{error?.errorCode}</Badge>
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {error?.message}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {error?.endpoint}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getSeverityBadge(error.severity) as any}>
+                        {error?.severity}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button size="sm" variant="ghost">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          <div className="mt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setPage((p) => Math.max(1, p - 1));
+                    }}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                    {page} of{" "}
+                    {Math.max(
+                      1,
+                      Math.ceil(
+                        (getErrorLogResponse?.total_count ?? errorLogs.length) /
+                          pageSize
+                      )
+                    )}
+                  </div>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const totalPages = Math.max(
+                        1,
+                        Math.ceil(
+                          (getErrorLogResponse?.total_count ??
+                            errorLogs.length) / pageSize
+                        )
+                      );
+                      setPage((p) => Math.min(totalPages, p + 1));
+                    }}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         </CardContent>
       </Card>
     </div>

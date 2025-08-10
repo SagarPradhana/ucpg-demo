@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Card,
   CardContent,
@@ -56,6 +57,7 @@ interface ReportOption {
 }
 
 const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
+  const { t } = useLanguage();
   const [selectedReport, setSelectedReport] =
     useState<ReportType>("transaction");
 
@@ -63,39 +65,39 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
   const reportOptions: ReportOption[] = [
     {
       value: "transaction",
-      label: "Transaction Report",
+      label: t("admin.reports.transactionReport"),
       icon: BarChart3,
-      description: "Detailed transaction history and analytics",
+      description: t("admin.reports.transactionReportDesc"),
     },
     {
       value: "user",
-      label: "User Reports",
+      label: t("admin.reports.userReport"),
       icon: Users,
-      description: "User activity and registration statistics",
+      description: t("admin.reports.userReportDesc"),
     },
     {
       value: "financial",
-      label: "Financial Reports",
+      label: t("admin.reports.financialReport"),
       icon: DollarSign,
-      description: "Revenue, profits, and financial summaries",
+      description: t("admin.reports.financialReportDesc"),
     },
     {
       value: "commission",
-      label: "Commission Report",
+      label: t("admin.reports.commissionReport"),
       icon: Percent,
-      description: "Commission earnings and fee breakdowns",
+      description: t("admin.reports.commissionReportDesc"),
     },
     {
       value: "error-log",
-      label: "Error Log Report",
+      label: t("admin.reports.errorLogReport"),
       icon: AlertTriangle,
-      description: "System errors and technical issues",
+      description: t("admin.reports.errorLogReportDesc"),
     },
     {
       value: "custom",
-      label: "Custom Reports",
+      label: t("admin.reports.customReport"),
       icon: Settings,
-      description: "Customizable reports with flexible parameters",
+      description: t("admin.reports.customReportDesc"),
     },
   ];
 
@@ -277,30 +279,28 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
             <div>
               <CardTitle className="flex items-center space-x-2">
                 <FileText className="h-5 w-5" />
-                <span>Reports & Analytics</span>
+                <span>{t("admin.reports.title")}</span>
               </CardTitle>
-              <CardDescription>
-                Generate and export comprehensive reports
-              </CardDescription>
+              <CardDescription>{t("admin.reports.subtitle")}</CardDescription>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleDownload("pdf")}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-1 sm:space-x-2"
               >
                 <FileText className="h-4 w-4" />
-                <span>PDF</span>
+                <span className="hidden sm:inline">PDF</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleDownload("xlsx")}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-1 sm:space-x-2"
               >
                 <FileSpreadsheet className="h-4 w-4" />
-                <span>XLSX</span>
+                <span className="hidden sm:inline">XLSX</span>
               </Button>
             </div>
           </div>
@@ -350,18 +350,20 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
           </div>
 
           {/* Report Table */}
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-x-auto">
             {selectedReport === "transaction" && (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Transaction ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Currency</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Commission</TableHead>
+                    <TableHead>
+                      {t("admin.transactions.transactionId")}
+                    </TableHead>
+                    <TableHead>{t("admin.transactions.date")}</TableHead>
+                    <TableHead>{t("admin.transactions.amount")}</TableHead>
+                    <TableHead>{t("admin.transactions.currency")}</TableHead>
+                    <TableHead>{t("admin.transactions.status")}</TableHead>
+                    <TableHead>{t("admin.reports.user")}</TableHead>
+                    <TableHead>{t("admin.transactions.commission")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -394,13 +396,15 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Registration Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Total Transactions</TableHead>
-                    <TableHead>Total Volume</TableHead>
+                    <TableHead>{t("admin.reports.userId")}</TableHead>
+                    <TableHead>{t("admin.userRoles.name")}</TableHead>
+                    <TableHead>{t("admin.userRoles.email")}</TableHead>
+                    <TableHead>{t("admin.reports.registrationDate")}</TableHead>
+                    <TableHead>{t("admin.transactions.status")}</TableHead>
+                    <TableHead>
+                      {t("admin.reports.totalTransactions")}
+                    </TableHead>
+                    <TableHead>{t("admin.reports.totalVolume")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -431,12 +435,12 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>Expenses</TableHead>
-                    <TableHead>Profit</TableHead>
-                    <TableHead>Commission Earned</TableHead>
-                    <TableHead>Transaction Count</TableHead>
+                    <TableHead>{t("admin.reports.period")}</TableHead>
+                    <TableHead>{t("admin.reports.revenue")}</TableHead>
+                    <TableHead>{t("admin.reports.expenses")}</TableHead>
+                    <TableHead>{t("admin.reports.profit")}</TableHead>
+                    <TableHead>{t("admin.reports.commissionEarned")}</TableHead>
+                    <TableHead>{t("admin.reports.transactionCount")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -466,12 +470,14 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Total Transactions</TableHead>
-                    <TableHead>Total Volume</TableHead>
-                    <TableHead>Commission Rate</TableHead>
-                    <TableHead>Commission Earned</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t("admin.commission.provider")}</TableHead>
+                    <TableHead>
+                      {t("admin.reports.totalTransactions")}
+                    </TableHead>
+                    <TableHead>{t("admin.reports.totalVolume")}</TableHead>
+                    <TableHead>{t("admin.reports.commissionRate")}</TableHead>
+                    <TableHead>{t("admin.reports.commissionEarned")}</TableHead>
+                    <TableHead>{t("admin.transactions.status")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -499,12 +505,12 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>Error Code</TableHead>
-                    <TableHead>Severity</TableHead>
-                    <TableHead>Message</TableHead>
-                    <TableHead>Affected Users</TableHead>
-                    <TableHead>Resolved</TableHead>
+                    <TableHead>{t("admin.errorLogs.timestamp")}</TableHead>
+                    <TableHead>{t("admin.errorLogs.errorCode")}</TableHead>
+                    <TableHead>{t("admin.errorLogs.severity")}</TableHead>
+                    <TableHead>{t("admin.errorLogs.message")}</TableHead>
+                    <TableHead>{t("admin.reports.affectedUsers")}</TableHead>
+                    <TableHead>{t("admin.reports.resolved")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -552,10 +558,10 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Metric</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Change</TableHead>
-                    <TableHead>Period</TableHead>
+                    <TableHead>{t("admin.reports.metric")}</TableHead>
+                    <TableHead>{t("admin.reports.value")}</TableHead>
+                    <TableHead>{t("admin.reports.change")}</TableHead>
+                    <TableHead>{t("admin.reports.period")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -589,7 +595,9 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
           {/* Summary Stats */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-muted/30 rounded-lg">
-              <div className="text-sm text-muted-foreground">Total Records</div>
+              <div className="text-sm text-muted-foreground">
+                {t("admin.reports.totalRecords")}
+              </div>
               <div className="text-2xl font-bold">
                 {selectedReport === "transaction"
                   ? sampleData.transaction.length
@@ -605,13 +613,17 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
               </div>
             </div>
             <div className="p-4 bg-muted/30 rounded-lg">
-              <div className="text-sm text-muted-foreground">Report Type</div>
+              <div className="text-sm text-muted-foreground">
+                {t("admin.reports.reportType")}
+              </div>
               <div className="text-lg font-semibold">
                 {currentReportOption?.label}
               </div>
             </div>
             <div className="p-4 bg-muted/30 rounded-lg">
-              <div className="text-sm text-muted-foreground">Generated</div>
+              <div className="text-sm text-muted-foreground">
+                {t("admin.reports.generated")}
+              </div>
               <div className="text-lg font-semibold">
                 {new Date().toLocaleDateString()}
               </div>

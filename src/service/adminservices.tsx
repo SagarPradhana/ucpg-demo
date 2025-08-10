@@ -5,12 +5,18 @@ import {
   GET_PERMISSION,
   GET_ROLE_USER,
   UPDATE_USER_ROLE,
+  UPDATE_USER_ROLE_DATA,
 } from "./Urls";
 
-export const getUserRole = () => {
+export const getUserRole = (params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+}) => {
   const response = httpClient(GET_ROLE_USER?.url, {
     method: GET_ROLE_USER?.method,
     withAuth: true,
+    queryParams: params,
   });
   return response;
 };
@@ -45,6 +51,16 @@ export const updateUserRoles = (data: object) => {
     method: UPDATE_USER_ROLE?.method,
     withAuth: true,
     data: data,
+  });
+  return response;
+};
+
+export const updateUserRolesActive = (data: object, id: string) => {
+  const response = httpClient(UPDATE_USER_ROLE_DATA?.url, {
+    method: UPDATE_USER_ROLE_DATA?.method,
+    withAuth: true,
+    data: data,
+    queryParams: { user_id: id },
   });
   return response;
 };

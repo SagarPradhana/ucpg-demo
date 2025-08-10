@@ -69,6 +69,55 @@ const Dashboard = () => {
   // Use singleUserDetails as primary user data, fallback to authUser for ID when needed
   const userProfile = singleUserDetails.userDetails || authUser;
   const dispatch = useDispatch();
+
+  // Fetch user profile from API when Dashboard mounts
+  const {
+    data: userProfileData,
+    isLoading: isLoadingProfile,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useQuery({
+    queryKey: ["dashboardUserProfile", authUser?.id],
+    queryFn: () => {
+      console.log("🔄 Dashboard: Fetching user profile for ID:", authUser?.id);
+      return getUser(authUser?.id);
+    },
+    enabled: !!authUser?.id,
+  });
+
+  // Set loading state when query starts
+  useEffect(() => {
+    if (isLoadingProfile && !singleUserDetails.loading) {
+      console.log("🔄 Dashboard: Setting loading state in Redux");
+      dispatch(singleUserDetailsActions.setLoading(true));
+    }
+  }, [isLoadingProfile, singleUserDetails.loading, dispatch]);
+
+  // Handle user profile data when it's fetched
+  useEffect(() => {
+    if (userProfileData && !singleUserDetails.userDetails) {
+      console.log(
+        "✅ Dashboard: Storing user profile in Redux:",
+        userProfileData
+      );
+      dispatch(
+        singleUserDetailsActions.setSingleUserDetails(userProfileData as any)
+      );
+    }
+  }, [userProfileData, singleUserDetails.userDetails, dispatch]);
+
+  // Handle profile fetch errors
+  useEffect(() => {
+    if (profileError) {
+      console.error("❌ Dashboard: Profile fetch error:", profileError);
+      dispatch(
+        singleUserDetailsActions.setSingleUserError(
+          (profileError as any)?.message || "Failed to fetch user profile"
+        )
+      );
+    }
+  }, [profileError, dispatch]);
+
   const [activeTab, setActiveTab] = useState("overview");
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [totalBalance, setTotalBalance] = useState(2350.0);
@@ -358,7 +407,10 @@ const Dashboard = () => {
   };
 
   // Show loading state while user profile is being fetched
-  if (singleUserDetails?.loading && !singleUserDetails?.userDetails) {
+  if (
+    (singleUserDetails?.loading || isLoadingProfile) &&
+    !singleUserDetails?.userDetails
+  ) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -373,7 +425,10 @@ const Dashboard = () => {
   }
 
   // Show error state if user profile failed to load
-  if (singleUserDetails?.error && !singleUserDetails?.userDetails) {
+  if (
+    (singleUserDetails?.error || profileError) &&
+    !singleUserDetails?.userDetails
+  ) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -383,7 +438,9 @@ const Dashboard = () => {
           <div className="space-y-2">
             <p className="text-lg font-medium">Failed to load profile</p>
             <p className="text-sm text-muted-foreground">
-              {singleUserDetails.error || "Failed to load user profile"}
+              {singleUserDetails.error ||
+                (profileError as any)?.message ||
+                "Failed to load user profile"}
             </p>
           </div>
           <Button

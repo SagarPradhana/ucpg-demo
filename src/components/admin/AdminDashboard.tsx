@@ -408,10 +408,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Shield className="h-5 w-5 text-primary" />
-              <CardTitle>Audit Log</CardTitle>
+              <CardTitle>{t("admin.dashboard.auditLog")}</CardTitle>
             </div>
             <Badge variant="outline" className="text-xs">
-              {filteredAuditLogs.length} entries
+              {filteredAuditLogs.length} {t("admin.dashboard.entries")}
             </Badge>
           </div>
         </CardHeader>
@@ -422,10 +422,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div>
                 <Label className="text-sm font-medium mb-2 block">
                   <Search className="h-4 w-4 inline mr-1" />
-                  Search
+                  {t("admin.dashboard.search")}
                 </Label>
                 <Input
-                  placeholder="Search actions, users, resources..."
+                  placeholder={t("admin.dashboard.searchPlaceholder")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full"
@@ -434,14 +434,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div>
                 <Label className="text-sm font-medium mb-2 block">
                   <User className="h-4 w-4 inline mr-1" />
-                  User
+                  {t("admin.dashboard.user")}
                 </Label>
                 <Select value={userFilter} onValueChange={setUserFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All users" />
+                    <SelectValue placeholder={t("admin.dashboard.allUsers")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All users</SelectItem>
+                    <SelectItem value="all">
+                      {t("admin.dashboard.allUsers")}
+                    </SelectItem>
                     {uniqueUsers.map((user) => (
                       <SelectItem key={user} value={user}>
                         {user}
@@ -453,14 +455,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div>
                 <Label className="text-sm font-medium mb-2 block">
                   <Filter className="h-4 w-4 inline mr-1" />
-                  Action
+                  {t("admin.dashboard.action")}
                 </Label>
                 <Select value={actionFilter} onValueChange={setActionFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All actions" />
+                    <SelectValue
+                      placeholder={t("admin.dashboard.allActions")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All actions</SelectItem>
+                    <SelectItem value="all">
+                      {t("admin.dashboard.allActions")}
+                    </SelectItem>
                     {uniqueActions.map((action) => (
                       <SelectItem key={action} value={action}>
                         {action}
@@ -472,18 +478,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div>
                 <Label className="text-sm font-medium mb-2 block">
                   <Calendar className="h-4 w-4 inline mr-1" />
-                  Time Range
+                  {t("admin.dashboard.timeRange")}
                 </Label>
                 <Select value={timeFilter} onValueChange={setTimeFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Last 24 hours" />
+                    <SelectValue
+                      placeholder={t("admin.dashboard.last24Hours")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1h">Last 1 hour</SelectItem>
-                    <SelectItem value="24h">Last 24 hours</SelectItem>
-                    <SelectItem value="7d">Last 7 days</SelectItem>
-                    <SelectItem value="30d">Last 30 days</SelectItem>
-                    <SelectItem value="all">All time</SelectItem>
+                    <SelectItem value="1h">
+                      {t("admin.dashboard.last1Hour")}
+                    </SelectItem>
+                    <SelectItem value="24h">
+                      {t("admin.dashboard.last24Hours")}
+                    </SelectItem>
+                    <SelectItem value="7d">
+                      {t("admin.dashboard.last7Days")}
+                    </SelectItem>
+                    <SelectItem value="30d">
+                      {t("admin.dashboard.last30Days")}
+                    </SelectItem>
+                    <SelectItem value="all">
+                      {t("admin.dashboard.allTime")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -495,7 +513,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={clearFilters}
                 className="text-xs"
               >
-                Clear Filters
+                {t("admin.dashboard.clearFilters")}
               </Button>
             </div>
           </div>
@@ -504,14 +522,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Resource</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>IP Address</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>{t("admin.dashboard.timestamp")}</TableHead>
+                <TableHead>{t("admin.dashboard.user")}</TableHead>
+                <TableHead>{t("admin.dashboard.action")}</TableHead>
+                <TableHead>{t("admin.dashboard.resource")}</TableHead>
+                <TableHead>{t("admin.dashboard.status")}</TableHead>
+                <TableHead>{t("admin.dashboard.severity")}</TableHead>
+                <TableHead>{t("admin.dashboard.ipAddress")}</TableHead>
+                <TableHead>{t("admin.dashboard.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

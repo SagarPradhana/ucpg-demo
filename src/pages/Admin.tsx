@@ -13,6 +13,8 @@ import {
   Settings,
   RefreshCw,
   Crown,
+  Menu,
+  X,
 } from "lucide-react";
 import {
   AdminDashboard,
@@ -26,6 +28,7 @@ import {
   AdminReports,
   AdminCommissionSettings,
 } from "@/components/admin";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSelector, useDispatch } from "react-redux";
@@ -126,6 +129,7 @@ interface AdminUser {
 
 const Admin = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
 
@@ -150,6 +154,14 @@ const Admin = () => {
     },
     enabled: !!authUser?.id,
   });
+
+  // Set loading state when query starts
+  useEffect(() => {
+    if (isLoadingProfile && !singleUserDetails.loading) {
+      console.log("🔄 Admin: Setting loading state in Redux");
+      dispatch(singleUserDetailsActions.setLoading(true));
+    }
+  }, [isLoadingProfile, singleUserDetails.loading, dispatch]);
 
   // Handle user profile data when it's fetched
   useEffect(() => {
@@ -438,6 +450,49 @@ const Admin = () => {
     { id: "reports", label: t("admin.reports"), icon: Download },
   ];
 
+  // Sidebar content component
+  const SidebarContent = ({ onItemClick }: { onItemClick?: () => void }) => (
+    <>
+      {/* Sidebar Header */}
+      <div className="p-6 border-b">
+        <div className="flex items-center space-x-3">
+          <div className="bg-primary/10 p-2 rounded-lg">
+            <Crown className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">{t("admin.title")}</h2>
+            <p className="text-xs text-muted-foreground">
+              {t("admin.subtitle")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar Navigation */}
+      <div className="p-4">
+        <nav className="space-y-2">
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveSection(item.id);
+                onItemClick?.();
+              }}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 ${
+                activeSection === item.id
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <item.icon className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm font-medium">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+    </>
+  );
+
   // All render functions have been moved to separate components
 
   const renderSection = () => {
@@ -552,68 +607,59 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="flex h-screen">
-        {/* Sidebar */}
-        <div className="w-64 bg-card border-r shadow-sm">
-          {/* Sidebar Header */}
-          <div className="p-6 border-b">
-            <div className="flex items-center space-x-3">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <Crown className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold">{t("admin.title")}</h2>
-                <p className="text-xs text-muted-foreground">
-                  {t("admin.subtitle")}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar Navigation */}
-          <div className="p-4">
-            <nav className="space-y-2">
-              {menuItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 ${
-                    activeSection === item.id
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <item.icon className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                </button>
-              ))}
-            </nav>
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:flex w-64 bg-card border-r shadow-sm">
+          <div className="flex flex-col w-full">
+            <SidebarContent />
           </div>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Top Header */}
-          <div className="bg-card border-b px-6 py-4">
+          <div className="bg-card border-b px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
+                {/* Mobile Menu Button */}
+                <Sheet
+                  open={isMobileSidebarOpen}
+                  onOpenChange={setIsMobileSidebarOpen}
+                >
+                  <SheetTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="lg:hidden"
+                      onClick={() => setIsMobileSidebarOpen(true)}
+                    >
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="p-0 w-64">
+                    <SidebarContent
+                      onItemClick={() => setIsMobileSidebarOpen(false)}
+                    />
+                  </SheetContent>
+                </Sheet>
+
                 <div>
-                  <h1 className="text-xl font-semibold capitalize">
+                  <h1 className="text-lg sm:text-xl font-semibold capitalize">
                     {menuItems.find((item) => item.id === activeSection)
                       ?.label || "Dashboard"}
                   </h1>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                     Manage your {activeSection.replace("-", " ")} settings
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 sm:space-x-4">
                 <UserProfile />
               </div>
             </div>
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-auto p-3 sm:p-6">
             <div className="max-w-7xl mx-auto">{renderSection()}</div>
           </div>
         </div>

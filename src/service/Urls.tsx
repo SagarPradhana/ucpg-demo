@@ -90,3 +90,8 @@ export const UPDATE_USER_ROLE: Api = {
   url: `${BACKEND_KPIX}/admin/user_roles/roles/assign`,
   method: HttpMethods.PUT,
 };
+
+export const UPDATE_USER_ROLE_DATA: Api = {
+  url: `${BACKEND_KPIX}/admin/user_roles/users/edit`,
+  method: HttpMethods.PATCH,
+};

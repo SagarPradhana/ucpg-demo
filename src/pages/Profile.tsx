@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/select";
 
 import { RootState } from "@/types";
-import { updateUserPessword, updateUserProfile } from "@/service/auth";
+import { updateUserPessword, updateUserProfile, getUser } from "@/service/auth";
 import { updateMetadata, getMetadataValue } from "@/utils/metadataUtils";
 import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 
@@ -77,11 +77,29 @@ const Profile = () => {
   });
   const navigate = useNavigate();
 
+  // Function to refresh user data from API
+  const refreshUserData = async () => {
+    try {
+      console.log("🔄 Profile: Refreshing user data after update");
+      const freshUserData = await getUser(authUser?.id || userProfile?.id);
+
+      // Update Redux stores with fresh data
+      dispatch(loginActions.setUserDetails(freshUserData as any));
+      dispatch(
+        singleUserDetailsActions.setSingleUserDetails(freshUserData as any)
+      );
+
+      console.log("✅ Profile: User data refreshed successfully");
+    } catch (error) {
+      console.error("❌ Profile: Failed to refresh user data:", error);
+    }
+  };
+
   // Profile update mutation
   const updateProfileMutation = useMutation({
     mutationFn: (profileData: any) =>
       updateUserProfile(profileData, authUser?.id || userProfile?.id),
-    onSuccess: (res: any) => {
+    onSuccess: async (res: any) => {
       setIsEditing(false);
 
       // Invalidate both user queries to trigger refetch and update store
@@ -122,6 +140,9 @@ const Profile = () => {
         currency: profileData.currency,
       }));
 
+      // Refresh user data from API to get the latest state
+      await refreshUserData();
+
       toast({
         title: t("profile.success"),
         description: res.message,
@@ -141,13 +162,17 @@ const Profile = () => {
   const changePasswordMutation = useMutation({
     mutationFn: (passwordData: any) =>
       updateUserPessword(passwordData, authUser?.id || userProfile?.id),
-    onSuccess: (res: any) => {
+    onSuccess: async (res: any) => {
       // Invalidate both user queries to trigger refetch and update store
       setPasswordData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
+
+      // Refresh user data from API to get the latest state
+      await refreshUserData();
+
       toast({
         title: t("profile.success"),
         description: res.message,

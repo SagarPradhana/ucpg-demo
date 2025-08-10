@@ -122,22 +122,28 @@ class TokenManager {
   // Perform the actual token refresh
   private async performTokenRefresh(refreshTokenValue: string): Promise<string> {
     try {
-      const response = await refreshToken({ refresh_token: refreshTokenValue });
-      
-      if (response.data?.access_token) {
-        // Store new tokens
-        localStorage.setItem("sessionToken", response.data.access_token);
-        
-        if (response.data.refresh_token) {
-          localStorage.setItem("refreshToken", response.data.refresh_token);
-        }
-        
-        console.log("Token refreshed successfully");
-        return response.data.access_token;
-      } else {
+      // Try refresh with standard shape
+      const response: any = await refreshToken({ refresh_token: refreshTokenValue } as any);
+
+      // Support multiple response shapes: { data: { access_token, refresh_token } } or { access_token, refresh_token }
+      const payload = response?.data ?? response;
+      const newAccessToken = payload?.access_token || payload?.accessToken || payload?.token;
+      const newRefreshToken = payload?.refresh_token || payload?.refreshToken;
+
+      if (!newAccessToken) {
         throw new Error("No access token in refresh response");
       }
+
+      // Store new tokens
+      localStorage.setItem("sessionToken", newAccessToken);
+      if (newRefreshToken) {
+        localStorage.setItem("refreshToken", newRefreshToken);
+      }
+
+      console.log("✅ Token refreshed successfully");
+      return newAccessToken as string;
     } catch (error) {
+      console.error("❌ Token refresh failed with error:", error);
       // If refresh fails, safely clear tokens while preserving preferences
       const storageDebugger = StorageDebugger.getInstance();
       storageDebugger.logStorageState("Before Refresh Failure Cleanup");
