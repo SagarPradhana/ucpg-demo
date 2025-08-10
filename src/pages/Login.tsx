@@ -205,7 +205,9 @@ const Login = () => {
         setHasUsedRoleModal(true);
         setShowRoleModal(true);
       } else {
-        navigate("/dashboard");
+        if (getUserProfileQuery.isSuccess) {
+          navigate("/dashboard");
+        }
       }
     },
     onError: (error: any) => {

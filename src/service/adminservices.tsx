@@ -4,6 +4,7 @@ import {
   GET_ERROR_LOGS,
   GET_PERMISSION,
   GET_ROLE_USER,
+  UPDATE_USER_ROLE,
 } from "./Urls";
 
 export const getUserRole = () => {
@@ -30,10 +31,20 @@ export const getAllPermissions = () => {
   });
   return response;
 };
-export const getErrorLogs = () => {
+export const getErrorLogs = (data: object) => {
   const response = httpClient(GET_ERROR_LOGS?.url, {
     method: GET_ERROR_LOGS?.method,
     withAuth: true,
+    queryParams: data as Record<string, string | number | boolean>,
+  });
+  return response;
+};
+
+export const updateUserRoles = (data: object) => {
+  const response = httpClient(UPDATE_USER_ROLE?.url, {
+    method: UPDATE_USER_ROLE?.method,
+    withAuth: true,
+    data: data,
   });
   return response;
 };

@@ -85,3 +85,8 @@ export const GET_ERROR_LOGS: Api = {
   url: `${BACKEND_KPIX}/admin/error_logs/error_logs`,
   method: HttpMethods.GET,
 };
+
+export const UPDATE_USER_ROLE: Api = {
+  url: `${BACKEND_KPIX}/admin/user_roles/roles/assign`,
+  method: HttpMethods.PUT,
+};

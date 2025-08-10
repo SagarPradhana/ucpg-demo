@@ -107,6 +107,7 @@ import {
   getAllPermissions,
   getErrorLogs,
   getUserRole,
+  updateUserRoles,
 } from "@/service/adminservices";
 import { epochToCustomLocalStringTime } from "@/Common";
 
@@ -183,6 +184,7 @@ interface AdminUser {
     | "statistics-admin";
   lastLogin: string;
   isActive: boolean;
+  permissions: string[];
 }
 
 // Form schema for user creation
@@ -283,6 +285,7 @@ const Admin = () => {
   // State for create user modal
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [errorLogsTime, SetErrorLogsTime] = useState<string>("24h");
 
   console.log("selectedPermissions", selectedPermissions);
 
@@ -296,13 +299,16 @@ const Admin = () => {
       role: undefined,
     },
   });
+  const [isEdit, setIsEdit] = useState<boolean>(false);
 
   // Mutation for creating new user
   const createUserMutation = useMutation({
-    mutationFn: createUserRole,
+    mutationFn: isEdit ? updateUserRoles : createUserRole,
     onSuccess: (data: any) => {
       toast({
-        title: "✅ User Created Successfully",
+        title: isEdit
+          ? "✅ User Updated Successfully"
+          : "✅ User Created Successfully",
         description: data?.message,
       });
 
@@ -330,7 +336,7 @@ const Admin = () => {
       }
 
       toast({
-        title: "❌ Failed to Create User",
+        title: isEdit ? "❌ Failed to Update User" : "❌ Failed to Create User",
         description: errorMessage,
         variant: "destructive",
       });
@@ -339,15 +345,21 @@ const Admin = () => {
 
   // Handle create user form submission
   const handleCreateUser = () => {
-    const payload = {
+    const addpayload = {
       name: createUserForm.getValues()?.fullName,
       email: createUserForm.getValues()?.email,
-      password: createUserForm.getValues()?.password,
+
+      role: createUserForm.getValues()?.role,
+    };
+
+    const editPayload = {
+      name: createUserForm.getValues()?.fullName,
+      user_email: createUserForm.getValues()?.email,
       role: createUserForm.getValues()?.role,
       permissions: selectedPermissions ?? [],
     };
 
-    createUserMutation.mutate(payload);
+    createUserMutation.mutate(isEdit ? editPayload : addpayload);
   };
 
   // Sample data for different sections
@@ -456,36 +468,83 @@ const Admin = () => {
     },
   ]);
 
-  const { data: getErrorLogResponse } = useQuery({
-    queryKey: ["errorLogs"],
-    queryFn: () => getErrorLogs(),
+  // Calculate epoch dates based on time filter
+  const calculateEpochDates = (
+    filter: string
+  ): { from: number; to: number } => {
+    const now = Math.floor(Date.now() / 1000);
+    let from = now;
+    let to = now;
+
+    switch (filter) {
+      case "1h":
+        from = now - 3600;
+        break;
+      case "6h":
+        from = now - 21600;
+        break;
+      case "24h":
+        from = now - 86400;
+        break;
+      case "7d":
+        from = now - 604800;
+        break;
+      case "30d":
+        from = now - 2592000;
+        break;
+      case "90d":
+        from = now - 7776000;
+        break;
+      case "custom":
+        // Use custom dates set by user
+        from = errorLogFromDate;
+        to = errorLogToDate;
+        break;
+      default:
+        from = now - 86400;
+    }
+
+    return { from, to };
+  };
+
+  // Time filter state for error logs
+  const { from, to } = calculateEpochDates("24h");
+  const [errorLogFromDate, setErrorLogFromDate] = useState<number>(from);
+  const [errorLogToDate, setErrorLogToDate] = useState<number>(to);
+
+  // Update error logs query with time filter
+  const { data: getErrorLogResponse } = useQuery<any>({
+    queryKey: ["errorLogs", errorLogFromDate, errorLogToDate],
+    queryFn: () => {
+      const payload = {
+        from_date: errorLogFromDate,
+        to_date: errorLogToDate,
+      };
+      return getErrorLogs(payload);
+    },
     gcTime: 60000,
     staleTime: 60000,
   });
 
   console.log("getErrorLogResponse", getErrorLogResponse);
 
-  const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([
-    {
-      id: "ERR001",
-      timestamp: "2024-01-15 14:25:00",
-      errorCode: "500",
-      message: "Internal server error on payment processing",
-      endpoint: "/api/payments/process",
-      severity: "high",
-    },
-    {
-      id: "ERR002",
-      timestamp: "2024-01-15 13:15:00",
-      errorCode: "404",
-      message: "Provider endpoint not found",
-      endpoint: "/api/providers/callback",
-      severity: "medium",
-    },
-  ]);
-  console.log("getRoleUserResponse", getRoleUserResponse);
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
 
+  useEffect(() => {
+    if (getErrorLogResponse) {
+      const FilteredErrorLogs = getErrorLogResponse?.data?.map((item) => ({
+        id: item?.id,
+        timestamp: epochToCustomLocalStringTime(item?.created_date),
+        errorCode: item?.error_code,
+        message: item?.error,
+        endpoint: item?.endpoint,
+        severity: item?.severity,
+      }));
+      setErrorLogs(FilteredErrorLogs);
+    }
+  }, [getErrorLogResponse]);
+
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   useEffect(() => {
     if (getRoleUserResponse) {
       const filterUserDetails = ((getRoleUserResponse as any)?.data ?? [])?.map(
@@ -496,6 +555,7 @@ const Admin = () => {
           role: user?.role,
           lastLogin: epochToCustomLocalStringTime(user?.last_login),
           isActive: user?.is_active,
+          permissions: user?.permissions ?? [],
         })
       );
       setAdminUsers(filterUserDetails);
@@ -1278,25 +1338,6 @@ const Admin = () => {
                         )}
                       />
 
-                      {/* Password */}
-                      <FormField
-                        control={createUserForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="password"
-                                placeholder="Enter password"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
                       {/* Role */}
                       <FormField
                         control={createUserForm.control}
@@ -1352,76 +1393,89 @@ const Admin = () => {
                       />
 
                       {/* Permissions Accordion */}
-                      <div className="space-y-2">
-                        <Accordion
-                          type="single"
-                          collapsible
-                          className="border rounded-md"
-                        >
-                          <AccordionItem value="permissions">
-                            <AccordionTrigger className="px-4">
-                              User Permissions
-                            </AccordionTrigger>
-                            <AccordionContent className="px-4 py-2 space-y-4">
-                              {(getAllPermissionResponse as any)?.data &&
-                                Object.entries(
-                                  (
-                                    getAllPermissionResponse as any
-                                  )?.data.reduce((acc: any, p: any) => {
-                                    const category = p.category || "General";
-                                    (acc[category] = acc[category] || []).push(
-                                      p
-                                    );
-                                    return acc;
-                                  }, {})
-                                ).map(
-                                  ([category, permissions]: [string, any]) => (
-                                    <div key={category} className="space-y-2">
-                                      <h4 className="font-medium text-sm">
-                                        {category}
-                                      </h4>
-                                      {permissions.map((permission: any) => (
+                      {isEdit &&
+                        singleUserDetails?.userDetails?.data?.role !==
+                          "user" && (
+                          <div className="space-y-2">
+                            <Accordion
+                              type="single"
+                              collapsible
+                              className="border rounded-md"
+                            >
+                              <AccordionItem value="permissions">
+                                <AccordionTrigger className="px-4">
+                                  User Permissions
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 py-2 space-y-4">
+                                  {(getAllPermissionResponse as any)?.data &&
+                                    Object.entries(
+                                      (
+                                        getAllPermissionResponse as any
+                                      )?.data.reduce((acc: any, p: any) => {
+                                        const category =
+                                          p.category || "General";
+                                        (acc[category] =
+                                          acc[category] || []).push(p);
+                                        return acc;
+                                      }, {})
+                                    )?.map(
+                                      ([category, permissions]: [
+                                        string,
+                                        any
+                                      ]) => (
                                         <div
-                                          key={permission.code}
-                                          className="flex items-center space-x-2"
+                                          key={category}
+                                          className="space-y-2"
                                         >
-                                          <Checkbox
-                                            id={permission.code}
-                                            checked={selectedPermissions.includes(
-                                              permission.code
-                                            )}
-                                            onCheckedChange={(checked) =>
-                                              checked
-                                                ? setSelectedPermissions(
-                                                    (prev) => [
-                                                      ...prev,
-                                                      permission.code,
-                                                    ]
-                                                  )
-                                                : setSelectedPermissions(
-                                                    (prev) =>
-                                                      prev.filter(
-                                                        (p) =>
-                                                          p !== permission.code
-                                                      )
-                                                  )
-                                            }
-                                          />
-                                          <Label
-                                            htmlFor={permission.code}
-                                            className="text-sm"
-                                          >
-                                            {permission.label}
-                                          </Label>
+                                          <h4 className="font-medium text-sm">
+                                            {category}
+                                          </h4>
+                                          {permissions?.map(
+                                            (permission: any) => (
+                                              <div
+                                                key={permission.code}
+                                                className="flex items-center space-x-2"
+                                              >
+                                                <Checkbox
+                                                  id={permission.code}
+                                                  checked={selectedPermissions?.includes(
+                                                    permission.code
+                                                  )}
+                                                  onCheckedChange={(checked) =>
+                                                    checked
+                                                      ? setSelectedPermissions(
+                                                          (prev) => [
+                                                            ...prev,
+                                                            permission.code,
+                                                          ]
+                                                        )
+                                                      : setSelectedPermissions(
+                                                          (prev) =>
+                                                            prev.filter(
+                                                              (p) =>
+                                                                p !==
+                                                                permission.code
+                                                            )
+                                                        )
+                                                  }
+                                                />
+                                                <Label
+                                                  htmlFor={permission.code}
+                                                  className="text-sm"
+                                                >
+                                                  {permission.label}
+                                                </Label>
+                                              </div>
+                                            )
+                                          )}
                                         </div>
-                                      ))}
-                                    </div>
-                                  )
-                                )}
-                            </AccordionContent>
-                          </AccordionItem>
-                        </Accordion>
-                      </div>
+                                      )
+                                    )}
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          </div>
+                        )}
                     </form>
                   </Form>
                 </div>
@@ -1516,7 +1570,7 @@ const Admin = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {adminUsers.map((user) => (
+                {adminUsers?.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -1533,7 +1587,20 @@ const Admin = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="ghost">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            createUserForm.reset({
+                              fullName: user.name,
+                              email: user.email,
+                              role: user.role,
+                            });
+                            setSelectedPermissions(user?.permissions);
+                            setIsCreateUserModalOpen(true);
+                            setIsEdit(true);
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button size="sm" variant="ghost">
@@ -1664,10 +1731,49 @@ const Admin = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Error Logs</CardTitle>
-          <CardDescription>System errors and API failures</CardDescription>
+          <CardTitle className="flex items-center justify-between">
+            <span>Error Logs</span>
+            <Badge variant="outline" className="ml-2">
+              {getErrorLogResponse?.data?.length ?? 0} entries
+            </Badge>
+          </CardTitle>
+          <CardDescription>
+            System errors and API failures with time-based filtering
+          </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Time Filter Controls */}
+          <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+            <div className="flex flex-wrap items-center gap-4">
+              <div>
+                <Label className="text-sm font-medium mb-2 block">
+                  Time Range
+                </Label>
+                <Select
+                  value={errorLogsTime}
+                  onValueChange={(value) => {
+                    SetErrorLogsTime(value);
+                    const { from, to } = calculateEpochDates(value);
+                    setErrorLogFromDate(from);
+                    setErrorLogToDate(to);
+                  }}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1h">Last 1 hour</SelectItem>
+                    <SelectItem value="6h">Last 6 hours</SelectItem>
+                    <SelectItem value="24h">Last 24 hours</SelectItem>
+                    <SelectItem value="7d">Last 7 days</SelectItem>
+                    <SelectItem value="30d">Last 30 days</SelectItem>
+                    <SelectItem value="90d">Last 90 days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -1680,23 +1786,21 @@ const Admin = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {errorLogs.map((error) => (
+              {errorLogs?.map((error: any) => (
                 <TableRow key={error.id}>
+                  <TableCell>{error?.timestamp}</TableCell>
                   <TableCell>
-                    {new Date(error.timestamp).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{error.errorCode}</Badge>
+                    <Badge variant="outline">{error?.errorCode}</Badge>
                   </TableCell>
                   <TableCell className="max-w-xs truncate">
-                    {error.message}
+                    {error?.message}
                   </TableCell>
                   <TableCell className="font-mono text-sm">
-                    {error.endpoint}
+                    {error?.endpoint}
                   </TableCell>
                   <TableCell>
                     <Badge variant={getSeverityBadge(error.severity) as any}>
-                      {error.severity}
+                      {error?.severity}
                     </Badge>
                   </TableCell>
                   <TableCell>
