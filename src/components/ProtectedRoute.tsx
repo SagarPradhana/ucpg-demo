@@ -132,8 +132,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const isUserAllowed = (user: any): boolean => {
     const userRole = checkUserRole(user);
 
-    // If route blocks admins and user is admin, deny access
-    if (blockAdmins && userRole === "super_admin") {
+    // If route blocks admins and user is not a regular user, deny access
+    if (blockAdmins && userRole !== "user") {
       return false;
     }
 

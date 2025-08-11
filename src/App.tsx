@@ -188,7 +188,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["user", "super_admin"]}
+                          allowedRoles={["user", "admin", "super_admin"]}
                           blockAdmins={false}
                         >
                           <Dashboard />

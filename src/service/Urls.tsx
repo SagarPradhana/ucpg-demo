@@ -107,7 +107,7 @@ export const ADMIN_EXCHANGE_SETTINGS: Api = {
 };
 
 export const ADMIN_SETTINGS: Api = {
-  url: `${BACKEND_KPIX}/admin/settings/`,
+  url: `${BACKEND_KPIX}/admin/settings`,
   method: HttpMethods.GET,
 };
 

@@ -193,7 +193,7 @@ const Login = () => {
         setShouldFetchProfile(true);
       }
 
-      if (decodedUser?.role === "super_admin") {
+      if (decodedUser?.role !== "user") {
         setUserInfo({
           name: response?.data?.user?.name || decodedUser?.name || "User",
           email:

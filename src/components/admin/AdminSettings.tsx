@@ -74,17 +74,24 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({
   useEffect(() => {
     const s = (serverSettings as any)?.data ?? serverSettings;
     if (!s) return;
-    setSystemSettings((prev) => ({
+    setSystemSettings((prev: any) => ({
       ...prev,
-      defaultQRExpiration: s?.defaultQRExpiration ?? prev.defaultQRExpiration,
+      // API provides minutes; UI expects hours
+      defaultQRExpiration:
+        typeof s?.qr_expiration_minutes === "number"
+          ? Math.round((s.qr_expiration_minutes || 0) / 60)
+          : prev.defaultQRExpiration,
       maxDailyTransactionLimit:
-        s?.maxDailyTransactionLimit ?? prev.maxDailyTransactionLimit,
-      maintenanceMode: s?.maintenanceMode ?? prev.maintenanceMode,
+        s?.max_daily_transaction_limit ?? prev.maxDailyTransactionLimit,
+      maintenanceMode: s?.maintenance_mode ?? prev.maintenanceMode,
       telegramNotifications:
-        s?.telegramNotifications ?? prev.telegramNotifications,
-      exchangeRateMonitoring:
-        s?.exchangeRateMonitoring ?? prev.exchangeRateMonitoring,
-      rateUpdateInterval: s?.rateUpdateInterval ?? prev.rateUpdateInterval,
+        s?.telegram_notifications_enabled ?? prev.telegramNotifications,
+      // Preserve local-only fields if API doesn't provide them
+      exchangeRateMonitoring: prev.exchangeRateMonitoring,
+      rateUpdateInterval: prev.rateUpdateInterval,
+      // Extra fields for Telegram inputs in UI
+      telegramBotToken: s?.telegram_bot_token ?? prev.telegramBotToken,
+      telegramChatId: s?.telegram_chat_id ?? prev.telegramChatId,
     }));
   }, [serverSettings, setSystemSettings]);
   return (

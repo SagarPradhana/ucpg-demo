@@ -82,6 +82,15 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Sync fetched global commission rate into local state so the input is editable
+  React.useEffect(() => {
+    const rate =
+      (globalCommission as any)?.data?.rate ?? (globalCommission as any)?.rate;
+    if (typeof rate === "number" && !isNaN(rate)) {
+      setGlobalPercentage(Number(rate));
+    }
+  }, [globalCommission, setGlobalPercentage]);
+
   const updateCurrencyMutation = useMutation({
     mutationFn: ({
       id,
@@ -183,11 +192,7 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
                     step="0.1"
                     min="0"
                     max="100"
-                    value={
-                      (globalCommission as any)?.data?.rate ??
-                      (globalCommission as any)?.rate ??
-                      globalPercentage
-                    }
+                    value={globalPercentage}
                     onChange={(e) =>
                       setGlobalPercentage(parseFloat(e.target.value) || 0)
                     }
@@ -198,12 +203,10 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
               </div>
               <Button
                 onClick={() => {
-                  const rate =
-                    (globalCommission as any)?.data?.rate ??
-                    (globalCommission as any)?.rate ??
-                    globalPercentage;
-                  if (isNaN(rate)) return;
-                  updateGlobalMutation.mutate({ rate: Number(rate) });
+                  if (isNaN(globalPercentage)) return;
+                  updateGlobalMutation.mutate({
+                    rate: Number(globalPercentage),
+                  });
                 }}
               >
                 <Save className="h-4 w-4 mr-2" />
