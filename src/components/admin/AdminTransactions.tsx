@@ -1,10 +1,5 @@
-import React from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import React, { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -24,11 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Search, Eye, X, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import {
-  Search,
-  Eye,
-  X,
-} from "lucide-react";
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination";
+import { getAdminTransactions } from "@/service/adminservices";
 
 interface Transaction {
   id: string;
@@ -51,9 +51,12 @@ interface TransactionFilters {
 }
 
 interface AdminTransactionsProps {
+  // legacy props (not used with server data)
   transactions: Transaction[];
   transactionFilters: TransactionFilters;
-  setTransactionFilters: React.Dispatch<React.SetStateAction<TransactionFilters>>;
+  setTransactionFilters: React.Dispatch<
+    React.SetStateAction<TransactionFilters>
+  >;
   getStatusBadge: (status: string) => string;
   handleTransactionCancel: (transactionId: string) => void;
 }
@@ -65,6 +68,48 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
   getStatusBadge,
   handleTransactionCancel,
 }) => {
+  // Local pagination state for server-side calls
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  // Build server query params from filters
+  const params = useMemo(() => {
+    const toEpoch = (d?: string) =>
+      d ? Math.floor(new Date(d).getTime() / 1000) : undefined;
+    return {
+      page,
+      limit: pageSize,
+      transaction_status:
+        transactionFilters.status !== "all"
+          ? transactionFilters.status
+          : undefined,
+      currency:
+        transactionFilters.currency !== "all"
+          ? transactionFilters.currency
+          : undefined,
+      date_from: toEpoch(transactionFilters.dateFrom),
+      date_to: toEpoch(transactionFilters.dateTo),
+      // transaction_type, currency_type, target_crypto_currency, user_id can be added later
+    } as const;
+  }, [page, pageSize, transactionFilters]);
+
+  const { data: txResponse, isLoading } = useQuery({
+    queryKey: ["admin-transactions", params],
+    queryFn: () => getAdminTransactions(params),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+
+  const serverItems: any[] =
+    (txResponse as any)?.data ??
+    (txResponse as any)?.items ??
+    (txResponse as any)?.results ??
+    [];
+  const totalCount: number =
+    (txResponse as any)?.total_count ??
+    (txResponse as any)?.total ??
+    serverItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -184,45 +229,127 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="font-medium">{tx.id}</TableCell>
-                  <TableCell>{new Date(tx.date).toLocaleString()}</TableCell>
-                  <TableCell>{tx.amount}</TableCell>
-                  <TableCell>{tx.currency}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadge(tx.status) as any}>
-                      {tx.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{tx.commission}</TableCell>
-                  <TableCell>{tx.netAmount}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadge(tx.qrStatus) as any}>
-                      {tx.qrStatus}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="ghost">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleTransactionCancel(tx.id)}
-                        disabled={tx.status === "cancelled"}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={9} className="py-10 text-center">
+                    <div className="flex items-center justify-center text-muted-foreground">
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Loading...
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
+
+              {!isLoading && serverItems.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={9}
+                    className="py-10 text-center text-muted-foreground"
+                  >
+                    No data
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!isLoading &&
+                serverItems.map((tx: any) => (
+                  <TableRow key={tx.id ?? tx.transaction_id}>
+                    <TableCell className="font-medium">
+                      {tx.id ?? tx.transaction_id}
+                    </TableCell>
+                    <TableCell>
+                      {tx.date
+                        ? new Date(tx.date).toLocaleString()
+                        : tx.created_at
+                        ? new Date(tx.created_at).toLocaleString()
+                        : "-"}
+                    </TableCell>
+                    <TableCell>{tx.amount ?? tx.total_amount ?? "-"}</TableCell>
+                    <TableCell>
+                      {tx.currency ?? tx.currency_code ?? "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          getStatusBadge(
+                            (tx.status ?? tx.tx_status) as string
+                          ) as any
+                        }
+                      >
+                        {tx.status ?? tx.tx_status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {tx.commission ?? tx.platform_fee ?? "-"}
+                    </TableCell>
+                    <TableCell>
+                      {tx.netAmount ?? tx.net_amount ?? "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          getStatusBadge(
+                            (tx.qrStatus ?? tx.qr_status) as string
+                          ) as any
+                        }
+                      >
+                        {tx.qrStatus ?? tx.qr_status ?? "-"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button size="sm" variant="ghost">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            handleTransactionCancel(tx.id ?? tx.transaction_id)
+                          }
+                          disabled={(tx.status ?? tx.tx_status) === "cancelled"}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      <div className="mt-4">
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                {page} of {totalPages}
+              </div>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.min(totalPages, p + 1));
+                }}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
     </div>
   );
 };

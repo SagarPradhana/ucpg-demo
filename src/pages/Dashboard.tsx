@@ -518,7 +518,10 @@ const Dashboard = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <UserProfile />
+            <UserProfile
+              userProfileData={userProfileData}
+              refetchProfile={refetchProfile}
+            />
           </div>
         </div>
       </header>

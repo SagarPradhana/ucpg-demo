@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -17,9 +17,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import {
-  RefreshCw,
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminExchangeSettings } from "@/service/adminservices";
 
 interface ExchangeRate {
   symbol: string;
@@ -48,6 +48,12 @@ const AdminExchangeRates: React.FC<AdminExchangeRatesProps> = ({
   systemSettings,
   setSystemSettings,
 }) => {
+  const { data: exchangeSettings } = useQuery({
+    queryKey: ["admin-exchange-settings"],
+    queryFn: () => getAdminExchangeSettings(),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
   return (
     <div className="space-y-6">
       <Card>

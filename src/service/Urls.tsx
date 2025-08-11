@@ -95,3 +95,38 @@ export const UPDATE_USER_ROLE_DATA: Api = {
   url: `${BACKEND_KPIX}/admin/user_roles/users/edit`,
   method: HttpMethods.PATCH,
 };
+
+export const ADMIN_TRANSACTIONS: Api = {
+  url: `${BACKEND_KPIX}/admin/transactions`,
+  method: HttpMethods.GET,
+};
+
+export const ADMIN_EXCHANGE_SETTINGS: Api = {
+  url: `${BACKEND_KPIX}/admin/exchange/settings`,
+  method: HttpMethods.GET,
+};
+
+export const ADMIN_COMMISSION_GLOBAL: Api = {
+  url: `${BACKEND_KPIX}/admin/commission/global`,
+  method: HttpMethods.GET,
+};
+
+export const ADMIN_COMMISSION_GLOBAL_SET: Api = {
+  url: `${BACKEND_KPIX}/admin/commission/global`,
+  method: HttpMethods.POST,
+};
+
+export const ADMIN_COMMISSION_CURRENCIES: Api = {
+  url: `${BACKEND_KPIX}/admin/commission/currencies`,
+  method: HttpMethods.GET,
+};
+
+export const ADMIN_COMMISSION_CALCULATE: Api = {
+  url: `${BACKEND_KPIX}/admin/commission/calculate`,
+  method: HttpMethods.POST,
+};
+
+export const ADMIN_COMMISSION_CURRENCY_UPDATE: Api = {
+  url: `${BACKEND_KPIX}/admin/commission/currencies/{0}`,
+  method: HttpMethods.PUT,
+};

@@ -31,7 +31,11 @@ import { jwtDecode } from "jwt-decode";
 import { loginActions } from "@/store/loginReducer";
 import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import TokenManager from "@/utils/tokenManager";
-import { useMutation } from "@tanstack/react-query";
+import {
+  QueryObserverResult,
+  RefetchOptions,
+  useMutation,
+} from "@tanstack/react-query";
 
 import { RootState } from "@/types";
 import { updateUserProfile } from "@/service/auth";
@@ -41,20 +45,26 @@ interface UserProfileProps {
   userName?: string;
   userEmail?: string;
   userAvatar?: string;
+  userProfileData: any;
+  refetchProfile: (
+    options?: RefetchOptions
+  ) => Promise<QueryObserverResult<unknown, Error>>;
 }
 
-const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
+const UserProfile = ({
+  userName,
+  userEmail,
+  userAvatar,
+  userProfileData,
+  refetchProfile,
+}: UserProfileProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, setTheme, actualTheme } = useTheme();
   const { language, setLanguage, setLanguageFromProfile, t } = useLanguage();
 
-  const userProfile = (
-    useSelector(
-      (state: RootState) => state.singleUserDetails.userDetails
-    ) as any
-  )?.data;
+  const userProfile = userProfileData?.data ?? [];
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -78,17 +88,7 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
     mutationFn: (payload: any) => updateUserProfile(payload, userProfile?.id),
     onSuccess: (data: any, variables: any) => {
       // Create updated user profile with new metadata using utility function
-      const updatedUserProfile = {
-        ...userProfile,
-        metadata: updateMetadata(userProfile?.metadata, variables.metadata),
-      };
-
-      // Update both Redux stores for consistency
-      dispatch(loginActions.setUserDetails(updatedUserProfile));
-      dispatch(
-        singleUserDetailsActions.setSingleUserDetails(updatedUserProfile)
-      );
-
+      refetchProfile();
       if (!isExcludedPage) {
         toast({
           title: t("profile.profileUpdated"),
@@ -132,20 +132,15 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   };
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
-    setTheme(newTheme);
-
     // Don't update profile API on excluded pages (login, signup, forgot password)
     if (!isExcludedPage && userProfile) {
       // Update user profile with new theme using utility function
-      const updatedMetadata = updateMetadata(userProfile.metadata, {
-        theme: newTheme,
-      });
-
-      console.log("🎨 UserProfile: Updating theme to:", newTheme);
-      console.log("📊 UserProfile: Metadata payload:", updatedMetadata);
-
-      updateProfileMutation.mutate({
-        metadata: updatedMetadata,
+      updateProfileMutation?.mutate({
+        ...userProfile,
+        metadata: {
+          ...userProfile.metadata,
+          theme: newTheme,
+        },
       });
     } else {
       console.log(
@@ -155,20 +150,15 @@ const UserProfile = ({ userName, userEmail, userAvatar }: UserProfileProps) => {
   };
 
   const handleLanguageChange = (newLanguage: Language) => {
-    setLanguage(newLanguage);
-
     // Don't update profile API on excluded pages (login, signup, forgot password)
     if (!isExcludedPage && userProfile) {
       // Update user profile with new language using utility function
-      const updatedMetadata = updateMetadata(userProfile.metadata, {
-        language: newLanguage,
-      });
-
-      console.log("🌍 UserProfile: Updating language to:", newLanguage);
-      console.log("📊 UserProfile: Metadata payload:", updatedMetadata);
-
-      updateProfileMutation.mutate({
-        metadata: updatedMetadata,
+      updateProfileMutation?.mutate({
+        ...userProfile,
+        metadata: {
+          ...userProfile.metadata,
+          language: newLanguage,
+        },
       });
     } else {
       console.log(

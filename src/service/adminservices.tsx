@@ -1,4 +1,4 @@
-import httpClient from "./HttpClients";
+import httpClient, { HttpMethods } from "./HttpClients";
 import {
   CREATE_ROLE_USER,
   GET_ERROR_LOGS,
@@ -6,6 +6,14 @@ import {
   GET_ROLE_USER,
   UPDATE_USER_ROLE,
   UPDATE_USER_ROLE_DATA,
+  ADMIN_TRANSACTIONS,
+  ADMIN_EXCHANGE_SETTINGS,
+  ADMIN_COMMISSION_GLOBAL,
+  ADMIN_COMMISSION_GLOBAL_SET,
+  ADMIN_COMMISSION_CURRENCIES,
+  ADMIN_COMMISSION_CALCULATE,
+  ADMIN_COMMISSION_CURRENCY_UPDATE,
+  FormatUrl,
 } from "./Urls";
 
 export const getUserRole = (params?: {
@@ -62,5 +70,110 @@ export const updateUserRolesActive = (data: object, id: string) => {
     data: data,
     queryParams: { user_id: id },
   });
+  return response;
+};
+
+export const getAdminTransactions = (params?: {
+  page?: number;
+  limit?: number;
+  transaction_status?: string | null;
+  transaction_type?: string | null;
+  currency?: string | null;
+  currency_type?: string | null;
+  target_crypto_currency?: string | null;
+  date_from?: number | null; // epoch seconds
+  date_to?: number | null; // epoch seconds
+  user_id?: string | null;
+}) => {
+  const response = httpClient(ADMIN_TRANSACTIONS.url, {
+    method: ADMIN_TRANSACTIONS.method,
+    withAuth: true,
+    queryParams: params as Record<
+      string,
+      string | number | boolean | null | undefined
+    >,
+  });
+  return response;
+};
+
+export const getAdminExchangeSettings = () => {
+  const response = httpClient(ADMIN_EXCHANGE_SETTINGS.url, {
+    method: ADMIN_EXCHANGE_SETTINGS.method,
+    withAuth: true,
+  });
+  return response;
+};
+
+export const getAdminCommissionGlobal = () => {
+  const response = httpClient(ADMIN_COMMISSION_GLOBAL.url, {
+    method: ADMIN_COMMISSION_GLOBAL.method,
+    withAuth: true,
+  });
+  return response;
+};
+
+export const postAdminCommissionGlobal = (data: { rate: number }) => {
+  return httpClient(ADMIN_COMMISSION_GLOBAL_SET.url, {
+    method: ADMIN_COMMISSION_GLOBAL_SET.method,
+    withAuth: true,
+    data,
+  });
+};
+
+export const getAdminCommissionCurrencies = () => {
+  const response = httpClient(ADMIN_COMMISSION_CURRENCIES.url, {
+    method: ADMIN_COMMISSION_CURRENCIES.method,
+    withAuth: true,
+  });
+
+  return response;
+};
+
+export const createAdminCommissionCurrency = (data: {
+  currency: string;
+  rate: number;
+}) => {
+  return httpClient(ADMIN_COMMISSION_CURRENCIES.url, {
+    method: HttpMethods.POST,
+    withAuth: true,
+    data,
+  });
+};
+
+export const deleteAdminCommissionCurrency = (commission_id: string) => {
+  return httpClient(
+    FormatUrl(ADMIN_COMMISSION_CURRENCY_UPDATE.url, commission_id),
+    {
+      method: HttpMethods.DELETE,
+      withAuth: true,
+    }
+  );
+};
+
+export const postAdminCommissionCalculate = (data: {
+  amount: number;
+  currency?: string;
+  transaction_type?: string; // send | receive
+}) => {
+  const response = httpClient(ADMIN_COMMISSION_CALCULATE.url, {
+    method: ADMIN_COMMISSION_CALCULATE.method,
+    withAuth: true,
+    data,
+  });
+  return response;
+};
+
+export const updateAdminCommissionCurrency = (
+  commission_id: string,
+  data: { rate?: number; is_active?: boolean }
+) => {
+  const response = httpClient(
+    FormatUrl(ADMIN_COMMISSION_CURRENCY_UPDATE.url, commission_id),
+    {
+      method: ADMIN_COMMISSION_CURRENCY_UPDATE.method,
+      withAuth: true,
+      data,
+    }
+  );
   return response;
 };
