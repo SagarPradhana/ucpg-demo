@@ -653,7 +653,10 @@ const Admin = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2 sm:space-x-4">
-                <UserProfile />
+                <UserProfile
+                  userProfileData={userProfileData}
+                  refetchProfile={refetchProfile}
+                />
               </div>
             </div>
           </div>

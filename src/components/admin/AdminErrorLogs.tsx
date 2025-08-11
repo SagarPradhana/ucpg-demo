@@ -25,10 +25,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Eye, Download, Trash2, Loader2 } from "lucide-react";
+import { Eye, Loader2 } from "lucide-react";
 import { epochToCustomLocalStringTime } from "@/Common";
 import { getErrorLogs } from "@/service/adminservices";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -117,6 +124,8 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
   );
 
   console.log("getErrorLogResponse", getErrorLogResponse);
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
+  const [open, setOpen] = useState(false);
 
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
 
@@ -237,11 +246,15 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="ghost">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedLog(error);
+                            setOpen(true);
+                          }}
+                        >
                           <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost">
-                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -290,6 +303,18 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
                       setPage((p) => Math.min(totalPages, p + 1));
                     }}
                   />
+
+                  {/* JSON Modal */}
+                  <Dialog open={open} onOpenChange={setOpen}>
+                    <DialogContent className="max-w-3xl">
+                      <DialogHeader>
+                        <DialogTitle>Error Log Details</DialogTitle>
+                      </DialogHeader>
+                      <pre className="p-4 bg-muted rounded-md overflow-auto text-xs">
+                        {JSON.stringify(selectedLog, null, 2)}
+                      </pre>
+                    </DialogContent>
+                  </Dialog>
                 </PaginationItem>
               </PaginationContent>
             </Pagination>

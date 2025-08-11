@@ -8,6 +8,8 @@ import {
   UPDATE_USER_ROLE_DATA,
   ADMIN_TRANSACTIONS,
   ADMIN_EXCHANGE_SETTINGS,
+  ADMIN_SETTINGS,
+  ADMIN_SETTINGS_UPDATE,
   ADMIN_COMMISSION_GLOBAL,
   ADMIN_COMMISSION_GLOBAL_SET,
   ADMIN_COMMISSION_CURRENCIES,
@@ -96,6 +98,32 @@ export const getAdminTransactions = (params?: {
   return response;
 };
 
+export const getAdminSettings = () => {
+  const response = httpClient(ADMIN_SETTINGS.url, {
+    method: ADMIN_SETTINGS.method,
+    withAuth: true,
+  });
+  return response;
+};
+
+export const updateAdminSettings = (
+  setting_id: string,
+  data: {
+    qr_expiration_minutes?: number;
+    max_daily_transaction_limit?: number;
+    maintenance_mode?: boolean;
+    maintenance_message?: string;
+    telegram_notifications_enabled?: boolean;
+    telegram_bot_token?: string;
+    telegram_chat_id?: string;
+  }
+) => {
+  return httpClient(FormatUrl(ADMIN_SETTINGS_UPDATE.url, setting_id), {
+    method: ADMIN_SETTINGS_UPDATE.method,
+    withAuth: true,
+    data,
+  });
+};
 export const getAdminExchangeSettings = () => {
   const response = httpClient(ADMIN_EXCHANGE_SETTINGS.url, {
     method: ADMIN_EXCHANGE_SETTINGS.method,

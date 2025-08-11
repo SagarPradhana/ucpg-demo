@@ -106,6 +106,16 @@ export const ADMIN_EXCHANGE_SETTINGS: Api = {
   method: HttpMethods.GET,
 };
 
+export const ADMIN_SETTINGS: Api = {
+  url: `${BACKEND_KPIX}/admin/settings/`,
+  method: HttpMethods.GET,
+};
+
+export const ADMIN_SETTINGS_UPDATE: Api = {
+  url: `${BACKEND_KPIX}/admin/settings/{0}`,
+  method: HttpMethods.PATCH,
+};
+
 export const ADMIN_COMMISSION_GLOBAL: Api = {
   url: `${BACKEND_KPIX}/admin/commission/global`,
   method: HttpMethods.GET,
