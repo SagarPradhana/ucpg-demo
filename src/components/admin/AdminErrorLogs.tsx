@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Eye, Loader2 } from "lucide-react";
+import { AlertTriangle, Eye, FileX, Loader2, RefreshCw } from "lucide-react";
 import { epochToCustomLocalStringTime } from "@/Common";
 import { getErrorLogs } from "@/service/adminservices";
 import { useQuery } from "@tanstack/react-query";
@@ -106,22 +106,26 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const { data: getErrorLogResponse, isLoading: isLoadingLogs } = useQuery<any>(
-    {
-      queryKey: ["errorLogs", errorLogFromDate, errorLogToDate, page, pageSize],
-      queryFn: () => {
-        const payload = {
-          from_date: errorLogFromDate,
-          to_date: errorLogToDate,
-          page,
-          per_page: pageSize,
-        };
-        return getErrorLogs(payload);
-      },
-      gcTime: 60000,
-      staleTime: 60000,
-    }
-  );
+  const {
+    data: getErrorLogResponse,
+    isLoading: isLoadingLogs,
+    isError: isErrorLogs,
+    error: errorLogserror,
+    refetch: refetchLogs,
+  } = useQuery<any>({
+    queryKey: ["errorLogs", errorLogFromDate, errorLogToDate, page, pageSize],
+    queryFn: () => {
+      const payload = {
+        from_date: errorLogFromDate,
+        to_date: errorLogToDate,
+        page,
+        per_page: pageSize,
+      };
+      return getErrorLogs(payload);
+    },
+    gcTime: 60000,
+    staleTime: 60000,
+  });
 
   console.log("getErrorLogResponse", getErrorLogResponse);
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
@@ -215,13 +219,39 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
                 </TableRow>
               )}
 
-              {!isLoadingLogs && errorLogs.length === 0 && (
+              {isErrorLogs && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-10 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                      <AlertTriangle className="h-8 w-8 text-destructive" />
+                      <p>
+                        Error loading error logs:{" "}
+                        {(errorLogserror as Error)?.message || "Unknown error"}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refetchLogs()}
+                        className="mt-2"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Retry
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!isLoadingLogs && !isErrorLogs && errorLogs.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={6}
                     className="py-10 text-center text-muted-foreground"
                   >
-                    No data
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <FileX className="h-8 w-8" />
+                      <p>No error logs found for the selected time period</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}

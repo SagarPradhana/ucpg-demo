@@ -20,6 +20,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import Services from "./pages/Services";
+import ChatbotDemo from "./pages/ChatbotDemo";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -28,13 +29,13 @@ import StorageDebugger from "./utils/storageDebugger";
 import { loginActions } from "./store/loginReducer";
 import { singleUserDetailsActions } from "./store/singleUserDetailsReducer";
 import { useEffect } from "react";
-import SupportChatbot from "./components/SupportChatbot";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { jwtDecode } from "jwt-decode";
 import { RootState } from "./types";
 // import RouteProtectionDebug from "./components/RouteProtectionDebug";
 import { ROUTE_CONFIG } from "./config/routes";
+import { SupportChatbot } from "./components/SupportChatbot";
 
 const queryClient = new QueryClient();
 
@@ -178,6 +179,14 @@ const App = () => (
                       element={
                         <ProtectedRoute requireAuth={false}>
                           <ForgotPassword />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/chatbot-demo"
+                      element={
+                        <ProtectedRoute requireAuth={false}>
+                          <ChatbotDemo />
                         </ProtectedRoute>
                       }
                     />

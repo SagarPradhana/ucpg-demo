@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Save, Settings } from "lucide-react";
+import { AlertTriangle, Loader2, RefreshCw, Save, Settings } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAdminSettings, updateAdminSettings } from "@/service/adminservices";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +34,13 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({
   systemSettings,
   setSystemSettings,
 }) => {
-  const { data: serverSettings } = useQuery({
+  const { 
+    data: serverSettings,
+    isLoading: isLoadingSettings,
+    isError: isErrorSettings,
+    error: errorSettings,
+    refetch: refetchSettings
+  } = useQuery({
     queryKey: ["admin-settings"],
     queryFn: () => getAdminSettings(),
     gcTime: 60000,
@@ -104,8 +110,34 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Transaction Settings */}
-          <div className="space-y-4">
+          {isLoadingSettings && (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              <span className="text-muted-foreground">Loading settings...</span>
+            </div>
+          )}
+          
+          {!isLoadingSettings && isErrorSettings && (
+            <div className="flex flex-col items-center justify-center py-6 text-destructive">
+              <AlertTriangle className="w-12 h-12 text-destructive/70 mb-2" />
+              <p className="text-destructive font-medium">Error Loading Settings</p>
+              <p className="text-xs text-destructive/70 mt-1">{errorSettings instanceof Error ? errorSettings.message : 'Failed to load system settings'}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-4"
+                onClick={() => refetchSettings()}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          )}
+          
+          {!isLoadingSettings && !isErrorSettings && (
+            <>
+            {/* Transaction Settings */}
+            <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Settings className="h-5 w-5" />
               <h3 className="text-lg font-medium">Transaction Settings</h3>
@@ -289,6 +321,10 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({
                     (systemSettings as any).telegramBotToken || undefined,
                   telegram_chat_id:
                     (systemSettings as any).telegramChatId || undefined,
+                  exchange_rate_interval_time:
+                    systemSettings.rateUpdateInterval,
+                  is_exchange_rate_monitoring:
+                    systemSettings.exchangeRateMonitoring,
                 };
                 saveMutation.mutate(payload);
               }}
@@ -297,6 +333,8 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({
               {saveMutation.isPending ? "Saving..." : "Save Settings"}
             </Button>
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
     </div>

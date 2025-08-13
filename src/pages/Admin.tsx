@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Crown,
   Menu,
-  X,
 } from "lucide-react";
 import {
   AdminDashboard,
@@ -28,24 +27,32 @@ import {
   AdminReports,
   AdminCommissionSettings,
 } from "@/components/admin";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarTrigger,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarInset,
+} from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSelector, useDispatch } from "react-redux";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import { getUser } from "@/service/auth";
 import UserProfile from "@/components/UserProfile";
 import { RootState } from "@/types";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   createUserRole,
   getAllPermissions,
   getErrorLogs,
   getUserRole,
   updateUserRoles,
+  getAdminCurrencyDistribution,
 } from "@/service/adminservices";
 import { epochToCustomLocalStringTime } from "@/Common";
 
@@ -129,7 +136,6 @@ interface AdminUser {
 
 const Admin = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
 
@@ -200,16 +206,16 @@ const Admin = () => {
   // State for create user modal
   // Menu items for navigation
   const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-    { id: "transactions", label: "Transactions", icon: CreditCard },
-    { id: "promo-codes", label: "Promo Codes", icon: QrCode },
-    { id: "providers", label: "Providers", icon: Building2 },
-    { id: "exchange-rates", label: "Exchange Rates", icon: TrendingUp },
-    { id: "user-roles", label: "User Roles", icon: Users },
-    { id: "commission", label: "Commission", icon: Percent },
-    { id: "settings", label: "Settings", icon: Settings },
-    { id: "error-logs", label: "Error Logs", icon: AlertTriangle },
-    { id: "reports", label: "Reports", icon: Download },
+    { id: "dashboard", label: t("admin.dashboard"), icon: BarChart3 },
+    { id: "transactions", label: t("admin.transactions"), icon: CreditCard },
+    { id: "promo-codes", label: t("admin.promoCodes"), icon: QrCode },
+    { id: "providers", label: t("admin.providers"), icon: Building2 },
+    { id: "exchange-rates", label: t("admin.exchangeRates"), icon: TrendingUp },
+    { id: "user-roles", label: t("admin.userRoles"), icon: Users },
+    { id: "commission", label: t("admin.commission"), icon: Percent },
+    { id: "settings", label: t("admin.settings"), icon: Settings },
+    { id: "error-logs", label: t("admin.errorLogs"), icon: AlertTriangle },
+    { id: "reports", label: t("admin.reports"), icon: Download },
   ];
 
   // Form for creating new user
@@ -299,27 +305,6 @@ const Admin = () => {
     },
   ]);
 
-  const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([
-    {
-      symbol: "BTC/USD",
-      price: 42850.75,
-      change24h: 2.45,
-      lastUpdated: "2024-01-15 14:30:00",
-    },
-    {
-      symbol: "ETH/USD",
-      price: 2650.3,
-      change24h: -1.2,
-      lastUpdated: "2024-01-15 14:30:00",
-    },
-    {
-      symbol: "USDT/USD",
-      price: 1.0001,
-      change24h: 0.01,
-      lastUpdated: "2024-01-15 14:30:00",
-    },
-  ]);
-
   // Calculate epoch dates based on time filter
 
   // Time filter state for error logs
@@ -363,6 +348,26 @@ const Admin = () => {
     rateUpdateInterval: 10,
   });
 
+  // Helper function to get today's date range in epoch format
+  const getTodayDateRange = () => {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    
+    return {
+      from_date: Math.floor(startOfDay.getTime() / 1000), // Convert to epoch seconds
+      to_date: Math.floor(endOfDay.getTime() / 1000), // Convert to epoch seconds
+    };
+  };
+
+  // Fetch currency distribution data
+  const { data: currencyDistributionData } = useQuery({
+    queryKey: ["admin-currency-distribution"],
+    queryFn: () => getAdminCurrencyDistribution(getTodayDateRange()),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+
   // Chart data
   const transactionChartData = [
     { name: "Mon", sent: 45, received: 38 },
@@ -374,12 +379,69 @@ const Admin = () => {
     { name: "Sun", sent: 38, received: 32 },
   ];
 
-  const currencyDistribution = [
-    { name: "BTC", value: 35, color: "#F7931A" },
-    { name: "ETH", value: 28, color: "#627EEA" },
-    { name: "USDT", value: 25, color: "#26A17B" },
-    { name: "Others", value: 12, color: "#8884d8" },
-  ];
+  // Process currency distribution data from API or use fallback
+  const processCurrencyDistribution = () => {
+    if ((currencyDistributionData as any)?.data) {
+      const { by_currency, by_crypto } = (currencyDistributionData as any).data;
+      
+      // Process by_currency data
+      const currencyData = by_currency.map((item: any, index: number) => ({
+        name: item.currency,
+        value: item.percentage || item.value,
+        color: getCurrencyColor(item.currency, index),
+      }));
+      
+      // Process by_crypto data
+      const cryptoData = by_crypto.map((item: any, index: number) => ({
+        name: item.currency,
+        value: item.percentage || item.value,
+        color: getCurrencyColor(item.currency, index),
+      }));
+      
+      return { currencyData, cryptoData };
+    }
+    
+    // Fallback data if API response is not available
+    return {
+      currencyData: [
+        { name: "USD", value: 40, color: "#4CAF50" },
+        { name: "EUR", value: 30, color: "#2196F3" },
+        { name: "GBP", value: 20, color: "#9C27B0" },
+        { name: "Others", value: 10, color: "#607D8B" },
+      ],
+      cryptoData: [
+        { name: "BTC", value: 35, color: "#F7931A" },
+        { name: "ETH", value: 28, color: "#627EEA" },
+        { name: "USDT", value: 25, color: "#26A17B" },
+        { name: "Others", value: 12, color: "#8884d8" },
+      ],
+    };
+  };
+  
+  // Helper function to get color for currency
+  const getCurrencyColor = (currency: string, index: number) => {
+    const colorMap: Record<string, string> = {
+      BTC: "#F7931A",
+      ETH: "#627EEA",
+      USDT: "#26A17B",
+      USD: "#4CAF50",
+      EUR: "#2196F3",
+      GBP: "#9C27B0",
+    };
+    
+    const fallbackColors = [
+      "#8884d8", "#83a6ed", "#8dd1e1", "#82ca9d", "#a4de6c",
+      "#d0ed57", "#ffc658", "#ff8042", "#ff6361", "#bc5090",
+    ];
+    
+    return colorMap[currency] || fallbackColors[index % fallbackColors.length];
+  };
+  
+  // Get processed currency distribution data
+  const { currencyData, cryptoData } = processCurrencyDistribution();
+  
+  // Use cryptoData for the currency distribution in the dashboard
+  const currencyDistribution = cryptoData;
 
   // Filters
   const [transactionFilters, setTransactionFilters] = useState({
@@ -436,63 +498,6 @@ const Admin = () => {
     });
   };
 
-  // Sidebar navigation
-  const sidebarItems = [
-    { id: "dashboard", label: t("admin.dashboard"), icon: BarChart3 },
-    { id: "transactions", label: t("admin.transactions"), icon: CreditCard },
-    { id: "promo-codes", label: t("admin.promoCodes"), icon: QrCode },
-    { id: "providers", label: t("admin.providers"), icon: Building2 },
-    { id: "commission", label: t("admin.commission"), icon: Percent },
-    { id: "exchange-rates", label: t("admin.exchangeRates"), icon: TrendingUp },
-    { id: "user-roles", label: t("admin.userRoles"), icon: Users },
-    { id: "settings", label: t("admin.settings"), icon: Settings },
-    { id: "error-logs", label: t("admin.errorLogs"), icon: AlertTriangle },
-    { id: "reports", label: t("admin.reports"), icon: Download },
-  ];
-
-  // Sidebar content component
-  const SidebarContent = ({ onItemClick }: { onItemClick?: () => void }) => (
-    <>
-      {/* Sidebar Header */}
-      <div className="p-6 border-b">
-        <div className="flex items-center space-x-3">
-          <div className="bg-primary/10 p-2 rounded-lg">
-            <Crown className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold">{t("admin.title")}</h2>
-            <p className="text-xs text-muted-foreground">
-              {t("admin.subtitle")}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Sidebar Navigation */}
-      <div className="p-4">
-        <nav className="space-y-2">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActiveSection(item.id);
-                onItemClick?.();
-              }}
-              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 ${
-                activeSection === item.id
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              <span className="text-sm font-medium">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-    </>
-  );
-
   // All render functions have been moved to separate components
 
   const renderSection = () => {
@@ -504,6 +509,7 @@ const Admin = () => {
             transactions={transactions}
             transactionChartData={transactionChartData}
             currencyDistribution={currencyDistribution}
+            currencyData={currencyData}
             getStatusBadge={getStatusBadge}
           />
         );
@@ -538,7 +544,6 @@ const Admin = () => {
       case "exchange-rates":
         return (
           <AdminExchangeRates
-            exchangeRates={exchangeRates}
             systemSettings={systemSettings}
             setSystemSettings={setSystemSettings}
           />
@@ -563,6 +568,7 @@ const Admin = () => {
             transactions={transactions}
             transactionChartData={transactionChartData}
             currencyDistribution={currencyDistribution}
+            currencyData={currencyData}
             getStatusBadge={getStatusBadge}
           />
         );
@@ -575,7 +581,7 @@ const Admin = () => {
     !singleUserDetails.userDetails
   ) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen px-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading admin panel...</p>
@@ -587,7 +593,7 @@ const Admin = () => {
   // Show error state if user profile failed to load
   if (singleUserDetails.error && !singleUserDetails.userDetails) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen px-4">
         <div className="text-center">
           <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-4" />
           <p className="text-destructive mb-4">Failed to load admin panel</p>
@@ -605,69 +611,109 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex h-screen">
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:flex w-64 bg-card border-r shadow-sm">
-          <div className="flex flex-col w-full">
-            <SidebarContent />
-          </div>
-        </div>
+    <SidebarProvider>
+      {/* Responsive main container */}
+      <div className="min-h-screen w-full bg-background">
+        <div className="flex min-h-screen w-full relative">
+          {/* Responsive Sidebar */}
+          <Sidebar className="flex-shrink-0 hidden lg:flex lg:w-64 xl:w-72 border-r border-border">
+            <SidebarContent className="flex flex-col h-full bg-card">
+              <SidebarHeader className="flex-shrink-0 p-4 border-b border-border">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-primary/10 p-2 rounded-lg flex-shrink-0">
+                    <Crown className="h-5 w-5 xl:h-6 xl:w-6 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-base xl:text-lg font-semibold truncate">
+                      {t("admin.title")}
+                    </h2>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {t("admin.subtitle")}
+                    </p>
+                  </div>
+                </div>
+              </SidebarHeader>
+              <div className="flex-1 overflow-y-auto py-2">
+                <SidebarMenu className="px-2">
+                  {menuItems.map((item) => (
+                    <SidebarMenuItem key={item.id} className="mb-1">
+                      <SidebarMenuButton
+                        onClick={() => setActiveSection(item.id)}
+                        isActive={activeSection === item.id}
+                        className={`w-full justify-start p-3 rounded-lg transition-colors ${
+                          activeSection === item.id
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        <item.icon
+                          className={`h-4 w-4 mr-3 flex-shrink-0 ${
+                            activeSection === item.id ? "text-primary" : ""
+                          }`}
+                        />
+                        <span className="truncate text-sm xl:text-base">
+                          {item.label}
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </div>
+            </SidebarContent>
+          </Sidebar>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          {/* Top Header */}
-          <div className="bg-card border-b px-4 sm:px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                {/* Mobile Menu Button */}
-                <Sheet
-                  open={isMobileSidebarOpen}
-                  onOpenChange={setIsMobileSidebarOpen}
-                >
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="lg:hidden"
-                      onClick={() => setIsMobileSidebarOpen(true)}
-                    >
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="p-0 w-64">
-                    <SidebarContent
-                      onItemClick={() => setIsMobileSidebarOpen(false)}
-                    />
-                  </SheetContent>
-                </Sheet>
+          {/* Main content area with responsive design */}
+          <SidebarInset className="flex-1 min-w-0 w-full lg:w-auto">
+            <div className="flex flex-col h-screen">
+              {/* Responsive header */}
+              <div className="flex-shrink-0 bg-card border-b">
+                <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+                  <div className="flex items-center justify-between gap-2 sm:gap-4">
+                    <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                      {/* Mobile sidebar trigger */}
+                      <SidebarTrigger className="flex-shrink-0 lg:hidden p-2 border border-border rounded-md hover:bg-muted">
+                        <Menu className="h-5 w-5" />
+                      </SidebarTrigger>
 
-                <div>
-                  <h1 className="text-lg sm:text-xl font-semibold capitalize">
-                    {menuItems.find((item) => item.id === activeSection)
-                      ?.label || "Dashboard"}
-                  </h1>
-                  <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                    Manage your {activeSection.replace("-", " ")} settings
-                  </p>
+                      <div className="min-w-0 flex-1">
+                        <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold capitalize truncate">
+                          {menuItems.find((item) => item.id === activeSection)
+                            ?.label || "Dashboard"}
+                        </h1>
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate hidden sm:block">
+                          Manage your {activeSection.replace("-", " ")} settings
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* User profile - responsive */}
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <UserProfile
+                        userProfileData={userProfileData}
+                        refetchProfile={refetchProfile}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2 sm:space-x-4">
-                <UserProfile
-                  userProfileData={userProfileData}
-                  refetchProfile={refetchProfile}
-                />
+
+              {/* Responsive main content area */}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="h-full w-full overflow-y-auto">
+                  <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
+                    <div className="w-full max-w-none">
+                      <div className="space-y-4 sm:space-y-6">
+                        {renderSection()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Main Content Area */}
-          <div className="flex-1 overflow-auto p-3 sm:p-6">
-            <div className="max-w-7xl mx-auto">{renderSection()}</div>
-          </div>
+          </SidebarInset>
         </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

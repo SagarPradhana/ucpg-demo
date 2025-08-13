@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, X, Loader2 } from "lucide-react";
+import { Search, Eye, X, Loader2, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Pagination,
@@ -93,22 +93,29 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
     } as const;
   }, [page, pageSize, transactionFilters]);
 
-  const { data: txResponse, isLoading } = useQuery({
+  const {
+    data: txResponse,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["admin-transactions", params],
     queryFn: () => getAdminTransactions(params),
     gcTime: 60000,
     staleTime: 60000,
   });
 
-  const serverItems: any[] =
-    (txResponse as any)?.data ??
-    (txResponse as any)?.items ??
-    (txResponse as any)?.results ??
-    [];
-  const totalCount: number =
-    (txResponse as any)?.total_count ??
-    (txResponse as any)?.total ??
-    serverItems.length;
+  const serverItems: any[] = txResponse
+    ? (txResponse as any)?.data ??
+      (txResponse as any)?.items ??
+      (txResponse as any)?.results ??
+      []
+    : [];
+  const totalCount: number = txResponse
+    ? (txResponse as any)?.total_count ??
+      (txResponse as any)?.total ??
+      serverItems.length
+    : 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   return (
     <div className="space-y-6">
@@ -240,13 +247,70 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                 </TableRow>
               )}
 
-              {!isLoading && serverItems.length === 0 && (
+              {!isLoading && !isError && serverItems.length === 0 && (
                 <TableRow>
-                  <TableCell
-                    colSpan={9}
-                    className="py-10 text-center text-muted-foreground"
-                  >
-                    No data
+                  <TableCell colSpan={9} className="py-10 text-center">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground">
+                      <svg
+                        className="w-12 h-12 text-muted-foreground/50 mb-2"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M3 9h18M9 3v18M14 3v18"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <p className="text-muted-foreground font-medium">
+                        No Data Available
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        No transactions match your current filters
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!isLoading && isError && (
+                <TableRow>
+                  <TableCell colSpan={9} className="py-10 text-center">
+                    <div className="flex flex-col items-center justify-center text-destructive">
+                      <svg
+                        className="w-12 h-12 text-destructive/70 mb-2"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <p className="text-destructive font-medium">
+                        Error Loading Data
+                      </p>
+                      <p className="text-xs text-destructive/70 mt-1">
+                        {error instanceof Error
+                          ? error.message
+                          : "Failed to load transactions"}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        onClick={() => window.location.reload()}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Retry
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}

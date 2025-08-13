@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Calculator, Percent, Coins, Save } from "lucide-react";
+import { AlertTriangle, Calculator, Loader2, Percent, Coins, RefreshCw, Save } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getAdminCommissionCurrencies,
@@ -63,21 +63,31 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
   currencySettings,
   setCurrencySettings,
 }) => {
-  const { data: globalCommission, isLoading: isLoadingGlobal } = useQuery({
+  const { 
+    data: globalCommission, 
+    isLoading: isLoadingGlobal,
+    isError: isErrorGlobal,
+    error: errorGlobal,
+    refetch: refetchGlobal
+  } = useQuery({
     queryKey: ["admin-commission-global"],
     queryFn: () => getAdminCommissionGlobal(),
     gcTime: 60000,
     staleTime: 60000,
   });
 
-  const { data: currencyCommission, isLoading: isLoadingCurrencies } = useQuery(
-    {
-      queryKey: ["admin-commission-currencies"],
-      queryFn: () => getAdminCommissionCurrencies(),
-      gcTime: 60000,
-      staleTime: 60000,
-    }
-  );
+  const { 
+    data: currencyCommission, 
+    isLoading: isLoadingCurrencies,
+    isError: isErrorCurrencies,
+    error: errorCurrencies,
+    refetch: refetchCurrencies
+  } = useQuery({
+    queryKey: ["admin-commission-currencies"],
+    queryFn: () => getAdminCommissionCurrencies(),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -180,43 +190,71 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <div className="flex-1">
-                <Label htmlFor="global-percentage">
-                  Global Commission Percentage
-                </Label>
-                <div className="flex items-center space-x-2 mt-1">
-                  <Input
-                    id="global-percentage"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={globalPercentage}
-                    onChange={(e) =>
-                      setGlobalPercentage(parseFloat(e.target.value) || 0)
-                    }
-                    className="w-32"
-                  />
-                  <Percent className="h-4 w-4 text-muted-foreground" />
-                </div>
+            {isLoadingGlobal && (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                <span className="text-muted-foreground">Loading global settings...</span>
               </div>
-              <Button
-                onClick={() => {
-                  if (isNaN(globalPercentage)) return;
-                  updateGlobalMutation.mutate({
-                    rate: Number(globalPercentage),
-                  });
-                }}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              This percentage will be applied to all transactions unless
-              overridden by currency or provider-specific settings.
-            </p>
+            )}
+            
+            {!isLoadingGlobal && isErrorGlobal && (
+              <div className="flex flex-col items-center justify-center py-6 text-destructive">
+                <AlertTriangle className="w-12 h-12 text-destructive/70 mb-2" />
+                <p className="text-destructive font-medium">Error Loading Global Settings</p>
+                <p className="text-xs text-destructive/70 mt-1">{errorGlobal instanceof Error ? errorGlobal.message : 'Failed to load global commission settings'}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4"
+                  onClick={() => refetchGlobal()}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              </div>
+            )}
+            
+            {!isLoadingGlobal && !isErrorGlobal && (
+              <>
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
+                    <Label htmlFor="global-percentage">
+                      Global Commission Percentage
+                    </Label>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Input
+                        id="global-percentage"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        value={globalPercentage}
+                        onChange={(e) =>
+                          setGlobalPercentage(parseFloat(e.target.value) || 0)
+                        }
+                        className="w-32"
+                      />
+                      <Percent className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      if (isNaN(globalPercentage)) return;
+                      updateGlobalMutation.mutate({
+                        rate: Number(globalPercentage),
+                      });
+                    }}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  This percentage will be applied to all transactions unless
+                  overridden by currency or provider-specific settings.
+                </p>
+              </>
+            )}
           </div>
         </CardContent>
         {/* Commission Calculator */}
@@ -329,7 +367,51 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(currencyCommission as any)?.data?.map((setting: any) => (
+              {isLoadingCurrencies && (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-10 text-center">
+                    <div className="flex items-center justify-center text-muted-foreground">
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Loading...
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              
+              {!isLoadingCurrencies && isErrorCurrencies && (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-10 text-center">
+                    <div className="flex flex-col items-center justify-center text-destructive">
+                      <AlertTriangle className="w-12 h-12 text-destructive/70 mb-2" />
+                      <p className="text-destructive font-medium">Error Loading Commission Settings</p>
+                      <p className="text-xs text-destructive/70 mt-1">{errorCurrencies instanceof Error ? errorCurrencies.message : 'Failed to load commission data'}</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-4"
+                        onClick={() => refetchCurrencies()}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Retry
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              
+              {!isLoadingCurrencies && !isErrorCurrencies && (!currencyCommission || !(currencyCommission as any)?.data || (currencyCommission as any)?.data?.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-10 text-center">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground">
+                      <Coins className="w-12 h-12 text-muted-foreground/50 mb-2" />
+                      <p className="text-muted-foreground font-medium">No Currency Commission Settings</p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">No currency-specific commission rates have been configured</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              
+              {!isLoadingCurrencies && !isErrorCurrencies && (currencyCommission as any)?.data?.length > 0 && (currencyCommission as any)?.data?.map((setting: any) => (
                 <TableRow key={setting.id ?? setting.currency}>
                   <TableCell className="font-medium">
                     {setting.currency}

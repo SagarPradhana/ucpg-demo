@@ -102,7 +102,7 @@ export const ADMIN_TRANSACTIONS: Api = {
 };
 
 export const ADMIN_EXCHANGE_SETTINGS: Api = {
-  url: `${BACKEND_KPIX}/admin/exchange/settings`,
+  url: `${BACKEND_KPIX}/admin/exchange/rates`,
   method: HttpMethods.GET,
 };
 
@@ -139,4 +139,13 @@ export const ADMIN_COMMISSION_CALCULATE: Api = {
 export const ADMIN_COMMISSION_CURRENCY_UPDATE: Api = {
   url: `${BACKEND_KPIX}/admin/commission/currencies/{0}`,
   method: HttpMethods.PUT,
+};
+export const ADMIN_TRANSITION_STATISTICS: Api = {
+  url: `${BACKEND_KPIX}/admin/dashboard/statistics`,
+  method: HttpMethods.GET,
+};
+
+export const ADMIN_CURRENCY_DISTRIBUTION: Api = {
+  url: `${BACKEND_KPIX}/admin/dashboard/currency-distribution`,
+  method: HttpMethods.GET,
 };

@@ -16,6 +16,8 @@ import {
   ADMIN_COMMISSION_CALCULATE,
   ADMIN_COMMISSION_CURRENCY_UPDATE,
   FormatUrl,
+  ADMIN_TRANSITION_STATISTICS,
+  ADMIN_CURRENCY_DISTRIBUTION,
 } from "./Urls";
 
 export const getUserRole = (params?: {
@@ -154,6 +156,25 @@ export const getAdminCommissionCurrencies = () => {
     withAuth: true,
   });
 
+  return response;
+};
+export const getAdminTransitionStatistics = () => {
+  const response = httpClient(ADMIN_TRANSITION_STATISTICS?.url, {
+    method: ADMIN_TRANSITION_STATISTICS?.method,
+    withAuth: true,
+  });
+  return response;
+};
+
+export const getAdminCurrencyDistribution = (params: {
+  from_date: number; // epoch timestamp
+  to_date: number; // epoch timestamp
+}) => {
+  const response = httpClient(ADMIN_CURRENCY_DISTRIBUTION?.url, {
+    method: ADMIN_CURRENCY_DISTRIBUTION?.method,
+    withAuth: true,
+    queryParams: params,
+  });
   return response;
 };
 

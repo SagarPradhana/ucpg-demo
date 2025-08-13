@@ -21,6 +21,8 @@ import {
   Moon,
   Monitor,
   Check,
+  UserCircle,
+  Shield,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -349,6 +351,27 @@ const UserProfile = ({
             </DropdownMenuSubContent>
           </DropdownMenuPortal>
         </DropdownMenuSub>
+        <DropdownMenuSeparator />
+
+        {/* Portal Switching Buttons */}
+        {userProfile?.role === "admin" ? (
+          <DropdownMenuItem
+            onClick={() => navigate("/dashboard")}
+            className="cursor-pointer"
+          >
+            <UserCircle className="mr-2 h-4 w-4" />
+            <span>User Portal</span>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            onClick={() => navigate("/admin")}
+            className="cursor-pointer"
+          >
+            <Shield className="mr-2 h-4 w-4" />
+            <span>Admin Portal</span>
+          </DropdownMenuItem>
+        )}
+
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleLogout}

@@ -30,6 +30,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from "recharts";
 import {
   DollarSign,
@@ -44,6 +45,8 @@ import {
   Eye,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminTransitionStatistics } from "@/service/adminservices";
 
 interface Transaction {
   id: string;
@@ -84,6 +87,7 @@ interface AdminDashboardProps {
   transactions: Transaction[];
   transactionChartData: Array<{ name: string; sent: number; received: number }>;
   currencyDistribution: Array<{ name: string; value: number; color: string }>;
+  currencyData?: Array<{ name: string; value: number; color: string }>;
   getStatusBadge: (status: string) => string;
 }
 
@@ -92,10 +96,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   transactions,
   transactionChartData,
   currencyDistribution,
+  currencyData,
   getStatusBadge,
 }) => {
   const { t } = useLanguage();
 
+  const { data: adminTransitionStatistics } = useQuery({
+    queryKey: ["admin-transition-statistics"],
+    queryFn: () => getAdminTransitionStatistics(),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+  console.log(adminTransitionStatistics);
   // Audit log state
   const [searchTerm, setSearchTerm] = useState("");
   const [userFilter, setUserFilter] = useState("all");
@@ -241,184 +253,411 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Responsive Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-blue-500">
+          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-blue-50/30 to-transparent">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
                   {t("admin.dashboard.todayPayments")}
                 </p>
-                <p className="text-2xl font-bold">
+                <p className="text-xl sm:text-2xl font-bold truncate text-blue-700">
                   {dashboardStats.todayPayments.count}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs font-medium text-blue-600/80 truncate mt-1">
                   ${dashboardStats.todayPayments.amount.toLocaleString()}
                 </p>
               </div>
-              <DollarSign className="h-8 w-8 text-muted-foreground" />
+              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-blue-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-green-500">
+          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-green-50/30 to-transparent">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
                   {t("admin.dashboard.activePromoLinks")}
                 </p>
-                <p className="text-2xl font-bold">
+                <p className="text-xl sm:text-2xl font-bold truncate text-green-700">
                   {dashboardStats.last24Hours.activePromoLinks}
                 </p>
-                <p className="text-xs text-green-600">+12% from yesterday</p>
+                <p className="text-xs font-medium text-green-600 truncate mt-1 flex items-center">
+                  <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 14l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  +12% from yesterday
+                </p>
               </div>
-              <QrCode className="h-8 w-8 text-muted-foreground" />
+              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                <QrCode className="h-6 w-6 text-green-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-purple-500">
+          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-purple-50/30 to-transparent">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
                   {t("admin.dashboard.commissionIncome")} (
                   {t("admin.dashboard.daily")})
                 </p>
-                <p className="text-2xl font-bold">
+                <p className="text-xl sm:text-2xl font-bold truncate text-purple-700">
                   ${dashboardStats.commissionIncome.daily.toLocaleString()}
                 </p>
-                <p className="text-xs text-green-600">+8.2% from yesterday</p>
+                <p className="text-xs font-medium text-purple-600 truncate mt-1 flex items-center">
+                  <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 14l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  +8.2% from yesterday
+                </p>
               </div>
-              <Percent className="h-8 w-8 text-muted-foreground" />
+              <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+                <Percent className="h-6 w-6 text-purple-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-orange-500">
+          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-orange-50/30 to-transparent">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
                   Unclaimed Funds
                 </p>
-                <p className="text-2xl font-bold">
+                <p className="text-xl sm:text-2xl font-bold truncate text-orange-700">
                   ${dashboardStats.last24Hours.unclaimedFunds.toLocaleString()}
                 </p>
-                <p className="text-xs text-orange-600">Requires attention</p>
+                <p className="text-xs font-medium text-orange-600 truncate mt-1 flex items-center">
+                  <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Requires attention
+                </p>
               </div>
-              <Wallet className="h-8 w-8 text-muted-foreground" />
+              <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
+                <Wallet className="h-6 w-6 text-orange-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.dashboard.transactionVolume")}</CardTitle>
+      {/* Responsive Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+        <Card className="transition-all duration-200 hover:shadow-md overflow-hidden">
+          <CardHeader className="pb-3 border-b">
+            <CardTitle className="text-base sm:text-lg flex items-center">
+              <BarChart className="mr-2 h-5 w-5 text-primary" />
+              {t("admin.dashboard.transactionVolume")}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={transactionChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="sent" fill="#8884d8" />
-                <Bar dataKey="received" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="pt-4">
+            <div className="h-64 sm:h-80 w-full bg-card/50 rounded-lg p-4 shadow-sm border border-border/50">
+              {transactionChartData && transactionChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={transactionChartData}
+                    margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+                    barSize={20}
+                    barGap={8}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="name" 
+                      fontSize={12} 
+                      tick={{ fontSize: 12 }} 
+                      axisLine={{ stroke: '#e0e0e0' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      fontSize={12} 
+                      tick={{ fontSize: 12 }} 
+                      axisLine={{ stroke: '#e0e0e0' }}
+                      tickLine={false}
+                      tickFormatter={(value) => value.toLocaleString()}
+                    />
+                    <Tooltip 
+                      formatter={(value) => [value.toLocaleString(), '']}
+                      contentStyle={{ 
+                        borderRadius: '8px', 
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        border: 'none'
+                      }}
+                    />
+                    <Legend 
+                      verticalAlign="top" 
+                      height={36} 
+                      iconType="circle"
+                      iconSize={10}
+                      wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                    />
+                    <Bar 
+                      dataKey="sent" 
+                      name="Sent" 
+                      fill="#8884d8" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="received" 
+                      name="Received" 
+                      fill="#82ca9d" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full flex flex-col items-center justify-center bg-muted/20 rounded-lg border border-dashed border-muted">
+                  <BarChart className="w-12 h-12 text-muted-foreground/50 mb-2" />
+                  <p className="text-muted-foreground font-medium">No Data Available</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Transaction volume data will appear here</p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.dashboard.currencyDistribution")}</CardTitle>
+        <Card className="transition-all duration-200 hover:shadow-md overflow-hidden">
+          <CardHeader className="pb-3 border-b bg-gradient-to-r from-primary/5 to-transparent">
+            <CardTitle className="text-base sm:text-lg flex items-center">
+              <Wallet className="mr-2 h-5 w-5 text-primary animate-pulse" />
+              {t("admin.dashboard.currencyDistribution")}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={currencyDistribution}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}%`}
-                >
-                  {currencyDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Crypto Currency Distribution */}
+              <div className="bg-gradient-to-br from-card/80 to-card/50 rounded-xl p-5 shadow-md border border-border/50 hover:shadow-lg transition-all duration-300">
+                <h3 className="text-sm font-medium mb-4 text-center flex items-center justify-center bg-primary/10 py-2 rounded-lg">
+                  <svg className="w-4 h-4 mr-2 text-primary" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 8h6m-6 4h6m-6 4h6M7 3v18m10-18v18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  <span className="font-semibold">Crypto Distribution</span>
+                </h3>
+                <div className="h-64 w-full">
+                  {currencyDistribution && currencyDistribution.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={currencyDistribution}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius="70%"
+                          innerRadius="45%"
+                          fill="#8884d8"
+                          dataKey="value"
+                          paddingAngle={3}
+                          cornerRadius={6}
+                          animationBegin={0}
+                          animationDuration={1500}
+                          animationEasing="ease-out"
+                        >
+                          {currencyDistribution.map((entry, index) => (
+                            <Cell 
+                              key={`crypto-cell-${index}`} 
+                              fill={entry.color} 
+                              stroke="#fff" 
+                              strokeWidth={2} 
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value, name) => [`${value}%`, name]}
+                          contentStyle={{ 
+                            borderRadius: '8px', 
+                            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                            border: 'none',
+                            padding: '8px 12px',
+                            fontSize: '13px'
+                          }}
+                        />
+                        <Legend 
+                          layout="horizontal" 
+                          verticalAlign="bottom" 
+                          align="center"
+                          iconSize={12}
+                          iconType="circle"
+                          wrapperStyle={{ 
+                            fontSize: '12px', 
+                            paddingTop: '15px',
+                            fontWeight: 500
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full w-full flex flex-col items-center justify-center bg-muted/20 rounded-lg border border-dashed border-muted">
+                      <svg className="w-12 h-12 text-muted-foreground/50 mb-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 8h6m-6 4h6m-6 4h6M7 3v18m10-18v18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                      <p className="text-muted-foreground font-medium">No Data Available</p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">Crypto distribution data will appear here</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Fiat Currency Distribution */}
+              <div className="bg-gradient-to-br from-card/80 to-card/50 rounded-xl p-5 shadow-md border border-border/50 hover:shadow-lg transition-all duration-300">
+                <h3 className="text-sm font-medium mb-4 text-center flex items-center justify-center bg-primary/10 py-2 rounded-lg">
+                  <DollarSign className="w-4 h-4 mr-2 text-primary" />
+                  <span className="font-semibold">Fiat Currency Distribution</span>
+                </h3>
+                <div className="h-64 w-full">
+                  {currencyData && currencyData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={currencyData}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius="70%"
+                          innerRadius="45%"
+                          fill="#8884d8"
+                          dataKey="value"
+                          paddingAngle={3}
+                          cornerRadius={6}
+                          animationBegin={0}
+                          animationDuration={1500}
+                          animationEasing="ease-out"
+                        >
+                          {currencyData.map((entry, index) => (
+                            <Cell 
+                              key={`fiat-cell-${index}`} 
+                              fill={entry.color} 
+                              stroke="#fff" 
+                              strokeWidth={2} 
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value, name) => [`${value}%`, name]}
+                          contentStyle={{ 
+                            borderRadius: '8px', 
+                            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                            border: 'none',
+                            padding: '8px 12px',
+                            fontSize: '13px'
+                          }}
+                        />
+                        <Legend 
+                          layout="horizontal" 
+                          verticalAlign="bottom" 
+                          align="center"
+                          iconSize={12}
+                          iconType="circle"
+                          wrapperStyle={{ 
+                            fontSize: '12px', 
+                            paddingTop: '15px',
+                            fontWeight: 500
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full w-full flex flex-col items-center justify-center bg-muted/20 rounded-lg border border-dashed border-muted">
+                      <DollarSign className="w-12 h-12 text-muted-foreground/50 mb-2" />
+                      <p className="text-muted-foreground font-medium">No Data Available</p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">Fiat currency distribution data will appear here</p>
+                    </div>
+                   )}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Transactions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("admin.transactions.title")}</CardTitle>
+      {/* Responsive Recent Transactions */}
+      <Card className="transition-all duration-200 hover:shadow-md">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg">
+            {t("admin.transactions.title")}
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("admin.transactions.transactionId")}</TableHead>
-                <TableHead>{t("admin.transactions.date")}</TableHead>
-                <TableHead>{t("admin.transactions.amount")}</TableHead>
-                <TableHead>{t("admin.transactions.status")}</TableHead>
-                <TableHead>{t("admin.transactions.commission")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.slice(0, 5).map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="font-medium">{tx.id}</TableCell>
-                  <TableCell>
-                    {new Date(tx.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {tx.amount} {tx.currency}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadge(tx.status) as any}>
-                      {tx.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>${tx.commission.toFixed(2)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent className="pt-0">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.transactions.transactionId")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.transactions.date")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.transactions.amount")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.transactions.status")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.transactions.commission")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.slice(0, 5).map((tx) => (
+                    <TableRow key={tx.id}>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {tx.id}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {new Date(tx.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {tx.amount} {tx.currency}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusBadge(tx.status) as any}>
+                          {tx.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        ${tx.commission.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Audit Log Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      {/* Responsive Audit Log Section */}
+      <Card className="transition-all duration-200 hover:shadow-md">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center space-x-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <CardTitle>{t("admin.dashboard.auditLog")}</CardTitle>
+              <Shield className="h-5 w-5 text-primary flex-shrink-0" />
+              <CardTitle className="text-base sm:text-lg">
+                {t("admin.dashboard.auditLog")}
+              </CardTitle>
             </div>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs w-fit">
               {filteredAuditLogs.length} {t("admin.dashboard.entries")}
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          {/* Filters */}
-          <div className="mb-6 p-4 bg-muted/30 rounded-lg">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <CardContent className="pt-0">
+          {/* Responsive Filters */}
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-muted/30 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div>
                 <Label className="text-sm font-medium mb-2 block">
                   <Search className="h-4 w-4 inline mr-1" />
@@ -506,7 +745,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </Select>
               </div>
             </div>
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end mt-3 sm:mt-4">
               <Button
                 variant="outline"
                 size="sm"
@@ -518,71 +757,95 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          {/* Audit Log Table */}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("admin.dashboard.timestamp")}</TableHead>
-                <TableHead>{t("admin.dashboard.user")}</TableHead>
-                <TableHead>{t("admin.dashboard.action")}</TableHead>
-                <TableHead>{t("admin.dashboard.resource")}</TableHead>
-                <TableHead>{t("admin.dashboard.status")}</TableHead>
-                <TableHead>{t("admin.dashboard.severity")}</TableHead>
-                <TableHead>{t("admin.dashboard.ipAddress")}</TableHead>
-                <TableHead>{t("admin.dashboard.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAuditLogs.slice(0, 10).map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="font-mono text-xs">
-                    {new Date(log.timestamp).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="font-medium">{log.user}</TableCell>
-                  <TableCell>{log.action}</TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {log.resource}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        log.status === "success"
-                          ? "default"
-                          : log.status === "failed"
-                          ? "destructive"
-                          : "secondary"
-                      }
-                    >
-                      {log.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        log.severity === "critical"
-                          ? "destructive"
-                          : log.severity === "high"
-                          ? "destructive"
-                          : log.severity === "medium"
-                          ? "secondary"
-                          : "outline"
-                      }
-                    >
-                      {log.severity}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {log.ipAddress}
-                  </TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="ghost">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {/* Responsive Audit Log Table */}
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.dashboard.timestamp")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.dashboard.user")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.dashboard.action")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.dashboard.resource")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.dashboard.status")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.dashboard.severity")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.dashboard.ipAddress")}
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t("admin.dashboard.actions")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAuditLogs.slice(0, 10).map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {log.user}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {log.action}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {log.resource}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            log.status === "success"
+                              ? "default"
+                              : log.status === "failed"
+                              ? "destructive"
+                              : "secondary"
+                          }
+                        >
+                          {log.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            log.severity === "critical"
+                              ? "destructive"
+                              : log.severity === "high"
+                              ? "destructive"
+                              : log.severity === "medium"
+                              ? "secondary"
+                              : "outline"
+                          }
+                        >
+                          {log.severity}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">
+                        {log.ipAddress}
+                      </TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="ghost">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
 
           {filteredAuditLogs.length > 10 && (
             <div className="mt-4 text-center">

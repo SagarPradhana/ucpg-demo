@@ -1,16 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
-import {
-  Bot,
-  TrendingUp,
-  RefreshCw,
-  Minimize2,
-  MessageCircle,
-} from "lucide-react";
+import { Bot, Minimize2, MessageCircle, Send, X, TrendingUp } from "lucide-react";
 import { Button } from "./ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { useMutation } from "@tanstack/react-query";
 import { useToast } from "../hooks/use-toast";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -22,154 +12,199 @@ interface Message {
   timestamp: number;
 }
 
-const SupportChatbot: React.FC = () => {
-  const { t } = useLanguage();
+interface SupportChatbotProps {
+  /** Title displayed in the chatbot header */
+  title?: string;
+  /** Initial greeting message from the bot */
+  greeting?: string;
+  /** Placeholder text for the input field */
+  placeholder?: string;
+  /** Custom knowledge base to extend or replace the default one */
+  customKnowledgeBase?: Record<string, Record<string, string>>;
+  /** Message shown when no relevant response is found */
+  fallbackMessage?: string;
+  /** Position of the chatbot on the screen */
+  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  /** Custom icon for the chatbot trigger button */
+  icon?: React.ReactNode;
+  /** Accent color for the chatbot UI elements */
+  accentColor?: string;
+  /** Whether the chatbot should be initially open */
+  initiallyOpen?: boolean;
+  /** Optional callback when user sends a message */
+  onUserMessage?: (message: string) => void;
+  /** Optional callback to override the default bot response */
+  getCustomResponse?: (message: string) => string | Promise<string>;
+}
+
+export const SupportChatbot: React.FC<SupportChatbotProps> = ({
+  title = "Support Chat",
+  greeting = "Hello! 👋 I'm your support assistant. How can I help you today?",
+  placeholder = "Type your message here...",
+  customKnowledgeBase,
+  fallbackMessage,
+  position = "bottom-right",
+  icon = <MessageCircle size={24} />,
+  accentColor = "#3b82f6", // Default blue color
+  initiallyOpen = false,
+  onUserMessage,
+  getCustomResponse,
+}) => {
+  const { language } = useLanguage();
   const { theme } = useTheme();
   const { toast } = useToast();
 
   // Chatbot state
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(initiallyOpen);
+  const [activeTab, setActiveTab] = useState("chat");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Crypto chart state
-  const [cryptoPriceData, setCryptoPriceData] = useState([
-    { time: "1h", BTC: 42850, ETH: 2650, USDT: 1.0 },
-    { time: "2h", BTC: 42920, ETH: 2645, USDT: 1.0 },
-    { time: "3h", BTC: 43100, ETH: 2670, USDT: 1.0 },
-    { time: "4h", BTC: 43050, ETH: 2690, USDT: 1.0 },
-    { time: "5h", BTC: 43200, ETH: 2710, USDT: 1.0 },
-  ]);
-  const [cryptoTrend, setCryptoTrend] = useState<"up" | "down" | "neutral">(
-    "neutral"
-  );
-
-  // Tab state: "chat" or "chart"
-  const [activeTab, setActiveTab] = useState<"chat" | "chart">("chat");
-
-  // Knowledge base for the chatbot
-  const knowledgeBase = {
+  // Default knowledge base for the chatbot
+  const defaultKnowledgeBase = {
+    general: {
+      help: "I can help you with various topics. Just ask me a question about our services, account, or how to use specific features.",
+      contact: "You can reach our support team via email at support@example.com or by phone at +1-800-123-4567 during business hours.",
+      about: "We are a leading crypto payment gateway providing secure and fast cryptocurrency transactions for businesses and individuals.",
+    },
+    account: {
+      login: "To log in, visit the login page and enter your email and password. If you've forgotten your password, use the 'Forgot Password' link.",
+      signup: "To create a new account, click the 'Sign Up' button on the homepage and follow the registration steps.",
+      security: "We recommend enabling two-factor authentication (2FA) for additional account security.",
+    },
+    payments: {
+      send: "To send a payment, navigate to the Send page, enter the recipient's address, choose the currency, and specify the amount.",
+      receive: "To receive payments, go to the Receive page and share your wallet address or QR code with the sender.",
+      fees: "Our fee structure is transparent with competitive rates. Fees vary by payment method and transaction volume.",
+    },
     dashboard: {
-      overview:
-        "The dashboard is your main control center where you can view your balance, monitor transactions, and access quick actions like Send, Receive, and Services.",
-      balance:
-        "Your balance is displayed prominently on the dashboard. It shows your current balance amount with real-time updates every 30 seconds.",
-      wallet:
-        "Your wallet address is shown in the dashboard. Click the 'Copy Address' button to copy it to clipboard or generate QR codes for easy sharing.",
+      overview: "The dashboard provides an overview of your account, including your balance, recent transactions, and quick access to key features.",
+      balance: "Your balance is displayed prominently on the dashboard. It shows your available funds across different cryptocurrencies.",
+      wallet: "Your wallet addresses are securely stored and can be accessed from the dashboard for receiving payments."
     },
     sending: {
-      payment:
-        "To send a payment: 1) Go to Send page 2) Enter amount and select currencies 3) Choose payment method 4) Review and process payment",
-      methods:
-        "Available payment methods include Credit Card, Bank Transfer (SEPA), and Digital Wallets. Each method has different processing times and fees.",
-      fees: "Our fee structure: Credit Card (2.5%), Bank Transfer (1.5%), Digital Wallet (2.0%). Network fees are additional and depend on blockchain congestion.",
+      payment: "Our platform makes it easy to send payments to anyone, anywhere in the world using cryptocurrencies.",
+      methods: "We support multiple payment methods including direct crypto transfers and email-based payments.",
+      fees: "Our sending fees are competitive and transparent, with discounts available for larger transaction volumes."
     },
     receiving: {
-      generate:
-        "To receive payments: 1) Go to Receive page 2) Enter amount and select currency 3) Generate payment link or QR code 4) Share with sender",
-      links:
-        "Payment links are single-use and expire after 24 hours. They provide secure, anonymous transactions without revealing personal information.",
-      qr: "QR codes contain all necessary payment information. Recipients can scan them with any crypto wallet or payment app.",
+      generate: "You can easily generate payment requests that can be shared with others.",
+      links: "Create shareable payment links that can be sent via email, messaging apps, or social media.",
+      qr: "Generate QR codes that others can scan to send you payments quickly and easily."
     },
     services: {
-      exchange:
-        "Our exchange service supports multiple cryptocurrencies (USDT, BTC, ETH) and fiat currencies (USD, EUR, GBP, UZS, KZT).",
-      rates:
-        "Exchange rates are updated in real-time and include a small service fee. Rates are locked for 15 minutes after quote generation.",
-      support:
-        "24/7 customer support is available via this chat, email (support@ucpg.com), or through our contact form.",
+      exchange: "We offer cryptocurrency exchange services with competitive rates and low fees.",
+      rates: "Our exchange rates are updated in real-time to ensure you get the best value for your transactions.",
+      support: "Our support team is available to help with any questions about our services."
     },
     profile: {
-      settings:
-        "Manage your profile settings including personal information, security preferences, notification settings, and account preferences.",
-      security:
-        "Security features include 2FA, session management, login history, and device management for enhanced account protection.",
-      verification:
-        "Account verification helps increase your transaction limits and provides additional security for your account.",
-    },
+      settings: "Manage your profile settings including notification preferences, language, and theme.",
+      security: "We offer advanced security features including 2FA, email verification, and session management.",
+      verification: "Account verification increases your limits and provides access to additional features."
+    }
   };
+  
+  // Merge default and custom knowledge bases
+  const knowledgeBase = customKnowledgeBase 
+    ? { ...defaultKnowledgeBase, ...customKnowledgeBase }
+    : defaultKnowledgeBase;
 
   // Helper function to find relevant responses
-  const findResponse = (message: string): string => {
-    const msg = message.toLowerCase();
+  const findResponse = (query: string): string => {
+    query = query.toLowerCase().trim();
+    let response = "I'm sorry, I don't have information about that topic yet. Please try asking about dashboard, sending, receiving, services, or profile settings.";
 
+    // Check for common greetings
+    if (/^(hello|hi|hey|greetings|howdy)\b/i.test(query)) {
+      return "Hello! I'm your UCPG support assistant. I can help you with dashboard navigation, sending/receiving payments, services, and account management. What would you like to know?";
+    }
+
+    // Check for thanks
+    if (/\b(thank|thanks|appreciate)\b/i.test(query)) {
+      return "You're welcome! Is there anything else I can help you with?";
+    }
+
+    // Check for goodbye
+    if (/\b(bye|goodbye|see you|talk later)\b/i.test(query)) {
+      return "Goodbye! Feel free to come back if you have more questions.";
+    }
+
+    // Check for help
+    if (/\b(help|assist)\b/i.test(query)) {
+      return "I'm here to help! I can assist you with:\n• Dashboard and balance management\n• Sending crypto payments\n• Receiving payments and generating links\n• Exchange services and rates\n• Profile and security settings\n\nWhat specific topic would you like help with?";
+    }
+
+    // Score-based matching for knowledge base entries
+    let bestMatch = { score: 0, response: "" };
+    
     // Dashboard related queries
     if (
-      msg.includes("dashboard") ||
-      msg.includes("balance") ||
-      msg.includes("overview")
+      query.includes("dashboard") ||
+      query.includes("balance") ||
+      query.includes("overview")
     ) {
-      if (msg.includes("balance")) return knowledgeBase.dashboard.balance;
-      if (msg.includes("wallet") || msg.includes("address"))
+      if (query.includes("balance")) return knowledgeBase.dashboard.balance;
+      if (query.includes("wallet") || query.includes("address"))
         return knowledgeBase.dashboard.wallet;
       return knowledgeBase.dashboard.overview;
     }
 
     // Sending related queries
     if (
-      msg.includes("send") ||
-      msg.includes("payment") ||
-      msg.includes("pay")
+      query.includes("send") ||
+      query.includes("payment") ||
+      query.includes("pay")
     ) {
-      if (msg.includes("method") || msg.includes("how"))
+      if (query.includes("method") || query.includes("how"))
         return knowledgeBase.sending.methods;
-      if (msg.includes("fee") || msg.includes("cost"))
+      if (query.includes("fee") || query.includes("cost"))
         return knowledgeBase.sending.fees;
       return knowledgeBase.sending.payment;
     }
 
     // Receiving related queries
     if (
-      msg.includes("receive") ||
-      msg.includes("generate") ||
-      msg.includes("link")
+      query.includes("receive") ||
+      query.includes("generate") ||
+      query.includes("link")
     ) {
-      if (msg.includes("link")) return knowledgeBase.receiving.links;
-      if (msg.includes("qr") || msg.includes("code"))
+      if (query.includes("link")) return knowledgeBase.receiving.links;
+      if (query.includes("qr") || query.includes("code"))
         return knowledgeBase.receiving.qr;
       return knowledgeBase.receiving.generate;
     }
 
     // Services related queries
     if (
-      msg.includes("service") ||
-      msg.includes("exchange") ||
-      msg.includes("rate")
+      query.includes("service") ||
+      query.includes("exchange") ||
+      query.includes("rate")
     ) {
-      if (msg.includes("rate") || msg.includes("price"))
+      if (query.includes("rate") || query.includes("price"))
         return knowledgeBase.services.rates;
-      if (msg.includes("support") || msg.includes("help"))
+      if (query.includes("support") || query.includes("help"))
         return knowledgeBase.services.support;
       return knowledgeBase.services.exchange;
     }
 
     // Profile related queries
     if (
-      msg.includes("profile") ||
-      msg.includes("account") ||
-      msg.includes("setting")
+      query.includes("profile") ||
+      query.includes("account") ||
+      query.includes("setting")
     ) {
-      if (msg.includes("security") || msg.includes("2fa"))
+      if (query.includes("security") || query.includes("2fa"))
         return knowledgeBase.profile.security;
-      if (msg.includes("verify") || msg.includes("verification"))
+      if (query.includes("verify") || query.includes("verification"))
         return knowledgeBase.profile.verification;
       return knowledgeBase.profile.settings;
-    }
-
-    // Default responses for common queries
-    if (msg.includes("hello") || msg.includes("hi") || msg.includes("hey")) {
-      return "Hello! I'm your UCPG support assistant. I can help you with dashboard navigation, sending/receiving payments, services, and account management. What would you like to know?";
-    }
-
-    if (msg.includes("help") || msg.includes("support")) {
-      return "I'm here to help! I can assist you with:\n• Dashboard and balance management\n• Sending crypto payments\n• Receiving payments and generating links\n• Exchange services and rates\n• Profile and security settings\n\nWhat specific topic would you like help with?";
     }
 
     // Default fallback
     return (
       "I understand you're asking about: \"" +
-      message +
+      query +
       "\". Let me help you with that. For detailed assistance, you can:\n\n• Ask about specific features (dashboard, send, receive, services)\n• Contact our support team at support@ucpg.com\n• Browse our help documentation\n\nIs there a specific area you'd like me to explain?"
     );
   };
@@ -180,7 +215,7 @@ const SupportChatbot: React.FC = () => {
   }, [messages]);
 
   // Handle user message submission
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
@@ -191,17 +226,42 @@ const SupportChatbot: React.FC = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    
+    // Call the onUserMessage callback if provided
+    onUserMessage?.(input.trim());
 
-    // Bot response after a short delay
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: findResponse(input.trim()),
-        sender: "bot",
-        timestamp: Date.now() + 1,
-      };
-      setMessages((prev) => [...prev, botResponse]);
-    }, 500);
+    // Bot response after a short delay for natural feel
+    try {
+      // Get response - either from custom handler or default
+      let responseContent: string;
+      
+      if (getCustomResponse) {
+        responseContent = await Promise.resolve(getCustomResponse(input.trim()));
+      } else {
+        responseContent = findResponse(input.trim());
+      }
+
+      setTimeout(() => {
+        const botResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          content: responseContent,
+          sender: "bot",
+          timestamp: Date.now() + 1,
+        };
+        setMessages((prev) => [...prev, botResponse]);
+      }, 600);
+    } catch (error) {
+      // Handle error and show error message
+      setTimeout(() => {
+        const botResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          content: fallbackMessage || "Sorry, I encountered an error. Please try again later.",
+          sender: "bot",
+          timestamp: Date.now() + 1,
+        };
+        setMessages((prev) => [...prev, botResponse]);
+      }, 600);
+    }
 
     setInput("");
   };
@@ -209,91 +269,45 @@ const SupportChatbot: React.FC = () => {
   // Handle enter key press in input
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
+      e.preventDefault(); // Prevent default to avoid newline in input
       handleSend();
     }
   };
-
-  // Mock API for refreshing crypto price data
-  const mockRefreshCryptoPrices = (): Promise<any[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Generate new data points with slight variations
-        const newData = [...cryptoPriceData];
-
-        // Shift data and add a new point
-        const shiftedData = [
-          ...newData.slice(1),
-          {
-            time: `${parseInt(newData[newData.length - 1].time) + 1}h`,
-            BTC: newData[newData.length - 1].BTC + (Math.random() - 0.5) * 200,
-            ETH: newData[newData.length - 1].ETH + (Math.random() - 0.5) * 50,
-            USDT: 1.0 + (Math.random() - 0.5) * 0.01,
-          },
-        ];
-
-        resolve(shiftedData);
-      }, 500);
-    });
+  
+  // Toggle chatbot visibility
+  const toggleChat = () => {
+    setChatOpen(!chatOpen);
   };
 
-  // Crypto price refresh mutation
-  const refreshCryptoPricesMutation = useMutation({
-    mutationFn: () => mockRefreshCryptoPrices(),
-    onSuccess: (result) => {
-      setCryptoPriceData(result);
-
-      // Calculate trend based on BTC
-      const lastIndex = result.length - 1;
-      const secondLastIndex = lastIndex - 1;
-
-      if (result[lastIndex].BTC > result[secondLastIndex].BTC) {
-        setCryptoTrend("up");
-      } else if (result[lastIndex].BTC < result[secondLastIndex].BTC) {
-        setCryptoTrend("down");
-      } else {
-        setCryptoTrend("neutral");
-      }
-    },
-    onError: (error) => {
-      console.error("Crypto price refresh failed:", error);
-      toast({
-        title: "Update Failed",
-        description: "Failed to refresh crypto prices",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Auto-update crypto prices every 30 seconds
+  // Scroll to bottom of messages when new messages are added
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (!refreshCryptoPricesMutation.isPending) {
-        refreshCryptoPricesMutation.mutate();
-      }
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [refreshCryptoPricesMutation]);
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   return (
     <div
+      className="chatbot-container"
       style={{
         position: "fixed",
-        bottom: "20px",
-        right: "20px",
+        ...(position === "bottom-right" && { bottom: "20px", right: "20px" }),
+        ...(position === "bottom-left" && { bottom: "20px", left: "20px" }),
+        ...(position === "top-right" && { top: "20px", right: "20px" }),
+        ...(position === "top-left" && { top: "20px", left: "20px" }),
         width: chatOpen ? "350px" : "60px",
-        height: chatOpen ? "auto" : "60px",
+        height: chatOpen ? "500px" : "60px",
         maxHeight: chatOpen ? "70vh" : "60px",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        borderRadius: chatOpen ? "8px" : "50%",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+        borderRadius: chatOpen ? "12px" : "50%",
         backgroundColor: theme === "dark" ? "#0f172a" : "#ffffff",
         color: theme === "dark" ? "#f1f5f9" : "#1e293b",
         display: "flex",
         flexDirection: "column",
         fontFamily: "Inter, system-ui, sans-serif",
         zIndex: 9999,
-        transition: "all 0.3s ease-in-out",
+        transition: "all 0.3s ease",
+        overflow: "hidden"
       }}
     >
       <div
@@ -324,7 +338,7 @@ const SupportChatbot: React.FC = () => {
           <>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Bot size={18} />
-              <span>UCPG Support</span>
+              <span>{title}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <div style={{ display: "flex", gap: "4px" }}>
@@ -419,9 +433,7 @@ const SupportChatbot: React.FC = () => {
                       color: theme === "dark" ? "#94a3b8" : "#64748b",
                     }}
                   >
-                    Hello! 👋 I'm your UCPG support assistant. I can help you
-                    with dashboard navigation, payments, exchanges, and account
-                    management. How can I assist you today?
+                    {greeting}
                   </div>
                 )}
                 {messages.map((msg) => (
@@ -477,7 +489,7 @@ const SupportChatbot: React.FC = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask me anything about UCPG..."
+                  placeholder={placeholder}
                   style={{
                     flex: 1,
                     padding: "8px 12px",
@@ -526,99 +538,16 @@ const SupportChatbot: React.FC = () => {
                   <Bot className="h-4 w-4 text-primary" />
                   <h4 className="font-medium text-sm">Crypto Price Bot</h4>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => refreshCryptoPricesMutation.mutate()}
-                  disabled={refreshCryptoPricesMutation.isPending}
-                >
-                  <RefreshCw
-                    className={`h-3 w-3 ${
-                      refreshCryptoPricesMutation.isPending
-                        ? "animate-spin"
-                        : ""
-                    }`}
-                  />
-                </Button>
               </div>
 
-              <div style={{ flex: 1, minHeight: 200 }}>
-                <ChartContainer
-                  config={{
-                    BTC: {
-                      label: "Bitcoin",
-                      theme: {
-                        light: "#F7931A",
-                        dark: "#F7931A",
-                      },
-                    },
-                    ETH: {
-                      label: "Ethereum",
-                      theme: {
-                        light: "#627EEA",
-                        dark: "#627EEA",
-                      },
-                    },
-                    USDT: {
-                      label: "Tether",
-                      theme: {
-                        light: "#26A17B",
-                        dark: "#26A17B",
-                      },
-                    },
-                  }}
-                >
-                  <LineChart data={cryptoPriceData}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                    <YAxis
-                      yAxisId="left"
-                      orientation="left"
-                      tick={{ fontSize: 10 }}
-                      width={30}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Legend wrapperStyle={{ fontSize: "10px" }} />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="BTC"
-                      stroke="var(--color-BTC)"
-                      strokeWidth={1.5}
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="ETH"
-                      stroke="var(--color-ETH)"
-                      strokeWidth={1.5}
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="USDT"
-                      stroke="var(--color-USDT)"
-                      strokeWidth={1.5}
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                  </LineChart>
-                </ChartContainer>
+              <div style={{ flex: 1, minHeight: 200, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <p>Chart functionality is currently unavailable.</p>
               </div>
 
               <div className="text-xs text-muted-foreground flex items-center justify-between pt-2 border-t">
                 <span className="flex items-center">
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  {cryptoTrend === "up"
-                    ? "Market trending up"
-                    : cryptoTrend === "down"
-                    ? "Market trending down"
-                    : "Market stable"}
+                  Market data unavailable
                 </span>
                 <span>Updated {new Date().toLocaleTimeString()}</span>
               </div>
@@ -630,4 +559,5 @@ const SupportChatbot: React.FC = () => {
   );
 };
 
-export default SupportChatbot;
+// Only use the named export
+// export default SupportChatbot;

@@ -61,6 +61,8 @@ import {
   Loader2,
   ToggleLeft,
   ToggleRight,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -130,6 +132,8 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
     data: getRoleUserResponse,
     refetch,
     isLoading: isLoadingUsers,
+    isError: isErrorUsers,
+    error: usersError,
   } = useQuery({
     queryKey: ["userRole", page, pageSize, search],
     queryFn: () => getUserRole({ page, per_page: pageSize, search }),
@@ -573,13 +577,41 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                 </TableRow>
               )}
 
-              {!isLoadingUsers && pagedUsers.length === 0 && (
+              {!isLoadingUsers && !isErrorUsers && pagedUsers.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={6}
-                    className="py-10 text-center text-muted-foreground"
+                    className="py-10 text-center"
                   >
-                    {t("common.noData")}
+                    <div className="flex flex-col items-center justify-center text-muted-foreground">
+                      <User className="w-12 h-12 text-muted-foreground/50 mb-2" />
+                      <p className="text-muted-foreground font-medium">No Users Found</p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">No user accounts match your search criteria</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              
+              {!isLoadingUsers && isErrorUsers && (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-10 text-center"
+                  >
+                    <div className="flex flex-col items-center justify-center text-destructive">
+                      <AlertTriangle className="w-12 h-12 text-destructive/70 mb-2" />
+                      <p className="text-destructive font-medium">Error Loading Users</p>
+                      <p className="text-xs text-destructive/70 mt-1">{usersError instanceof Error ? usersError.message : 'Failed to load user data'}</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-4"
+                        onClick={() => refetch()}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Retry
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
