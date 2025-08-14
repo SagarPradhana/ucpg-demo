@@ -30,3 +30,28 @@ export function epochToCustomLocalStringTime(epoch: number): string {
     "0"
   )}:${minutes}:${seconds} ${ampm}`;
 }
+
+export const getTodayDateRange = () => {
+  const now = new Date();
+  const startOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,
+    0,
+    0
+  );
+  const endOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59
+  );
+
+  return {
+    from_date: Math.floor(startOfDay.getTime() / 1000), // Convert to epoch seconds
+    to_date: Math.floor(endOfDay.getTime() / 1000), // Convert to epoch seconds
+  };
+};

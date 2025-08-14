@@ -18,6 +18,13 @@ import {
   FormatUrl,
   ADMIN_TRANSITION_STATISTICS,
   ADMIN_CURRENCY_DISTRIBUTION,
+  ADMIN_UNCLAIMED_FUNDS,
+  ADMIN_TRANSACTION_REPORTS,
+  ADMIN_USER_REPORTS,
+  ADMIN_FINANCIAL_REPORTS,
+  ADMIN_COMMISSION_REPORTS,
+  ADMIN_ERRORS_REPORTS,
+  ADMIN_AUDIT_LOGS,
 } from "./Urls";
 
 export const getUserRole = (params?: {
@@ -212,6 +219,18 @@ export const postAdminCommissionCalculate = (data: {
   return response;
 };
 
+export const getAdminUnclaimedFunds = (data: {
+  from_date: number;
+  to_date: number;
+}) => {
+  const response = httpClient(ADMIN_UNCLAIMED_FUNDS.url, {
+    method: ADMIN_UNCLAIMED_FUNDS.method,
+    withAuth: true,
+    queryParams: data,
+  });
+  return response;
+};
+
 export const updateAdminCommissionCurrency = (
   commission_id: string,
   data: { rate?: number; is_active?: boolean }
@@ -224,5 +243,50 @@ export const updateAdminCommissionCurrency = (
       data,
     }
   );
+  return response;
+};
+
+export const getAdminReports = async (
+  reportValue: string,
+  data: { from_date: number; to_date: number }
+) => {
+  let apiConfig;
+
+  switch (reportValue) {
+    case "transaction":
+      apiConfig = ADMIN_TRANSACTION_REPORTS;
+      break;
+    case "user":
+      apiConfig = ADMIN_USER_REPORTS;
+      break;
+    case "financial":
+      apiConfig = ADMIN_FINANCIAL_REPORTS;
+      break;
+    case "commission":
+      apiConfig = ADMIN_COMMISSION_REPORTS;
+      break;
+    case "errorlog":
+      apiConfig = ADMIN_ERRORS_REPORTS;
+      break;
+    default:
+      apiConfig = ADMIN_TRANSACTION_REPORTS;
+      break;
+  }
+
+  const response = await httpClient(apiConfig.url, {
+    method: apiConfig.method,
+    withAuth: true,
+    queryParams: data,
+  });
+
+  return response;
+};
+
+export const getAuditLogs = (data: { from_date: number; to_date: number }) => {
+  const response = httpClient(ADMIN_AUDIT_LOGS?.url, {
+    method: ADMIN_AUDIT_LOGS.method,
+    withAuth: true,
+    queryParams: data as Record<string, string | number | boolean>,
+  });
   return response;
 };

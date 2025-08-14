@@ -54,7 +54,7 @@ import {
   updateUserRoles,
   getAdminCurrencyDistribution,
 } from "@/service/adminservices";
-import { epochToCustomLocalStringTime } from "@/Common";
+import { epochToCustomLocalStringTime, getTodayDateRange } from "@/Common";
 
 // Types
 interface Transaction {
@@ -349,16 +349,6 @@ const Admin = () => {
   });
 
   // Helper function to get today's date range in epoch format
-  const getTodayDateRange = () => {
-    const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-    
-    return {
-      from_date: Math.floor(startOfDay.getTime() / 1000), // Convert to epoch seconds
-      to_date: Math.floor(endOfDay.getTime() / 1000), // Convert to epoch seconds
-    };
-  };
 
   // Fetch currency distribution data
   const { data: currencyDistributionData } = useQuery({
@@ -383,24 +373,24 @@ const Admin = () => {
   const processCurrencyDistribution = () => {
     if ((currencyDistributionData as any)?.data) {
       const { by_currency, by_crypto } = (currencyDistributionData as any).data;
-      
+
       // Process by_currency data
       const currencyData = by_currency.map((item: any, index: number) => ({
         name: item.currency,
         value: item.percentage || item.value,
         color: getCurrencyColor(item.currency, index),
       }));
-      
+
       // Process by_crypto data
       const cryptoData = by_crypto.map((item: any, index: number) => ({
         name: item.currency,
         value: item.percentage || item.value,
         color: getCurrencyColor(item.currency, index),
       }));
-      
+
       return { currencyData, cryptoData };
     }
-    
+
     // Fallback data if API response is not available
     return {
       currencyData: [
@@ -417,7 +407,7 @@ const Admin = () => {
       ],
     };
   };
-  
+
   // Helper function to get color for currency
   const getCurrencyColor = (currency: string, index: number) => {
     const colorMap: Record<string, string> = {
@@ -428,18 +418,26 @@ const Admin = () => {
       EUR: "#2196F3",
       GBP: "#9C27B0",
     };
-    
+
     const fallbackColors = [
-      "#8884d8", "#83a6ed", "#8dd1e1", "#82ca9d", "#a4de6c",
-      "#d0ed57", "#ffc658", "#ff8042", "#ff6361", "#bc5090",
+      "#8884d8",
+      "#83a6ed",
+      "#8dd1e1",
+      "#82ca9d",
+      "#a4de6c",
+      "#d0ed57",
+      "#ffc658",
+      "#ff8042",
+      "#ff6361",
+      "#bc5090",
     ];
-    
+
     return colorMap[currency] || fallbackColors[index % fallbackColors.length];
   };
-  
+
   // Get processed currency distribution data
   const { currencyData, cryptoData } = processCurrencyDistribution();
-  
+
   // Use cryptoData for the currency distribution in the dashboard
   const currencyDistribution = cryptoData;
 

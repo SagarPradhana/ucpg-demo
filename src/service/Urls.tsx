@@ -149,3 +149,31 @@ export const ADMIN_CURRENCY_DISTRIBUTION: Api = {
   url: `${BACKEND_KPIX}/admin/dashboard/currency-distribution`,
   method: HttpMethods.GET,
 };
+export const ADMIN_UNCLAIMED_FUNDS: Api = {
+  url: `${BACKEND_KPIX}/admin/dashboard/funds/claimed-unclaimed`,
+  method: HttpMethods.GET,
+};
+export const ADMIN_TRANSACTION_REPORTS: Api = {
+  url: `${BACKEND_KPIX}/admin/reports/transactions`,
+  method: HttpMethods.GET,
+};
+export const ADMIN_USER_REPORTS: Api = {
+  url: `${BACKEND_KPIX}/admin/reports/users`,
+  method: HttpMethods.GET,
+};
+export const ADMIN_ERRORS_REPORTS: Api = {
+  url: `${BACKEND_KPIX}/admin/reports/errors`,
+  method: HttpMethods.GET,
+};
+export const ADMIN_COMMISSION_REPORTS: Api = {
+  url: `${BACKEND_KPIX}/admin/reports/commission`,
+  method: HttpMethods.GET,
+};
+export const ADMIN_FINANCIAL_REPORTS: Api = {
+  url: `${BACKEND_KPIX}/admin/reports/financial`,
+  method: HttpMethods.GET,
+};
+export const ADMIN_AUDIT_LOGS: Api = {
+  url: `${BACKEND_KPIX}/admin/dashboard/activity_logs`,
+  method: HttpMethods.GET,
+};

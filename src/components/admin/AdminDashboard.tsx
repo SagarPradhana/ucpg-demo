@@ -46,7 +46,12 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useQuery } from "@tanstack/react-query";
-import { getAdminTransitionStatistics } from "@/service/adminservices";
+import {
+  getAdminTransitionStatistics,
+  getAdminUnclaimedFunds,
+  getAuditLogs,
+} from "@/service/adminservices";
+import { getTodayDateRange } from "@/Common";
 
 interface Transaction {
   id: string;
@@ -101,18 +106,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const { t } = useLanguage();
 
-  const { data: adminTransitionStatistics } = useQuery({
-    queryKey: ["admin-transition-statistics"],
-    queryFn: () => getAdminTransitionStatistics(),
-    gcTime: 60000,
-    staleTime: 60000,
-  });
-  console.log(adminTransitionStatistics);
-  // Audit log state
+  // const { data: adminTransitionStatistics } = useQuery({
+  //   queryKey: ["admin-transition-statistics"],
+  //   queryFn: () => getAdminTransitionStatistics(),
+  //   gcTime: 60000,
+  //   staleTime: 60000,
+  // });
   const [searchTerm, setSearchTerm] = useState("");
   const [userFilter, setUserFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
   const [timeFilter, setTimeFilter] = useState("24h");
+  const { data: unclaimedFundsResponse } = useQuery({
+    queryKey: ["admin-unclaimed-funds"],
+    queryFn: () => getAdminUnclaimedFunds(getTodayDateRange()),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+  const { data: auditLogsResponse } = useQuery({
+    queryKey: ["admin-auditLog"],
+    queryFn: () => getAuditLogs(getTodayDateRange()),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+  console.log(unclaimedFundsResponse);
+
+  console.log(auditLogsResponse);
+  // Audit log state
 
   // Sample audit log data
   const auditLogs: AuditLog[] = [
@@ -289,7 +308,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </p>
                 <p className="text-xs font-medium text-green-600 truncate mt-1 flex items-center">
                   <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none">
-                    <path d="M7 14l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path
+                      d="M7 14l5-5 5 5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                   +12% from yesterday
                 </p>
@@ -314,7 +339,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </p>
                 <p className="text-xs font-medium text-purple-600 truncate mt-1 flex items-center">
                   <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none">
-                    <path d="M7 14l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path
+                      d="M7 14l5-5 5 5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                   +8.2% from yesterday
                 </p>
@@ -326,26 +357,80 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </CardContent>
         </Card>
 
-        <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-orange-500">
-          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-orange-50/30 to-transparent">
+        <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-blue-500">
+          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-blue-50/30 to-transparent">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
-                  Unclaimed Funds
+                  Funds Overview
                 </p>
-                <p className="text-xl sm:text-2xl font-bold truncate text-orange-700">
-                  ${dashboardStats.last24Hours.unclaimedFunds.toLocaleString()}
-                </p>
-                <p className="text-xs font-medium text-orange-600 truncate mt-1 flex items-center">
-                  <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
-                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Requires attention
-                </p>
+                <div className="flex justify-between mb-4">
+                  <div>
+                    <p className="text-sm font-medium text-green-700">
+                      Claimed:
+                    </p>
+                    <p className="text-xl font-bold text-green-700">
+                      $
+                      {(
+                        ((unclaimedFundsResponse as any)?.data?.claimed
+                          ?.amount as number) ?? 0
+                      ).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-orange-700">
+                      Unclaimed:
+                    </p>
+                    <p className="text-xl font-bold text-orange-700">
+                      $
+                      {(
+                        ((unclaimedFundsResponse as any)?.data?.unclaimed
+                          ?.amount as number) ?? 0
+                      ).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-green-600 truncate mt-1 flex items-center">
+                      <svg
+                        className="w-3 h-3 mr-1"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M5 13l4 4L19 7"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      Successfully claimed
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-orange-600 truncate mt-1 flex items-center">
+                      <svg
+                        className="w-3 h-3 mr-1"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      Requires attention
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
-                <Wallet className="h-6 w-6 text-orange-600" />
+              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Wallet className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -372,46 +457,47 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     barGap={8}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="name" 
-                      fontSize={12} 
-                      tick={{ fontSize: 12 }} 
-                      axisLine={{ stroke: '#e0e0e0' }}
+                    <XAxis
+                      dataKey="name"
+                      fontSize={12}
+                      tick={{ fontSize: 12 }}
+                      axisLine={{ stroke: "#e0e0e0" }}
                       tickLine={false}
                     />
-                    <YAxis 
-                      fontSize={12} 
-                      tick={{ fontSize: 12 }} 
-                      axisLine={{ stroke: '#e0e0e0' }}
+                    <YAxis
+                      fontSize={12}
+                      tick={{ fontSize: 12 }}
+                      axisLine={{ stroke: "#e0e0e0" }}
                       tickLine={false}
                       tickFormatter={(value) => value.toLocaleString()}
                     />
-                    <Tooltip 
-                      formatter={(value) => [value.toLocaleString(), '']}
-                      contentStyle={{ 
-                        borderRadius: '8px', 
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                        border: 'none'
+                    <Tooltip
+                      formatter={(value) => [value.toLocaleString(), ""]}
+                      contentStyle={{
+                        borderRadius: "8px",
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
+                        boxShadow:
+                          "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                        border: "none",
                       }}
                     />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={36} 
+                    <Legend
+                      verticalAlign="top"
+                      height={36}
                       iconType="circle"
                       iconSize={10}
-                      wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                      wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
                     />
-                    <Bar 
-                      dataKey="sent" 
-                      name="Sent" 
-                      fill="#8884d8" 
+                    <Bar
+                      dataKey="sent"
+                      name="Sent"
+                      fill="#8884d8"
                       radius={[4, 4, 0, 0]}
                     />
-                    <Bar 
-                      dataKey="received" 
-                      name="Received" 
-                      fill="#82ca9d" 
+                    <Bar
+                      dataKey="received"
+                      name="Received"
+                      fill="#82ca9d"
                       radius={[4, 4, 0, 0]}
                     />
                   </BarChart>
@@ -419,8 +505,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               ) : (
                 <div className="h-full w-full flex flex-col items-center justify-center bg-muted/20 rounded-lg border border-dashed border-muted">
                   <BarChart className="w-12 h-12 text-muted-foreground/50 mb-2" />
-                  <p className="text-muted-foreground font-medium">No Data Available</p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">Transaction volume data will appear here</p>
+                  <p className="text-muted-foreground font-medium">
+                    No Data Available
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    Transaction volume data will appear here
+                  </p>
                 </div>
               )}
             </div>
@@ -439,8 +529,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Crypto Currency Distribution */}
               <div className="bg-gradient-to-br from-card/80 to-card/50 rounded-xl p-5 shadow-md border border-border/50 hover:shadow-lg transition-all duration-300">
                 <h3 className="text-sm font-medium mb-4 text-center flex items-center justify-center bg-primary/10 py-2 rounded-lg">
-                  <svg className="w-4 h-4 mr-2 text-primary" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 8h6m-6 4h6m-6 4h6M7 3v18m10-18v18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <svg
+                    className="w-4 h-4 mr-2 text-primary"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M9 8h6m-6 4h6m-6 4h6M7 3v18m10-18v18"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
                   </svg>
                   <span className="font-semibold">Crypto Distribution</span>
                 </h3>
@@ -463,56 +563,73 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           animationEasing="ease-out"
                         >
                           {currencyDistribution.map((entry, index) => (
-                            <Cell 
-                              key={`crypto-cell-${index}`} 
-                              fill={entry.color} 
-                              stroke="#fff" 
-                              strokeWidth={2} 
+                            <Cell
+                              key={`crypto-cell-${index}`}
+                              fill={entry.color}
+                              stroke="#fff"
+                              strokeWidth={2}
                             />
                           ))}
                         </Pie>
-                        <Tooltip 
+                        <Tooltip
                           formatter={(value, name) => [`${value}%`, name]}
-                          contentStyle={{ 
-                            borderRadius: '8px', 
-                            backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                            border: 'none',
-                            padding: '8px 12px',
-                            fontSize: '13px'
+                          contentStyle={{
+                            borderRadius: "8px",
+                            backgroundColor: "rgba(255, 255, 255, 0.98)",
+                            boxShadow:
+                              "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                            border: "none",
+                            padding: "8px 12px",
+                            fontSize: "13px",
                           }}
                         />
-                        <Legend 
-                          layout="horizontal" 
-                          verticalAlign="bottom" 
+                        <Legend
+                          layout="horizontal"
+                          verticalAlign="bottom"
                           align="center"
                           iconSize={12}
                           iconType="circle"
-                          wrapperStyle={{ 
-                            fontSize: '12px', 
-                            paddingTop: '15px',
-                            fontWeight: 500
+                          wrapperStyle={{
+                            fontSize: "12px",
+                            paddingTop: "15px",
+                            fontWeight: 500,
                           }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-full w-full flex flex-col items-center justify-center bg-muted/20 rounded-lg border border-dashed border-muted">
-                      <svg className="w-12 h-12 text-muted-foreground/50 mb-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 8h6m-6 4h6m-6 4h6M7 3v18m10-18v18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      <svg
+                        className="w-12 h-12 text-muted-foreground/50 mb-2"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M9 8h6m-6 4h6m-6 4h6M7 3v18m10-18v18"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
                       </svg>
-                      <p className="text-muted-foreground font-medium">No Data Available</p>
-                      <p className="text-xs text-muted-foreground/70 mt-1">Crypto distribution data will appear here</p>
+                      <p className="text-muted-foreground font-medium">
+                        No Data Available
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        Crypto distribution data will appear here
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
-              
+
               {/* Fiat Currency Distribution */}
               <div className="bg-gradient-to-br from-card/80 to-card/50 rounded-xl p-5 shadow-md border border-border/50 hover:shadow-lg transition-all duration-300">
                 <h3 className="text-sm font-medium mb-4 text-center flex items-center justify-center bg-primary/10 py-2 rounded-lg">
                   <DollarSign className="w-4 h-4 mr-2 text-primary" />
-                  <span className="font-semibold">Fiat Currency Distribution</span>
+                  <span className="font-semibold">
+                    Fiat Currency Distribution
+                  </span>
                 </h3>
                 <div className="h-64 w-full">
                   {currencyData && currencyData.length > 0 ? (
@@ -533,35 +650,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           animationEasing="ease-out"
                         >
                           {currencyData.map((entry, index) => (
-                            <Cell 
-                              key={`fiat-cell-${index}`} 
-                              fill={entry.color} 
-                              stroke="#fff" 
-                              strokeWidth={2} 
+                            <Cell
+                              key={`fiat-cell-${index}`}
+                              fill={entry.color}
+                              stroke="#fff"
+                              strokeWidth={2}
                             />
                           ))}
                         </Pie>
-                        <Tooltip 
+                        <Tooltip
                           formatter={(value, name) => [`${value}%`, name]}
-                          contentStyle={{ 
-                            borderRadius: '8px', 
-                            backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                            border: 'none',
-                            padding: '8px 12px',
-                            fontSize: '13px'
+                          contentStyle={{
+                            borderRadius: "8px",
+                            backgroundColor: "rgba(255, 255, 255, 0.98)",
+                            boxShadow:
+                              "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                            border: "none",
+                            padding: "8px 12px",
+                            fontSize: "13px",
                           }}
                         />
-                        <Legend 
-                          layout="horizontal" 
-                          verticalAlign="bottom" 
+                        <Legend
+                          layout="horizontal"
+                          verticalAlign="bottom"
                           align="center"
                           iconSize={12}
                           iconType="circle"
-                          wrapperStyle={{ 
-                            fontSize: '12px', 
-                            paddingTop: '15px',
-                            fontWeight: 500
+                          wrapperStyle={{
+                            fontSize: "12px",
+                            paddingTop: "15px",
+                            fontWeight: 500,
                           }}
                         />
                       </PieChart>
@@ -569,10 +687,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   ) : (
                     <div className="h-full w-full flex flex-col items-center justify-center bg-muted/20 rounded-lg border border-dashed border-muted">
                       <DollarSign className="w-12 h-12 text-muted-foreground/50 mb-2" />
-                      <p className="text-muted-foreground font-medium">No Data Available</p>
-                      <p className="text-xs text-muted-foreground/70 mt-1">Fiat currency distribution data will appear here</p>
+                      <p className="text-muted-foreground font-medium">
+                        No Data Available
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        Fiat currency distribution data will appear here
+                      </p>
                     </div>
-                   )}
+                  )}
                 </div>
               </div>
             </div>
