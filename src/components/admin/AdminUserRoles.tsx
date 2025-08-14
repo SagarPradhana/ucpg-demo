@@ -63,6 +63,8 @@ import {
   ToggleRight,
   AlertTriangle,
   RefreshCw,
+  ArchiveRestoreIcon,
+  RotateCcw,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -234,6 +236,8 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
       // Reset form and close modal
       createUserForm.reset();
       setIsCreateUserModalOpen(false);
+      setIsEdit(false);
+      setSelectedPermissions([]);
       refetch();
     },
     onError: (error: any) => {
@@ -526,9 +530,15 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                       type="button"
                       variant="outline"
                       onClick={() => {
-                        createUserForm.reset();
+                        createUserForm.reset({
+                          fullName: "",
+                          email: "",
+                          password: "",
+                          role: "super-admin",
+                        });
                         setIsCreateUserModalOpen(false);
                         setSelectedPermissions([]);
+                        setIsEdit(false);
                       }}
                     >
                       Cancel
@@ -579,32 +589,36 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
 
               {!isLoadingUsers && !isErrorUsers && pagedUsers.length === 0 && (
                 <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="py-10 text-center"
-                  >
+                  <TableCell colSpan={6} className="py-10 text-center">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <User className="w-12 h-12 text-muted-foreground/50 mb-2" />
-                      <p className="text-muted-foreground font-medium">No Users Found</p>
-                      <p className="text-xs text-muted-foreground/70 mt-1">No user accounts match your search criteria</p>
+                      <p className="text-muted-foreground font-medium">
+                        No Users Found
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        No user accounts match your search criteria
+                      </p>
                     </div>
                   </TableCell>
                 </TableRow>
               )}
-              
+
               {!isLoadingUsers && isErrorUsers && (
                 <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="py-10 text-center"
-                  >
+                  <TableCell colSpan={6} className="py-10 text-center">
                     <div className="flex flex-col items-center justify-center text-destructive">
                       <AlertTriangle className="w-12 h-12 text-destructive/70 mb-2" />
-                      <p className="text-destructive font-medium">Error Loading Users</p>
-                      <p className="text-xs text-destructive/70 mt-1">{usersError instanceof Error ? usersError.message : 'Failed to load user data'}</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <p className="text-destructive font-medium">
+                        Error Loading Users
+                      </p>
+                      <p className="text-xs text-destructive/70 mt-1">
+                        {usersError instanceof Error
+                          ? usersError.message
+                          : "Failed to load user data"}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="mt-4"
                         onClick={() => refetch()}
                       >
@@ -680,7 +694,11 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                             });
                           }}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {user?.isDeleted ? (
+                            <RotateCcw className="h-4 w-4" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>
