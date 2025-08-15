@@ -93,3 +93,69 @@ export function epochRangeForLabel(label: string): EpochRange {
     }
   }
 }
+
+// Additional utility functions for time filtering
+
+// Convert date string (YYYY-MM-DD) to epoch seconds
+export const dateStringToEpoch = (dateString: string): number => {
+  return Math.floor(new Date(dateString).getTime() / 1000);
+};
+
+// Convert epoch seconds to date string (YYYY-MM-DD)
+export const epochToDateString = (epoch: number): string => {
+  return new Date(epoch * 1000).toISOString().split('T')[0];
+};
+
+// Create epoch range from date strings
+export const createEpochRangeFromDates = (fromDate: string, toDate: string): EpochRange => {
+  const fromEpoch = dateStringToEpoch(fromDate);
+  const toEpoch = dateStringToEpoch(toDate) + 86399; // End of day (23:59:59)
+  return { from_date: fromEpoch, to_date: toEpoch };
+};
+
+// Check if a timestamp falls within an epoch range
+export const isTimestampInRange = (timestamp: number, range: EpochRange): boolean => {
+  return timestamp >= range.from_date && timestamp <= range.to_date;
+};
+
+// Format epoch range for display
+export const formatEpochRange = (range: EpochRange): string => {
+  const fromDate = new Date(range.from_date * 1000).toLocaleDateString();
+  const toDate = new Date(range.to_date * 1000).toLocaleDateString();
+  return `${fromDate} - ${toDate}`;
+};
+
+// Get relative time options for different contexts
+export const getRelativeTimeOptions = (context: 'short' | 'extended' | 'logs' = 'short') => {
+  const baseOptions = [
+    { value: "1h", label: "Last 1 Hour" },
+    { value: "24h", label: "Last 24 Hours" },
+    { value: "7d", label: "Last 7 Days" },
+    { value: "30d", label: "Last 30 Days" },
+  ];
+
+  if (context === 'extended') {
+    return [
+      ...baseOptions,
+      { value: "90d", label: "Last 90 Days" },
+      { value: "1y", label: "Last Year" },
+      { value: "all", label: "All Time" },
+    ];
+  }
+
+  if (context === 'logs') {
+    return [
+      { value: "1h", label: "Last 1 Hour" },
+      { value: "6h", label: "Last 6 Hours" },
+      { value: "24h", label: "Last 24 Hours" },
+      { value: "7d", label: "Last 7 Days" },
+      { value: "30d", label: "Last 30 Days" },
+      { value: "90d", label: "Last 90 Days" },
+    ];
+  }
+
+  return [
+    ...baseOptions,
+    { value: "all", label: "All Time" },
+  ];
+};

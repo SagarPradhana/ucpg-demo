@@ -29,6 +29,7 @@ import {
   PaginationNext,
 } from "@/components/ui/pagination";
 import { getAdminTransactions } from "@/service/adminservices";
+import { epochRangeForLabel } from "@/utils/timeFilters";
 
 interface Transaction {
   id: string;
@@ -45,8 +46,6 @@ interface Transaction {
 interface TransactionFilters {
   status: string;
   currency: string;
-  dateFrom: string;
-  dateTo: string;
   search: string;
 }
 
@@ -72,10 +71,19 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
+  // Time filter state - same as AdminReports
+  const [timeLabel, setTimeLabel] = useState<string>("Today");
+  const [epochRange, setEpochRange] = useState(() =>
+    epochRangeForLabel("Today")
+  );
+
+  // Custom date range state
+  const [showCustomDates, setShowCustomDates] = useState(false);
+  const [customDateFrom, setCustomDateFrom] = useState("");
+  const [customDateTo, setCustomDateTo] = useState("");
+
   // Build server query params from filters
   const params = useMemo(() => {
-    const toEpoch = (d?: string) =>
-      d ? Math.floor(new Date(d).getTime() / 1000) : undefined;
     return {
       page,
       limit: pageSize,
@@ -87,11 +95,17 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
         transactionFilters.currency !== "all"
           ? transactionFilters.currency
           : undefined,
-      date_from: toEpoch(transactionFilters.dateFrom),
-      date_to: toEpoch(transactionFilters.dateTo),
+      date_from: epochRange.from_date,
+      date_to: epochRange.to_date,
       // transaction_type, currency_type, target_crypto_currency, user_id can be added later
     } as const;
-  }, [page, pageSize, transactionFilters]);
+  }, [
+    page,
+    pageSize,
+    transactionFilters,
+    epochRange.from_date,
+    epochRange.to_date,
+  ]);
 
   const {
     data: txResponse,
@@ -185,31 +199,126 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Date From</Label>
-              <Input
-                type="date"
-                value={transactionFilters.dateFrom}
-                onChange={(e) =>
-                  setTransactionFilters((prev) => ({
-                    ...prev,
-                    dateFrom: e.target.value,
-                  }))
-                }
-              />
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setTransactionFilters({
+                    status: "all",
+                    currency: "all",
+                    search: "",
+                  });
+                  setTimeLabel("Today");
+                  setEpochRange(epochRangeForLabel("Today"));
+                  setShowCustomDates(false);
+                  setCustomDateFrom("");
+                  setCustomDateTo("");
+                }}
+                className="w-full"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
             </div>
-            <div>
-              <Label>Date To</Label>
-              <Input
-                type="date"
-                value={transactionFilters.dateTo}
-                onChange={(e) =>
-                  setTransactionFilters((prev) => ({
-                    ...prev,
-                    dateTo: e.target.value,
-                  }))
-                }
-              />
+          </div>
+
+          {/* Time Filter Section */}
+          <div className="border-t pt-4">
+            <div className="flex-1">
+              <Label className="mb-1 block">Time range</Label>
+              <Select
+                value={timeLabel}
+                onValueChange={(label: string) => {
+                  setTimeLabel(label);
+                  if (label === "Custom") {
+                    setShowCustomDates(true);
+                    // Don't update epochRange yet, wait for custom dates
+                  } else {
+                    setShowCustomDates(false);
+                    setEpochRange(epochRangeForLabel(label));
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select time range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    "Today",
+                    "Yesterday",
+                    "Last 7 Days",
+                    "Last 30 Days",
+                    "This Week",
+                    "Last Week",
+                    "This Month",
+                    "Last Month",
+                    "Custom",
+                  ].map((label) => (
+                    <SelectItem key={label} value={label}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Custom Date Inputs */}
+              {showCustomDates && (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">From Date</Label>
+                    <Input
+                      type="date"
+                      value={customDateFrom}
+                      onChange={(e) => {
+                        setCustomDateFrom(e.target.value);
+                        if (e.target.value && customDateTo) {
+                          const fromEpoch = Math.floor(
+                            new Date(e.target.value).getTime() / 1000
+                          );
+                          const toEpoch =
+                            Math.floor(
+                              new Date(customDateTo).getTime() / 1000
+                            ) + 86399; // End of day
+                          setEpochRange({
+                            from_date: fromEpoch,
+                            to_date: toEpoch,
+                          });
+                        }
+                      }}
+                      className="text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">To Date</Label>
+                    <Input
+                      type="date"
+                      value={customDateTo}
+                      onChange={(e) => {
+                        setCustomDateTo(e.target.value);
+                        if (customDateFrom && e.target.value) {
+                          const fromEpoch = Math.floor(
+                            new Date(customDateFrom).getTime() / 1000
+                          );
+                          const toEpoch =
+                            Math.floor(
+                              new Date(e.target.value).getTime() / 1000
+                            ) + 86399; // End of day
+                          setEpochRange({
+                            from_date: fromEpoch,
+                            to_date: toEpoch,
+                          });
+                        }
+                      }}
+                      className="text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="text-xs text-muted-foreground mt-1">
+                from_date: {epochRange.from_date} | to_date:{" "}
+                {epochRange.to_date}
+              </div>
             </div>
           </div>
         </CardContent>

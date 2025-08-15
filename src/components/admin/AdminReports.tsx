@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,10 +36,12 @@ import {
   Percent,
   AlertTriangle,
   Settings,
+  Loader2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminReports } from "@/service/adminservices";
 import { epochToCustomLocalStringTime } from "@/Common";
+import { NoData, NoDataPresets } from "@/components/ui/no-data";
 
 interface AdminReportsProps {
   exportData: (type: string, format: string) => void;
@@ -70,6 +73,11 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
   const [epochRange, setEpochRange] = useState(() =>
     epochRangeForLabel("Today")
   );
+
+  // Custom date range state
+  const [showCustomDates, setShowCustomDates] = useState(false);
+  const [customDateFrom, setCustomDateFrom] = useState("");
+  const [customDateTo, setCustomDateTo] = useState("");
 
   // Report options
   const reportOptions: ReportOption[] = [
@@ -105,7 +113,12 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
     },
   ];
 
-  const { data: AdminReportsResponse } = useQuery({
+  const {
+    data: AdminReportsResponse,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: [
       "admin-reports",
       selectedReport,
@@ -140,166 +153,6 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
       }));
     }
   }, [AdminReportsResponse, selectedReport]);
-
-  // Sample data for different report types
-  // const sampleData = {
-  //   transaction: [
-  //     {
-  //       id: "TXN001",
-  //       date: "2024-01-15",
-  //       amount: "$1,250.00",
-  //       currency: "BTC",
-  //       status: "Completed",
-  //       user: "john.doe@example.com",
-  //       commission: "$25.00",
-  //     },
-  //     {
-  //       id: "TXN002",
-  //       date: "2024-01-15",
-  //       amount: "$850.00",
-  //       currency: "ETH",
-  //       status: "Pending",
-  //       user: "jane.smith@example.com",
-  //       commission: "$17.00",
-  //     },
-  //     {
-  //       id: "TXN003",
-  //       date: "2024-01-14",
-  //       amount: "$2,100.00",
-  //       currency: "USDT",
-  //       status: "Completed",
-  //       user: "mike.wilson@example.com",
-  //       commission: "$42.00",
-  //     },
-  //   ],
-  //   user: [
-  //     {
-  //       id: "USR001",
-  //       name: "John Doe",
-  //       email: "john.doe@example.com",
-  //       registrationDate: "2024-01-10",
-  //       status: "Active",
-  //       totalTransactions: 15,
-  //       totalVolume: "$12,500.00",
-  //     },
-  //     {
-  //       id: "USR002",
-  //       name: "Jane Smith",
-  //       email: "jane.smith@example.com",
-  //       registrationDate: "2024-01-12",
-  //       status: "Active",
-  //       totalTransactions: 8,
-  //       totalVolume: "$6,800.00",
-  //     },
-  //     {
-  //       id: "USR003",
-  //       name: "Mike Wilson",
-  //       email: "mike.wilson@example.com",
-  //       registrationDate: "2024-01-08",
-  //       status: "Suspended",
-  //       totalTransactions: 22,
-  //       totalVolume: "$18,900.00",
-  //     },
-  //   ],
-  //   financial: [
-  //     {
-  //       period: "January 2024",
-  //       revenue: "$45,600.00",
-  //       expenses: "$12,300.00",
-  //       profit: "$33,300.00",
-  //       commissionEarned: "$2,280.00",
-  //       transactionCount: 156,
-  //     },
-  //     {
-  //       period: "December 2023",
-  //       revenue: "$52,100.00",
-  //       expenses: "$14,800.00",
-  //       profit: "$37,300.00",
-  //       commissionEarned: "$2,605.00",
-  //       transactionCount: 189,
-  //     },
-  //     {
-  //       period: "November 2023",
-  //       revenue: "$48,900.00",
-  //       expenses: "$13,200.00",
-  //       profit: "$35,700.00",
-  //       commissionEarned: "$2,445.00",
-  //       transactionCount: 167,
-  //     },
-  //   ],
-  //   commission: [
-  //     {
-  //       provider: "Binance",
-  //       totalTransactions: 45,
-  //       totalVolume: "$125,600.00",
-  //       commissionRate: "2.5%",
-  //       commissionEarned: "$3,140.00",
-  //       status: "Active",
-  //     },
-  //     {
-  //       provider: "Coinbase",
-  //       totalTransactions: 32,
-  //       totalVolume: "$89,200.00",
-  //       commissionRate: "2.0%",
-  //       commissionEarned: "$1,784.00",
-  //       status: "Active",
-  //     },
-  //     {
-  //       provider: "Kraken",
-  //       totalTransactions: 28,
-  //       totalVolume: "$76,800.00",
-  //       commissionRate: "1.8%",
-  //       commissionEarned: "$1,382.40",
-  //       status: "Active",
-  //     },
-  //   ],
-  //   "error-log": [
-  //     {
-  //       timestamp: "2024-01-15 14:30:25",
-  //       errorCode: "ERR_001",
-  //       severity: "High",
-  //       message: "Database connection timeout",
-  //       affectedUsers: 12,
-  //       resolved: "Yes",
-  //     },
-  //     {
-  //       timestamp: "2024-01-15 12:15:10",
-  //       errorCode: "ERR_002",
-  //       severity: "Medium",
-  //       message: "API rate limit exceeded",
-  //       affectedUsers: 5,
-  //       resolved: "Yes",
-  //     },
-  //     {
-  //       timestamp: "2024-01-15 09:45:33",
-  //       errorCode: "ERR_003",
-  //       severity: "Low",
-  //       message: "Cache invalidation warning",
-  //       affectedUsers: 0,
-  //       resolved: "Yes",
-  //     },
-  //   ],
-  //   custom: [
-  //     {
-  //       metric: "Daily Active Users",
-  //       value: "1,245",
-  //       change: "+12.5%",
-  //       period: "Last 30 days",
-  //     },
-  //     {
-  //       metric: "Average Transaction Size",
-  //       value: "$1,850.00",
-  //       change: "+8.2%",
-  //       period: "Last 30 days",
-  //     },
-  //     {
-  //       metric: "System Uptime",
-  //       value: "99.8%",
-  //       change: "+0.1%",
-  //       period: "Last 30 days",
-  //     },
-  //   ],
-  // };
 
   // Get current report option
   const currentReportOption = reportOptions.find(
@@ -347,23 +200,26 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
         </CardHeader>
         <CardContent>
           {/* Report Type Selector */}
-          <div className="mb-6">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="flex-1">
+          <div className="mb-6 space-y-6">
+            {/* Report Selection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Report Type */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Report Type</Label>
                 <Select
                   value={selectedReport}
                   onValueChange={(value: ReportType) =>
                     setSelectedReport(value)
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition">
                     <SelectValue placeholder="Select report type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {reportOptions.map((option) => (
+                    {reportOptions?.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         <div className="flex items-center space-x-2">
-                          <option.icon className="h-4 w-4" />
+                          <option.icon className="h-4 w-4 text-primary" />
                           <span>{option.label}</span>
                         </div>
                       </SelectItem>
@@ -372,17 +228,22 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                 </Select>
               </div>
 
-              {/* Custom Time Filter */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Time range</Label>
+              {/* Time Range */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Time Range</Label>
                 <Select
                   value={timeLabel}
                   onValueChange={(label: string) => {
                     setTimeLabel(label);
-                    setEpochRange(epochRangeForLabel(label));
+                    if (label === "Custom") {
+                      setShowCustomDates(true);
+                    } else {
+                      setShowCustomDates(false);
+                      setEpochRange(epochRangeForLabel(label));
+                    }
                   }}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition">
                     <SelectValue placeholder="Select time range" />
                   </SelectTrigger>
                   <SelectContent>
@@ -395,6 +256,7 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                       "Last Week",
                       "This Month",
                       "Last Month",
+                      "Custom",
                     ].map((label) => (
                       <SelectItem key={label} value={label}>
                         {label}
@@ -402,228 +264,376 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                     ))}
                   </SelectContent>
                 </Select>
-                <div className="text-xs text-muted-foreground mt-1">
-                  from_date: {epochRange.from_date} | to_date:{" "}
-                  {epochRange.to_date}
-                </div>
+
+                {/* Custom Dates */}
+                {showCustomDates && (
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium">From Date</Label>
+                      <Input
+                        type="date"
+                        value={customDateFrom}
+                        onChange={(e) => {
+                          setCustomDateFrom(e.target.value);
+                          if (e.target.value && customDateTo) {
+                            const fromEpoch = Math.floor(
+                              new Date(e.target.value).getTime() / 1000
+                            );
+                            const toEpoch =
+                              Math.floor(
+                                new Date(customDateTo).getTime() / 1000
+                              ) + 86399;
+                            setEpochRange({
+                              from_date: fromEpoch,
+                              to_date: toEpoch,
+                            });
+                          }
+                        }}
+                        className="text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium">To Date</Label>
+                      <Input
+                        type="date"
+                        value={customDateTo}
+                        onChange={(e) => {
+                          setCustomDateTo(e.target.value);
+                          if (customDateFrom && e.target.value) {
+                            const fromEpoch = Math.floor(
+                              new Date(customDateFrom).getTime() / 1000
+                            );
+                            const toEpoch =
+                              Math.floor(
+                                new Date(e.target.value).getTime() / 1000
+                              ) + 86399;
+                            setEpochRange({
+                              from_date: fromEpoch,
+                              to_date: toEpoch,
+                            });
+                          }
+                        }}
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Report Description */}
             {currentReportOption && (
-              <div className="p-3 bg-muted/30 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <currentReportOption.icon className="h-4 w-4 text-primary" />
-                  <span className="font-medium">
-                    {currentReportOption.label}
-                  </span>
+              <div className="p-4 bg-muted/30 rounded-lg flex items-start space-x-3">
+                <currentReportOption.icon className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="font-medium">{currentReportOption.label}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {currentReportOption.description}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {currentReportOption.description}
-                </p>
               </div>
             )}
           </div>
 
           {/* Report Table */}
           <div className="border rounded-lg overflow-x-auto">
-            {selectedReport === "transaction" && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("admin.reports.user")}</TableHead>
-                    <TableHead>{t("admin.transactions.date")}</TableHead>
-                    <TableHead>{t("admin.transactions.amount")}</TableHead>
-                    <TableHead>{t("admin.transactions.currency")}</TableHead>
-                    <TableHead>{t("admin.transactions.status")}</TableHead>
-                    <TableHead>{t("admin.transactions.commission")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(reportsData?.transaction ?? [])?.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">
-                        {item?.user}
-                      </TableCell>
-                      <TableCell>
-                        {epochToCustomLocalStringTime(item.date)}
-                      </TableCell>
-                      <TableCell>{item.amount}</TableCell>
-                      <TableCell>{item.currency}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            item.status === "Completed"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {item.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{item.commission}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">
+                  Loading reports...
+                </span>
+              </div>
             )}
 
-            {selectedReport === "user" && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("admin.userRoles.name")}</TableHead>
-                    <TableHead>{t("admin.userRoles.email")}</TableHead>
-                    <TableHead>{t("admin.reports.registrationDate")}</TableHead>
-                    <TableHead>{t("admin.transactions.status")}</TableHead>
-                    <TableHead>
-                      {t("admin.reports.totalTransactions")}
-                    </TableHead>
-                    <TableHead>{t("admin.reports.totalVolume")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportsData?.user?.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell>{item.email}</TableCell>
-                      <TableCell>
-                        {epochToCustomLocalStringTime(item.registration_date)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            item.status === "Active" ? "default" : "destructive"
-                          }
-                        >
-                          {item.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{item.total_transactions}</TableCell>
-                      <TableCell>{item.total_volume}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {/* Error State */}
+            {isError && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <AlertTriangle className="h-8 w-8 text-destructive mb-2" />
+                <span className="text-destructive font-medium">
+                  Failed to load reports
+                </span>
+                <span className="text-sm text-muted-foreground mt-1">
+                  {error?.message || "An error occurred while fetching data"}
+                </span>
+              </div>
             )}
 
-            {selectedReport === "financial" && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("admin.reports.period")}</TableHead>
-                    <TableHead>{t("admin.reports.revenue")}</TableHead>
-                    <TableHead>{t("admin.reports.expenses")}</TableHead>
-                    <TableHead>{t("admin.reports.profit")}</TableHead>
-                    <TableHead>{t("admin.reports.commissionEarned")}</TableHead>
-                    <TableHead>{t("admin.reports.transactionCount")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportsData?.financial?.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">
-                        {item.period}
-                      </TableCell>
-                      <TableCell className="text-green-600">
-                        {item.revenue}
-                      </TableCell>
-                      <TableCell className="text-red-600">
-                        {item.expenses}
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        {item.profit}
-                      </TableCell>
-                      <TableCell>{item.commissionEarned}</TableCell>
-                      <TableCell>{item.transactionCount}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {/* Report Content */}
+            {!isLoading && !isError && selectedReport === "transaction" && (
+              <>
+                {(reportsData?.transaction ?? []).length === 0 ? (
+                  <NoData
+                    {...NoDataPresets.transactions}
+                    variant="detailed"
+                    size="md"
+                  />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t("admin.reports.user")}</TableHead>
+                        <TableHead>{t("admin.transactions.date")}</TableHead>
+                        <TableHead>{t("admin.transactions.amount")}</TableHead>
+                        <TableHead>
+                          {t("admin.transactions.currency")}
+                        </TableHead>
+                        <TableHead>{t("admin.transactions.status")}</TableHead>
+                        <TableHead>
+                          {t("admin.transactions.commission")}
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(reportsData?.transaction ?? [])?.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">
+                            {item?.user}
+                          </TableCell>
+                          <TableCell>
+                            {epochToCustomLocalStringTime(item.date)}
+                          </TableCell>
+                          <TableCell>{item.amount}</TableCell>
+                          <TableCell>{item.currency}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                item.status === "Completed"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {item.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{item.commission}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </>
             )}
 
-            {selectedReport === "commission" && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      {t("admin.reports.totalTransactions")}
-                    </TableHead>
-                    <TableHead>{t("admin.reports.totalVolume")}</TableHead>
-                    <TableHead>{t("admin.reports.commissionRate")}</TableHead>
-                    <TableHead>{t("admin.reports.commissionEarned")}</TableHead>
-                    <TableHead>{t("admin.transactions.status")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportsData?.commission?.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{item.total_transactions}</TableCell>
-                      <TableCell>{item.total_volume}</TableCell>
-                      <TableCell>{item.commission_rate}</TableCell>
-                      <TableCell className="text-green-600">
-                        {item.commission_earned}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="default">{item.status}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {!isLoading && !isError && selectedReport === "user" && (
+              <>
+                {(reportsData?.user ?? []).length === 0 ? (
+                  <NoData
+                    {...NoDataPresets.users}
+                    variant="detailed"
+                    size="md"
+                  />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t("admin.userRoles.name")}</TableHead>
+                        <TableHead>{t("admin.userRoles.email")}</TableHead>
+                        <TableHead>
+                          {t("admin.reports.registrationDate")}
+                        </TableHead>
+                        <TableHead>{t("admin.transactions.status")}</TableHead>
+                        <TableHead>
+                          {t("admin.reports.totalTransactions")}
+                        </TableHead>
+                        <TableHead>{t("admin.reports.totalVolume")}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportsData?.user?.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.name}</TableCell>
+                          <TableCell>{item.email}</TableCell>
+                          <TableCell>
+                            {epochToCustomLocalStringTime(
+                              item.registration_date
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                item.status === "Active"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                            >
+                              {item.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{item.total_transactions}</TableCell>
+                          <TableCell>{item.total_volume}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </>
             )}
 
-            {selectedReport === "errorlog" && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("admin.errorLogs.timestamp")}</TableHead>
-                    <TableHead>{t("admin.errorLogs.errorCode")}</TableHead>
-                    <TableHead>{t("admin.errorLogs.severity")}</TableHead>
-                    <TableHead>{t("admin.errorLogs.message")}</TableHead>
-                    <TableHead>{t("admin.reports.affectedUsers")}</TableHead>
-                    <TableHead>{t("admin.reports.resolved")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportsData?.errorlog?.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-mono text-xs">
-                        {epochToCustomLocalStringTime(item.timestamp)}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {item.error_code}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            item.severity === "High"
-                              ? "destructive"
-                              : item.severity === "Medium"
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
-                          {item.severity}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {item.message}
-                      </TableCell>
-                      <TableCell>{item.affected_users}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            item.resolved === "Yes" ? "default" : "destructive"
-                          }
-                        >
-                          {item.resolved}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {!isLoading && !isError && selectedReport === "financial" && (
+              <>
+                {(reportsData?.financial ?? []).length === 0 ? (
+                  <NoData
+                    title="No financial data available"
+                    description="No financial reports found for the selected time range. Try adjusting your time filter."
+                    icon="database"
+                    variant="detailed"
+                    size="md"
+                  />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t("admin.reports.period")}</TableHead>
+                        <TableHead>{t("admin.reports.revenue")}</TableHead>
+                        <TableHead>{t("admin.reports.expenses")}</TableHead>
+                        <TableHead>{t("admin.reports.profit")}</TableHead>
+                        <TableHead>
+                          {t("admin.reports.commissionEarned")}
+                        </TableHead>
+                        <TableHead>
+                          {t("admin.reports.transactionCount")}
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportsData?.financial?.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">
+                            {item.period}
+                          </TableCell>
+                          <TableCell className="text-green-600">
+                            {item.revenue}
+                          </TableCell>
+                          <TableCell className="text-red-600">
+                            {item.expenses}
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            {item.profit}
+                          </TableCell>
+                          <TableCell>{item.commissionEarned}</TableCell>
+                          <TableCell>{item.transactionCount}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </>
+            )}
+
+            {!isLoading && !isError && selectedReport === "commission" && (
+              <>
+                {(reportsData?.commission ?? []).length === 0 ? (
+                  <NoData
+                    title="No commission data available"
+                    description="No commission reports found for the selected time range."
+                    icon="database"
+                    variant="detailed"
+                    size="md"
+                  />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>
+                          {t("admin.reports.totalTransactions")}
+                        </TableHead>
+                        <TableHead>{t("admin.reports.totalVolume")}</TableHead>
+                        <TableHead>
+                          {t("admin.reports.commissionRate")}
+                        </TableHead>
+                        <TableHead>
+                          {t("admin.reports.commissionEarned")}
+                        </TableHead>
+                        <TableHead>{t("admin.transactions.status")}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportsData?.commission?.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.total_transactions}</TableCell>
+                          <TableCell>{item.total_volume}</TableCell>
+                          <TableCell>{item.commission_rate}</TableCell>
+                          <TableCell className="text-green-600">
+                            {item.commission_earned}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="default">{item.status}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </>
+            )}
+
+            {!isLoading && !isError && selectedReport === "errorlog" && (
+              <>
+                {(reportsData?.errorlog ?? []).length === 0 ? (
+                  <NoData
+                    {...NoDataPresets.errors}
+                    variant="detailed"
+                    size="md"
+                  />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t("admin.errorLogs.timestamp")}</TableHead>
+                        <TableHead>{t("admin.errorLogs.errorCode")}</TableHead>
+                        <TableHead>{t("admin.errorLogs.severity")}</TableHead>
+                        <TableHead>{t("admin.errorLogs.message")}</TableHead>
+                        <TableHead>
+                          {t("admin.reports.affectedUsers")}
+                        </TableHead>
+                        <TableHead>{t("admin.reports.resolved")}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportsData?.errorlog?.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-mono text-xs">
+                            {epochToCustomLocalStringTime(item.timestamp)}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {item.error_code}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                item.severity === "High"
+                                  ? "destructive"
+                                  : item.severity === "Medium"
+                                  ? "secondary"
+                                  : "outline"
+                              }
+                            >
+                              {item.severity}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {item.message}
+                          </TableCell>
+                          <TableCell>{item.affected_users}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                item.resolved === "Yes"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                            >
+                              {item.resolved}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </>
             )}
           </div>
 

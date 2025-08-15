@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   BarChart3,
@@ -39,6 +40,7 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
+import { canAccessSection, getAccessibleSections } from "@/utils/permissions";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSelector, useDispatch } from "react-redux";
 import { useQuery } from "@tanstack/react-query";
@@ -135,6 +137,8 @@ interface AdminUser {
 // Form schema for user creation
 
 const Admin = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("dashboard");
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -172,7 +176,12 @@ const Admin = () => {
   // Handle user profile data when it's fetched
   useEffect(() => {
     if (userProfileData && !singleUserDetails.userDetails) {
-      console.log("✅ Admin: Storing user profile in Redux:", userProfileData);
+      console.log("✅ Admin: Raw user profile data received:", userProfileData);
+      console.log("✅ Admin: User profile data type:", typeof userProfileData);
+      console.log(
+        "✅ Admin: User profile data structure:",
+        JSON.stringify(userProfileData, null, 2)
+      );
       dispatch(
         singleUserDetailsActions.setSingleUserDetails(userProfileData as any)
       );
@@ -191,6 +200,44 @@ const Admin = () => {
     }
   }, [profileError, dispatch]);
 
+  // URL-based routing - sync activeSection with URL
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === "/admin" || path === "/admin/") {
+      // Find the first accessible section for the user
+      const accessibleSections = getAccessibleSections(userProfileData);
+      if (accessibleSections.length > 0) {
+        setActiveSection(accessibleSections[0]);
+      } else {
+        setActiveSection("dashboard"); // fallback
+      }
+    } else if (path.startsWith("/admin/")) {
+      const section = path.replace("/admin/", "");
+      // Check if user has access to this section
+      if (canAccessSection(userProfileData, section)) {
+        setActiveSection(section);
+      } else {
+        // Redirect to first accessible section
+        const accessibleSections = getAccessibleSections(userProfileData);
+        if (accessibleSections.length > 0) {
+          navigate(`/admin/${accessibleSections[0]}`);
+        } else {
+          navigate("/admin");
+        }
+      }
+    }
+  }, [location.pathname, userProfileData, navigate]);
+
+  // Function to handle section navigation
+  const handleSectionChange = (sectionId: string) => {
+    setActiveSection(sectionId);
+    if (sectionId === "dashboard") {
+      navigate("/admin");
+    } else {
+      navigate(`/admin/${sectionId}`);
+    }
+  };
+
   // Dashboard data
   const [dashboardStats, setDashboardStats] = useState({
     todayPayments: { count: 145, amount: 25684.5 },
@@ -204,19 +251,61 @@ const Admin = () => {
   });
 
   // State for create user modal
-  // Menu items for navigation
-  const menuItems = [
+  // All available menu items
+  const allMenuItems = [
     { id: "dashboard", label: t("admin.dashboard"), icon: BarChart3 },
     { id: "transactions", label: t("admin.transactions"), icon: CreditCard },
     { id: "promo-codes", label: t("admin.promoCodes"), icon: QrCode },
     { id: "providers", label: t("admin.providers"), icon: Building2 },
     { id: "exchange-rates", label: t("admin.exchangeRates"), icon: TrendingUp },
     { id: "user-roles", label: t("admin.userRoles"), icon: Users },
-    { id: "commission", label: t("admin.commission"), icon: Percent },
+    {
+      id: "commission-settings",
+      label: t("admin.commission"),
+      icon: Percent,
+    },
     { id: "settings", label: t("admin.settings"), icon: Settings },
     { id: "error-logs", label: t("admin.errorLogs"), icon: AlertTriangle },
     { id: "reports", label: t("admin.reports"), icon: Download },
+    { id: "revenue-ops", label: "Revenue Operations", icon: TrendingUp },
   ];
+
+  // Filter menu items based on user permissions
+  const menuItems = useMemo(() => {
+    if (!userProfileData) {
+      console.log("🔒 Admin: No user profile data available");
+      return [];
+    }
+
+    // Handle case where API response might be wrapped in a 'data' property
+    const userData = (userProfileData as any)?.data || userProfileData;
+
+    console.log("👤 Admin: User profile data:", {
+      originalData: userProfileData,
+      extractedData: userData,
+      role: userData?.role,
+      permissions: userData?.permissions,
+      menus: userData?.menus,
+    });
+
+    // Super admin bypass - show all menu items
+    if (userData?.role === "super_admin") {
+      console.log("👑 Admin: Super admin detected - showing all menu items");
+      return allMenuItems;
+    }
+
+    const filteredItems = allMenuItems.filter((item) => {
+      const hasAccess = canAccessSection(userProfileData, item.id);
+      console.log(`🔑 Admin: Section "${item.id}" access:`, hasAccess);
+      return hasAccess;
+    });
+
+    console.log(
+      "📋 Admin: Accessible menu items:",
+      filteredItems.map((item) => item.id)
+    );
+    return filteredItems;
+  }, [userProfileData, allMenuItems]);
 
   // Form for creating new user
 
@@ -499,6 +588,19 @@ const Admin = () => {
   // All render functions have been moved to separate components
 
   const renderSection = () => {
+    // Check if user has permission to access the current section
+    if (!canAccessSection(userProfileData, activeSection)) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
+          <p className="text-muted-foreground">
+            You don't have permission to access this section.
+          </p>
+        </div>
+      );
+    }
+
     switch (activeSection) {
       case "dashboard":
         return (
@@ -531,6 +633,7 @@ const Admin = () => {
       case "providers":
         return <AdminProviders providers={providers} />;
       case "commission":
+      case "commission-settings":
         return (
           <AdminCommissionSettings
             globalPercentage={globalPercentage}
@@ -559,6 +662,18 @@ const Admin = () => {
         return <AdminErrorLogs getSeverityBadge={getSeverityBadge} />;
       case "reports":
         return <AdminReports exportData={exportData} />;
+      case "revenue-ops":
+        return (
+          <div className="space-y-6">
+            <div className="text-center py-12">
+              <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Revenue Operations</h3>
+              <p className="text-muted-foreground">
+                Revenue operations dashboard coming soon...
+              </p>
+            </div>
+          </div>
+        );
       default:
         return (
           <AdminDashboard
@@ -636,7 +751,7 @@ const Admin = () => {
                   {menuItems.map((item) => (
                     <SidebarMenuItem key={item.id} className="mb-1">
                       <SidebarMenuButton
-                        onClick={() => setActiveSection(item.id)}
+                        onClick={() => handleSectionChange(item.id)}
                         isActive={activeSection === item.id}
                         className={`w-full justify-start p-3 rounded-lg transition-colors ${
                           activeSection === item.id
@@ -701,7 +816,20 @@ const Admin = () => {
                   <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
                     <div className="w-full max-w-none">
                       <div className="space-y-4 sm:space-y-6">
-                        {renderSection()}
+                        {menuItems.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-64 text-center">
+                            <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">
+                              No Access
+                            </h3>
+                            <p className="text-muted-foreground">
+                              You don't have permission to access any admin
+                              sections. Please contact your administrator.
+                            </p>
+                          </div>
+                        ) : (
+                          renderSection()
+                        )}
                       </div>
                     </div>
                   </div>

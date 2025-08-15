@@ -52,6 +52,9 @@ import {
   getAuditLogs,
 } from "@/service/adminservices";
 import { getTodayDateRange } from "@/Common";
+import { TimeFilter } from "@/components/ui/time-filter";
+import { useTimeFilter } from "@/hooks/useTimeFilter";
+import { getRelativeTimeOptions } from "@/utils/timeFilters";
 
 interface Transaction {
   id: string;
@@ -115,7 +118,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [userFilter, setUserFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
-  const [timeFilter, setTimeFilter] = useState("24h");
+
+  // Use the new time filter hook for audit logs
+  const auditLogTimeFilter = useTimeFilter({
+    mode: "relative",
+    defaultValue: "24h",
+    onFilterChange: (state) => {
+      console.log("Audit log time filter changed:", state);
+    },
+  });
   const { data: unclaimedFundsResponse } = useQuery({
     queryKey: ["admin-unclaimed-funds"],
     queryFn: () => getAdminUnclaimedFunds(getTodayDateRange()),
@@ -236,39 +247,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const matchesAction =
         actionFilter === "all" || log.action === actionFilter;
 
-      // Time filter
+      // Time filter using the new hook
       const logTime = new Date(log.timestamp).getTime();
-      const now = Date.now();
-      let matchesTime = true;
-
-      switch (timeFilter) {
-        case "1h":
-          matchesTime = now - logTime <= 60 * 60 * 1000;
-          break;
-        case "24h":
-          matchesTime = now - logTime <= 24 * 60 * 60 * 1000;
-          break;
-        case "7d":
-          matchesTime = now - logTime <= 7 * 24 * 60 * 60 * 1000;
-          break;
-        case "30d":
-          matchesTime = now - logTime <= 30 * 24 * 60 * 60 * 1000;
-          break;
-        case "all":
-          matchesTime = true;
-          break;
-      }
+      const logTimestamp = Math.floor(logTime / 1000); // Convert to seconds
+      const matchesTime = auditLogTimeFilter.filterByTimestamp(logTimestamp);
 
       return matchesSearch && matchesUser && matchesAction && matchesTime;
     });
-  }, [auditLogs, searchTerm, userFilter, actionFilter, timeFilter]);
+  }, [
+    auditLogs,
+    searchTerm,
+    userFilter,
+    actionFilter,
+    auditLogTimeFilter.value,
+  ]);
 
   // Clear all filters
   const clearFilters = () => {
     setSearchTerm("");
     setUserFilter("all");
     setActionFilter("all");
-    setTimeFilter("24h");
+    auditLogTimeFilter.handleRelativeChange("24h");
   };
 
   return (
@@ -837,34 +836,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </Select>
               </div>
               <div>
-                <Label className="text-sm font-medium mb-2 block">
-                  <Calendar className="h-4 w-4 inline mr-1" />
-                  {t("admin.dashboard.timeRange")}
-                </Label>
-                <Select value={timeFilter} onValueChange={setTimeFilter}>
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={t("admin.dashboard.last24Hours")}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1h">
-                      {t("admin.dashboard.last1Hour")}
-                    </SelectItem>
-                    <SelectItem value="24h">
-                      {t("admin.dashboard.last24Hours")}
-                    </SelectItem>
-                    <SelectItem value="7d">
-                      {t("admin.dashboard.last7Days")}
-                    </SelectItem>
-                    <SelectItem value="30d">
-                      {t("admin.dashboard.last30Days")}
-                    </SelectItem>
-                    <SelectItem value="all">
-                      {t("admin.dashboard.allTime")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <TimeFilter
+                  mode="relative"
+                  value={auditLogTimeFilter.value}
+                  onChange={auditLogTimeFilter.handleRelativeChange}
+                  relativeOptions={getRelativeTimeOptions("short")}
+                  label={t("admin.dashboard.timeRange")}
+                  placeholder={t("admin.dashboard.last24Hours")}
+                  variant="compact"
+                  showIcon={true}
+                />
               </div>
             </div>
             <div className="flex justify-end mt-3 sm:mt-4">

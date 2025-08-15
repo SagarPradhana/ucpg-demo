@@ -278,6 +278,126 @@ const App = () => (
                         </ProtectedRoute>
                       }
                     />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.DASHBOARD}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.TRANSACTIONS}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.USER_ROLES}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.PROMO_CODES}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.PROVIDERS}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.EXCHANGE_RATES}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.COMMISSION_SETTINGS}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.SETTINGS}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.ERROR_LOGS}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.REPORTS}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
 
                     {/* Catch-all route for 404 errors */}
                     <Route

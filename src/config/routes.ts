@@ -21,6 +21,16 @@ export const ROUTE_CONFIG = {
   // Admin routes - only for admin users
   ADMIN: {
     PANEL: '/admin',
+    DASHBOARD: '/admin/dashboard',
+    TRANSACTIONS: '/admin/transactions',
+    USER_ROLES: '/admin/user-roles',
+    PROMO_CODES: '/admin/promo-codes',
+    PROVIDERS: '/admin/providers',
+    EXCHANGE_RATES: '/admin/exchange-rates',
+    COMMISSION_SETTINGS: '/admin/commission-settings',
+    SETTINGS: '/admin/settings',
+    ERROR_LOGS: '/admin/error-logs',
+    REPORTS: '/admin/reports',
   },
   
   // Error routes
@@ -40,7 +50,9 @@ export const isUserRoute = (path: string): boolean => {
 // Helper function to check if a path is an admin route
 export const isAdminRoute = (path: string): boolean => {
   const adminRoutes = Object.values(ROUTE_CONFIG.ADMIN);
-  return adminRoutes.includes(path);
+  return adminRoutes.some(route =>
+    path === route || path.startsWith(route)
+  );
 };
 
 // Helper function to check if a path is a public route
