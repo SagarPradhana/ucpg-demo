@@ -46,6 +46,8 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useQuery } from "@tanstack/react-query";
+import CommonPagination from "@/components/ui/common-pagination";
+import { usePagination } from "@/hooks/usePagination";
 import {
   getAdminTransitionStatistics,
   getAdminUnclaimedFunds,
@@ -116,8 +118,40 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   //   staleTime: 60000,
   // });
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Pagination hooks for both tables
+  const transactionsPagination = usePagination({
+    initialPage: 1,
+    pageSize: 5, // Smaller page size for dashboard
+  });
+
+  const auditLogsPagination = usePagination({
+    initialPage: 1,
+    pageSize: 5, // Smaller page size for dashboard
+  });
   const [userFilter, setUserFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
+
+  // Update pagination when data changes
+  React.useEffect(() => {
+    transactionsPagination.setTotalItems(transactions.length);
+  }, [transactions.length, transactionsPagination]);
+
+  // Helper functions for paginated data
+  const getPaginatedTransactions = () => {
+    const startIndex =
+      (transactionsPagination.currentPage - 1) *
+      transactionsPagination.pageSize;
+    const endIndex = startIndex + transactionsPagination.pageSize;
+    return transactions.slice(startIndex, endIndex);
+  };
+
+  const getPaginatedAuditLogs = () => {
+    const startIndex =
+      (auditLogsPagination.currentPage - 1) * auditLogsPagination.pageSize;
+    const endIndex = startIndex + auditLogsPagination.pageSize;
+    return filteredAuditLogs.slice(startIndex, endIndex);
+  };
 
   // Use the new time filter hook for audit logs
   const auditLogTimeFilter = useTimeFilter({
@@ -261,6 +295,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     actionFilter,
     auditLogTimeFilter.value,
   ]);
+
+  // Update audit logs pagination when filtered data changes
+  React.useEffect(() => {
+    auditLogsPagination.setTotalItems(filteredAuditLogs.length);
+  }, [filteredAuditLogs.length, auditLogsPagination]);
 
   // Clear all filters
   const clearFilters = () => {
@@ -732,7 +771,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.slice(0, 5).map((tx) => (
+                  {getPaginatedTransactions().map((tx) => (
                     <TableRow key={tx.id}>
                       <TableCell className="font-medium whitespace-nowrap">
                         {tx.id}
@@ -757,6 +796,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </Table>
             </div>
           </div>
+
+          {/* Transactions Pagination */}
+          {transactions.length > 0 && (
+            <CommonPagination
+              currentPage={transactionsPagination.currentPage}
+              totalPages={transactionsPagination.totalPages}
+              totalItems={transactions.length}
+              pageSize={transactionsPagination.pageSize}
+              onPageChange={transactionsPagination.setCurrentPage}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -777,27 +827,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </CardHeader>
         <CardContent className="pt-0">
           {/* Responsive Filters */}
-          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-muted/30 rounded-lg">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div>
-                <Label className="text-sm font-medium mb-2 block">
-                  <Search className="h-4 w-4 inline mr-1" />
+          <div className="mb-4 sm:mb-6 p-4 bg-muted/30 rounded-lg shadow-sm">
+            {/* Filters Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Search */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <Search className="h-4 w-4 text-primary" />
                   {t("admin.dashboard.search")}
                 </Label>
                 <Input
                   placeholder={t("admin.dashboard.searchPlaceholder")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full"
+                  className="w-full h-9 text-sm"
                 />
               </div>
-              <div>
-                <Label className="text-sm font-medium mb-2 block">
-                  <User className="h-4 w-4 inline mr-1" />
+
+              {/* User Filter */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <User className="h-4 w-4 text-primary" />
                   {t("admin.dashboard.user")}
                 </Label>
                 <Select value={userFilter} onValueChange={setUserFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm">
                     <SelectValue placeholder={t("admin.dashboard.allUsers")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -812,13 +866,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label className="text-sm font-medium mb-2 block">
-                  <Filter className="h-4 w-4 inline mr-1" />
+
+              {/* Action Filter */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <Filter className="h-4 w-4 text-primary" />
                   {t("admin.dashboard.action")}
                 </Label>
                 <Select value={actionFilter} onValueChange={setActionFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm">
                     <SelectValue
                       placeholder={t("admin.dashboard.allActions")}
                     />
@@ -835,7 +891,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+
+              {/* Time Filter */}
+              <div className="space-y-1.5">
                 <TimeFilter
                   mode="relative"
                   value={auditLogTimeFilter.value}
@@ -848,12 +906,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 />
               </div>
             </div>
-            <div className="flex justify-end mt-3 sm:mt-4">
+
+            {/* Clear Filters Button */}
+            <div className="flex justify-end mt-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={clearFilters}
-                className="text-xs"
+                className="text-xs hover:bg-muted"
               >
                 {t("admin.dashboard.clearFilters")}
               </Button>
@@ -893,7 +953,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAuditLogs.slice(0, 10).map((log) => (
+                  {getPaginatedAuditLogs().map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="font-mono text-xs whitespace-nowrap">
                         {new Date(log.timestamp).toLocaleString()}
@@ -950,12 +1010,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          {filteredAuditLogs.length > 10 && (
-            <div className="mt-4 text-center">
-              <Button variant="outline" size="sm">
-                Load More ({filteredAuditLogs.length - 10} remaining)
-              </Button>
-            </div>
+          {/* Audit Logs Pagination */}
+          {filteredAuditLogs.length > 0 && (
+            <CommonPagination
+              currentPage={auditLogsPagination.currentPage}
+              totalPages={auditLogsPagination.totalPages}
+              totalItems={filteredAuditLogs.length}
+              pageSize={auditLogsPagination.pageSize}
+              onPageChange={auditLogsPagination.setCurrentPage}
+            />
           )}
         </CardContent>
       </Card>

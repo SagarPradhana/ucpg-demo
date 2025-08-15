@@ -22,6 +22,8 @@ import { AlertTriangle, Eye, Loader2, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminExchangeSettings } from "@/service/adminservices";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import CommonPagination from "@/components/ui/common-pagination";
+import { usePagination } from "@/hooks/usePagination";
 
 interface ExchangeRate {
   symbol: string;
@@ -51,6 +53,12 @@ const AdminExchangeRates: React.FC<AdminExchangeRatesProps> = ({
   const [exchangeRates, setExchangeRate] = useState<ExchangeRate[]>([]);
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
+
+  // Pagination hook
+  const pagination = usePagination({
+    initialPage: 1,
+    pageSize: 10,
+  });
   const {
     data: exchangeSettings,
     isLoading,
@@ -78,6 +86,18 @@ const AdminExchangeRates: React.FC<AdminExchangeRatesProps> = ({
       setExchangeRate(exchangeData);
     }
   }, [exchangeSettings]);
+
+  // Update pagination when data changes
+  useEffect(() => {
+    pagination.setTotalItems(exchangeRates.length);
+  }, [exchangeRates.length, pagination]);
+
+  // Get paginated data
+  const getPaginatedData = (data: ExchangeRate[]) => {
+    const startIndex = (pagination.currentPage - 1) * pagination.pageSize;
+    const endIndex = startIndex + pagination.pageSize;
+    return data.slice(startIndex, endIndex);
+  };
 
   return (
     <div className="space-y-6">
@@ -146,23 +166,33 @@ const AdminExchangeRates: React.FC<AdminExchangeRatesProps> = ({
                     <TableCell colSpan={6} className="py-10 text-center">
                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                         <RefreshCw className="w-12 h-12 text-muted-foreground/50 mb-2" />
-                        <p className="text-muted-foreground font-medium">No Exchange Rates Found</p>
-                        <p className="text-xs text-muted-foreground/70 mt-1">No exchange rate data is currently available</p>
+                        <p className="text-muted-foreground font-medium">
+                          No Exchange Rates Found
+                        </p>
+                        <p className="text-xs text-muted-foreground/70 mt-1">
+                          No exchange rate data is currently available
+                        </p>
                       </div>
                     </TableCell>
                   </TableRow>
                 )}
-                
+
                 {!isLoading && isError && (
                   <TableRow>
                     <TableCell colSpan={6} className="py-10 text-center">
                       <div className="flex flex-col items-center justify-center text-destructive">
                         <AlertTriangle className="w-12 h-12 text-destructive/70 mb-2" />
-                        <p className="text-destructive font-medium">Error Loading Exchange Rates</p>
-                        <p className="text-xs text-destructive/70 mt-1">{error instanceof Error ? error.message : 'Failed to load exchange rate data'}</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <p className="text-destructive font-medium">
+                          Error Loading Exchange Rates
+                        </p>
+                        <p className="text-xs text-destructive/70 mt-1">
+                          {error instanceof Error
+                            ? error.message
+                            : "Failed to load exchange rate data"}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="mt-4"
                           onClick={() => refetch()}
                         >
@@ -173,9 +203,11 @@ const AdminExchangeRates: React.FC<AdminExchangeRatesProps> = ({
                     </TableCell>
                   </TableRow>
                 )}
-                
-                {!isLoading && !isError && exchangeRates?.length > 0 &&
-                  exchangeRates.map((rate, index) => (
+
+                {!isLoading &&
+                  !isError &&
+                  exchangeRates?.length > 0 &&
+                  getPaginatedData(exchangeRates).map((rate, index) => (
                     <TableRow key={index}>
                       <TableCell className="font-medium">
                         {rate.symbol}
@@ -217,6 +249,18 @@ const AdminExchangeRates: React.FC<AdminExchangeRatesProps> = ({
                   ))}
               </TableBody>
             </Table>
+
+            {/* Pagination */}
+            {exchangeRates?.length > 0 && (
+              <CommonPagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={exchangeRates.length}
+                pageSize={pagination.pageSize}
+                onPageChange={pagination.setCurrentPage}
+                disabled={isLoading}
+              />
+            )}
           </div>
         </CardContent>
       </Card>

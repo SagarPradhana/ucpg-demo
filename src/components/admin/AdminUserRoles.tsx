@@ -68,13 +68,8 @@ import {
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationPrevious,
-  PaginationNext,
-} from "@/components/ui/pagination";
+import CommonPagination from "@/components/ui/common-pagination";
+import { usePagination } from "@/hooks/usePagination";
 import {
   createUserRole,
   getAllPermissions,
@@ -126,8 +121,11 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
 
   type CreateUserFormData = z.infer<typeof createUserSchema>;
 
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+  // Pagination hook
+  const pagination = usePagination({
+    initialPage: 1,
+    pageSize: 10,
+  });
   const [search, setSearch] = useState("");
 
   const {
@@ -137,8 +135,13 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
     isError: isErrorUsers,
     error: usersError,
   } = useQuery({
-    queryKey: ["userRole", page, pageSize, search],
-    queryFn: () => getUserRole({ page, per_page: pageSize, search }),
+    queryKey: ["userRole", pagination.currentPage, pagination.pageSize, search],
+    queryFn: () =>
+      getUserRole({
+        page: pagination.currentPage,
+        per_page: pagination.pageSize,
+        search,
+      }),
     gcTime: 60000,
     staleTime: 60000,
   });
@@ -175,24 +178,19 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
   const serverTotalCount = (getRoleUserResponse as any)?.total_count as
     | number
     | undefined;
+
+  // Update pagination when data changes
+  useEffect(() => {
+    if (serverTotalCount !== undefined) {
+      pagination.setTotalItems(serverTotalCount);
+    }
+  }, [serverTotalCount, pagination]);
   const serverStatus = (getRoleUserResponse as any)?.status as
     | string
     | undefined;
   const serverStatusCode = (getRoleUserResponse as any)?.status_code as
     | number
     | undefined;
-
-  const effectivePageSize = serverPageSize ?? pageSize;
-  const effectiveTotalCount = serverTotalCount ?? adminUsers.length;
-  const totalPages = Math.max(
-    1,
-    Math.ceil(effectiveTotalCount / effectivePageSize)
-  );
-
-  const pagedUsers = adminUsers.slice(
-    (page - 1) * effectivePageSize,
-    page * effectivePageSize
-  );
 
   // Build permission groups once for rendering
   const permissionGroups = useMemo(() => {
@@ -587,7 +585,7 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                 </TableRow>
               )}
 
-              {!isLoadingUsers && !isErrorUsers && pagedUsers.length === 0 && (
+              {!isLoadingUsers && !isErrorUsers && adminUsers.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-10 text-center">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
@@ -631,7 +629,7 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
               )}
 
               {!isLoadingUsers &&
-                pagedUsers.map((user) => (
+                adminUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -708,35 +706,14 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
           </Table>
 
           {/* Pagination */}
-          <div className="mt-4">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPage((p) => Math.max(1, p - 1));
-                    }}
-                  />
-                </PaginationItem>
-                <PaginationItem>
-                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                    {serverPageNo ?? page} of {totalPages}
-                  </div>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPage((p) => Math.min(totalPages, p + 1));
-                    }}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
+          <CommonPagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={serverTotalCount ?? 0}
+            pageSize={pagination.pageSize}
+            onPageChange={pagination.setCurrentPage}
+            disabled={isLoadingUsers}
+          />
         </CardContent>
       </Card>
     </div>

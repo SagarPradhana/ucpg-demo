@@ -42,6 +42,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getAdminReports } from "@/service/adminservices";
 import { epochToCustomLocalStringTime } from "@/Common";
 import { NoData, NoDataPresets } from "@/components/ui/no-data";
+import CommonPagination from "@/components/ui/common-pagination";
+import { usePagination } from "@/hooks/usePagination";
 
 interface AdminReportsProps {
   exportData: (type: string, format: string) => void;
@@ -78,6 +80,12 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
   const [showCustomDates, setShowCustomDates] = useState(false);
   const [customDateFrom, setCustomDateFrom] = useState("");
   const [customDateTo, setCustomDateTo] = useState("");
+
+  // Pagination hook
+  const pagination = usePagination({
+    initialPage: 1,
+    pageSize: 10,
+  });
 
   // Report options
   const reportOptions: ReportOption[] = [
@@ -147,12 +155,26 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
 
   useEffect(() => {
     if (AdminReportsResponse) {
-      setReportsData((prevData) => ({
+      setReportsData((prevData: any) => ({
         ...prevData,
         [selectedReport]: (AdminReportsResponse as any)?.data || [],
       }));
     }
   }, [AdminReportsResponse, selectedReport]);
+
+  // Update pagination when data changes
+  const currentReportData = reportsData[selectedReport] || [];
+  useEffect(() => {
+    pagination.setTotalItems(currentReportData.length);
+    pagination.setCurrentPage(1); // Reset to first page when report type changes
+  }, [currentReportData.length, selectedReport, pagination]);
+
+  // Get paginated data for current report
+  const getPaginatedData = (data: any[]) => {
+    const startIndex = (pagination.currentPage - 1) * pagination.pageSize;
+    const endIndex = startIndex + pagination.pageSize;
+    return data.slice(startIndex, endIndex);
+  };
 
   // Get current report option
   const currentReportOption = reportOptions.find(
@@ -386,32 +408,44 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(reportsData?.transaction ?? [])?.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">
-                            {item?.user}
-                          </TableCell>
-                          <TableCell>
-                            {epochToCustomLocalStringTime(item.date)}
-                          </TableCell>
-                          <TableCell>{item.amount}</TableCell>
-                          <TableCell>{item.currency}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                item.status === "Completed"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {item.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{item.commission}</TableCell>
-                        </TableRow>
-                      ))}
+                      {getPaginatedData(reportsData?.transaction ?? [])?.map(
+                        (item: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">
+                              {item?.user}
+                            </TableCell>
+                            <TableCell>
+                              {epochToCustomLocalStringTime(item.date)}
+                            </TableCell>
+                            <TableCell>{item.amount}</TableCell>
+                            <TableCell>{item.currency}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  item.status === "Completed"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                              >
+                                {item.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{item.commission}</TableCell>
+                          </TableRow>
+                        )
+                      )}
                     </TableBody>
                   </Table>
+                )}
+                {(reportsData?.transaction ?? []).length > 0 && (
+                  <CommonPagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={currentReportData.length}
+                    pageSize={pagination.pageSize}
+                    onPageChange={pagination.setCurrentPage}
+                    disabled={isLoading}
+                  />
                 )}
               </>
             )}
@@ -441,32 +475,44 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {reportsData?.user?.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell>{item.email}</TableCell>
-                          <TableCell>
-                            {epochToCustomLocalStringTime(
-                              item.registration_date
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                item.status === "Active"
-                                  ? "default"
-                                  : "destructive"
-                              }
-                            >
-                              {item.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{item.total_transactions}</TableCell>
-                          <TableCell>{item.total_volume}</TableCell>
-                        </TableRow>
-                      ))}
+                      {getPaginatedData(reportsData?.user ?? [])?.map(
+                        (item: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell>{item.name}</TableCell>
+                            <TableCell>{item.email}</TableCell>
+                            <TableCell>
+                              {epochToCustomLocalStringTime(
+                                item.registration_date
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  item.status === "Active"
+                                    ? "default"
+                                    : "destructive"
+                                }
+                              >
+                                {item.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{item.total_transactions}</TableCell>
+                            <TableCell>{item.total_volume}</TableCell>
+                          </TableRow>
+                        )
+                      )}
                     </TableBody>
                   </Table>
+                )}
+                {(reportsData?.user ?? []).length > 0 && (
+                  <CommonPagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={currentReportData.length}
+                    pageSize={pagination.pageSize}
+                    onPageChange={pagination.setCurrentPage}
+                    disabled={isLoading}
+                  />
                 )}
               </>
             )}
@@ -498,26 +544,38 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {reportsData?.financial?.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">
-                            {item.period}
-                          </TableCell>
-                          <TableCell className="text-green-600">
-                            {item.revenue}
-                          </TableCell>
-                          <TableCell className="text-red-600">
-                            {item.expenses}
-                          </TableCell>
-                          <TableCell className="font-semibold">
-                            {item.profit}
-                          </TableCell>
-                          <TableCell>{item.commissionEarned}</TableCell>
-                          <TableCell>{item.transactionCount}</TableCell>
-                        </TableRow>
-                      ))}
+                      {getPaginatedData(reportsData?.financial ?? [])?.map(
+                        (item: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">
+                              {item.period}
+                            </TableCell>
+                            <TableCell className="text-green-600">
+                              {item.revenue}
+                            </TableCell>
+                            <TableCell className="text-red-600">
+                              {item.expenses}
+                            </TableCell>
+                            <TableCell className="font-semibold">
+                              {item.profit}
+                            </TableCell>
+                            <TableCell>{item.commissionEarned}</TableCell>
+                            <TableCell>{item.transactionCount}</TableCell>
+                          </TableRow>
+                        )
+                      )}
                     </TableBody>
                   </Table>
+                )}
+                {(reportsData?.financial ?? []).length > 0 && (
+                  <CommonPagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={currentReportData.length}
+                    pageSize={pagination.pageSize}
+                    onPageChange={pagination.setCurrentPage}
+                    disabled={isLoading}
+                  />
                 )}
               </>
             )}
@@ -550,21 +608,33 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {reportsData?.commission?.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.total_transactions}</TableCell>
-                          <TableCell>{item.total_volume}</TableCell>
-                          <TableCell>{item.commission_rate}</TableCell>
-                          <TableCell className="text-green-600">
-                            {item.commission_earned}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="default">{item.status}</Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {getPaginatedData(reportsData?.commission ?? [])?.map(
+                        (item: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell>{item.total_transactions}</TableCell>
+                            <TableCell>{item.total_volume}</TableCell>
+                            <TableCell>{item.commission_rate}</TableCell>
+                            <TableCell className="text-green-600">
+                              {item.commission_earned}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="default">{item.status}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      )}
                     </TableBody>
                   </Table>
+                )}
+                {(reportsData?.commission ?? []).length > 0 && (
+                  <CommonPagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={currentReportData.length}
+                    pageSize={pagination.pageSize}
+                    onPageChange={pagination.setCurrentPage}
+                    disabled={isLoading}
+                  />
                 )}
               </>
             )}
@@ -592,46 +662,58 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {reportsData?.errorlog?.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-mono text-xs">
-                            {epochToCustomLocalStringTime(item.timestamp)}
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {item.error_code}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                item.severity === "High"
-                                  ? "destructive"
-                                  : item.severity === "Medium"
-                                  ? "secondary"
-                                  : "outline"
-                              }
-                            >
-                              {item.severity}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate">
-                            {item.message}
-                          </TableCell>
-                          <TableCell>{item.affected_users}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                item.resolved === "Yes"
-                                  ? "default"
-                                  : "destructive"
-                              }
-                            >
-                              {item.resolved}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {getPaginatedData(reportsData?.errorlog ?? [])?.map(
+                        (item: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-mono text-xs">
+                              {epochToCustomLocalStringTime(item.timestamp)}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {item.error_code}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  item.severity === "High"
+                                    ? "destructive"
+                                    : item.severity === "Medium"
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                              >
+                                {item.severity}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate">
+                              {item.message}
+                            </TableCell>
+                            <TableCell>{item.affected_users}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  item.resolved === "Yes"
+                                    ? "default"
+                                    : "destructive"
+                                }
+                              >
+                                {item.resolved}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      )}
                     </TableBody>
                   </Table>
+                )}
+                {(reportsData?.errorlog ?? []).length > 0 && (
+                  <CommonPagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={currentReportData.length}
+                    pageSize={pagination.pageSize}
+                    onPageChange={pagination.setCurrentPage}
+                    disabled={isLoading}
+                  />
                 )}
               </>
             )}

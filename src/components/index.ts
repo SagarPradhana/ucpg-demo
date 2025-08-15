@@ -3,6 +3,7 @@ export * from "./ui/button";
 export * from "./ui/input";
 export * from "./ui/time-filter";
 export * from "./ui/no-data";
+export { default as CommonPagination } from "./ui/common-pagination";
 
 // Export custom components
 export { SupportChatbot } from "./SupportChatbot";

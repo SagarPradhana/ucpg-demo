@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -21,13 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Search, Eye, X, Loader2, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationPrevious,
-  PaginationNext,
-} from "@/components/ui/pagination";
+import CommonPagination from "@/components/ui/common-pagination";
+import { usePagination } from "@/hooks/usePagination";
 import { getAdminTransactions } from "@/service/adminservices";
 import { epochRangeForLabel } from "@/utils/timeFilters";
 
@@ -67,9 +62,11 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
   getStatusBadge,
   handleTransactionCancel,
 }) => {
-  // Local pagination state for server-side calls
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+  // Pagination hook
+  const pagination = usePagination({
+    initialPage: 1,
+    pageSize: 10,
+  });
 
   // Time filter state - same as AdminReports
   const [timeLabel, setTimeLabel] = useState<string>("Today");
@@ -85,8 +82,8 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
   // Build server query params from filters
   const params = useMemo(() => {
     return {
-      page,
-      limit: pageSize,
+      page: pagination.currentPage,
+      limit: pagination.pageSize,
       transaction_status:
         transactionFilters.status !== "all"
           ? transactionFilters.status
@@ -100,8 +97,8 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
       // transaction_type, currency_type, target_crypto_currency, user_id can be added later
     } as const;
   }, [
-    page,
-    pageSize,
+    pagination.currentPage,
+    pagination.pageSize,
     transactionFilters,
     epochRange.from_date,
     epochRange.to_date,
@@ -130,23 +127,32 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
       (txResponse as any)?.total ??
       serverItems.length
     : 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  // Update pagination when data changes
+  useEffect(() => {
+    pagination.setTotalItems(totalCount);
+  }, [totalCount, pagination]);
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaction Filters</CardTitle>
+      <Card className="shadow-sm border border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            Transaction Filters
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+
+        <CardContent className="space-y-5">
+          {/* Filters Row */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <Label>Search</Label>
+            {/* Search */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Search</Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Transaction ID..."
-                  className="pl-8"
+                  className="pl-8 h-9 text-sm"
                   value={transactionFilters.search}
                   onChange={(e) =>
                     setTransactionFilters((prev) => ({
@@ -157,15 +163,17 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                 />
               </div>
             </div>
-            <div>
-              <Label>Status</Label>
+
+            {/* Status */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Status</Label>
               <Select
                 value={transactionFilters.status}
                 onValueChange={(value) =>
                   setTransactionFilters((prev) => ({ ...prev, status: value }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
@@ -177,8 +185,10 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Currency</Label>
+
+            {/* Currency */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Currency</Label>
               <Select
                 value={transactionFilters.currency}
                 onValueChange={(value) =>
@@ -188,7 +198,7 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                   }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="All currencies" />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,6 +209,11 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Empty space on larger screens */}
+            <div className="hidden md:block"></div>
+
+            {/* Clear Filters Button */}
             <div className="flex items-end">
               <Button
                 variant="outline"
@@ -214,7 +229,7 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                   setCustomDateFrom("");
                   setCustomDateTo("");
                 }}
-                className="w-full"
+                className="w-full h-9 text-sm"
               >
                 <X className="h-4 w-4 mr-2" />
                 Clear Filters
@@ -223,103 +238,99 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
           </div>
 
           {/* Time Filter Section */}
-          <div className="border-t pt-4">
-            <div className="flex-1">
-              <Label className="mb-1 block">Time range</Label>
-              <Select
-                value={timeLabel}
-                onValueChange={(label: string) => {
-                  setTimeLabel(label);
-                  if (label === "Custom") {
-                    setShowCustomDates(true);
-                    // Don't update epochRange yet, wait for custom dates
-                  } else {
-                    setShowCustomDates(false);
-                    setEpochRange(epochRangeForLabel(label));
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select time range" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[
-                    "Today",
-                    "Yesterday",
-                    "Last 7 Days",
-                    "Last 30 Days",
-                    "This Week",
-                    "Last Week",
-                    "This Month",
-                    "Last Month",
-                    "Custom",
-                  ].map((label) => (
-                    <SelectItem key={label} value={label}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="border-t pt-4 space-y-3">
+            <Label className="text-sm font-medium">Time Range</Label>
+            <Select
+              value={timeLabel}
+              onValueChange={(label: string) => {
+                setTimeLabel(label);
+                if (label === "Custom") {
+                  setShowCustomDates(true);
+                } else {
+                  setShowCustomDates(false);
+                  setEpochRange(epochRangeForLabel(label));
+                }
+              }}
+            >
+              <SelectTrigger className="w-full h-9 text-sm">
+                <SelectValue placeholder="Select time range" />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  "Today",
+                  "Yesterday",
+                  "Last 7 Days",
+                  "Last 30 Days",
+                  "This Week",
+                  "Last Week",
+                  "This Month",
+                  "Last Month",
+                  "Custom",
+                ].map((label) => (
+                  <SelectItem key={label} value={label}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              {/* Custom Date Inputs */}
-              {showCustomDates && (
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs">From Date</Label>
-                    <Input
-                      type="date"
-                      value={customDateFrom}
-                      onChange={(e) => {
-                        setCustomDateFrom(e.target.value);
-                        if (e.target.value && customDateTo) {
-                          const fromEpoch = Math.floor(
-                            new Date(e.target.value).getTime() / 1000
-                          );
-                          const toEpoch =
-                            Math.floor(
-                              new Date(customDateTo).getTime() / 1000
-                            ) + 86399; // End of day
-                          setEpochRange({
-                            from_date: fromEpoch,
-                            to_date: toEpoch,
-                          });
-                        }
-                      }}
-                      className="text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">To Date</Label>
-                    <Input
-                      type="date"
-                      value={customDateTo}
-                      onChange={(e) => {
-                        setCustomDateTo(e.target.value);
-                        if (customDateFrom && e.target.value) {
-                          const fromEpoch = Math.floor(
-                            new Date(customDateFrom).getTime() / 1000
-                          );
-                          const toEpoch =
-                            Math.floor(
-                              new Date(e.target.value).getTime() / 1000
-                            ) + 86399; // End of day
-                          setEpochRange({
-                            from_date: fromEpoch,
-                            to_date: toEpoch,
-                          });
-                        }
-                      }}
-                      className="text-xs"
-                    />
-                  </div>
+            {/* Custom Date Inputs */}
+            {showCustomDates && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">From Date</Label>
+                  <Input
+                    type="date"
+                    value={customDateFrom}
+                    onChange={(e) => {
+                      setCustomDateFrom(e.target.value);
+                      if (e.target.value && customDateTo) {
+                        const fromEpoch = Math.floor(
+                          new Date(e.target.value).getTime() / 1000
+                        );
+                        const toEpoch =
+                          Math.floor(new Date(customDateTo).getTime() / 1000) +
+                          86399;
+                        setEpochRange({
+                          from_date: fromEpoch,
+                          to_date: toEpoch,
+                        });
+                      }
+                    }}
+                    className="text-xs h-8"
+                  />
                 </div>
-              )}
-
-              <div className="text-xs text-muted-foreground mt-1">
-                from_date: {epochRange.from_date} | to_date:{" "}
-                {epochRange.to_date}
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">To Date</Label>
+                  <Input
+                    type="date"
+                    value={customDateTo}
+                    onChange={(e) => {
+                      setCustomDateTo(e.target.value);
+                      if (customDateFrom && e.target.value) {
+                        const fromEpoch = Math.floor(
+                          new Date(customDateFrom).getTime() / 1000
+                        );
+                        const toEpoch =
+                          Math.floor(
+                            new Date(e.target.value).getTime() / 1000
+                          ) + 86399;
+                        setEpochRange({
+                          from_date: fromEpoch,
+                          to_date: toEpoch,
+                        });
+                      }
+                    }}
+                    className="text-xs h-8"
+                  />
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Epoch Debug Info */}
+            <p className="text-xs text-muted-foreground">
+              from_date: {epochRange.from_date} | to_date: {epochRange.to_date}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -494,35 +505,14 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
       </Card>
 
       {/* Pagination */}
-      <div className="mt-4">
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setPage((p) => Math.max(1, p - 1));
-                }}
-              />
-            </PaginationItem>
-            <PaginationItem>
-              <div className="px-3 py-2 text-sm text-muted-foreground">
-                {page} of {totalPages}
-              </div>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setPage((p) => Math.min(totalPages, p + 1));
-                }}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
+      <CommonPagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={totalCount}
+        pageSize={pagination.pageSize}
+        onPageChange={pagination.setCurrentPage}
+        disabled={isLoading}
+      />
     </div>
   );
 };

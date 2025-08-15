@@ -36,13 +36,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationPrevious,
-  PaginationNext,
-} from "@/components/ui/pagination";
+import CommonPagination from "@/components/ui/common-pagination";
+import { usePagination } from "@/hooks/usePagination";
 
 interface ErrorLog {
   id: string;
@@ -102,9 +97,11 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
   const [errorLogToDate, setErrorLogToDate] = useState<number>(to);
   const [errorLogsTime, SetErrorLogsTime] = useState<string>("24h");
 
-  // Update error logs query with time filter
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+  // Pagination hook
+  const pagination = usePagination({
+    initialPage: 1,
+    pageSize: 10,
+  });
 
   const {
     data: getErrorLogResponse,
@@ -113,13 +110,19 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
     error: errorLogserror,
     refetch: refetchLogs,
   } = useQuery<any>({
-    queryKey: ["errorLogs", errorLogFromDate, errorLogToDate, page, pageSize],
+    queryKey: [
+      "errorLogs",
+      errorLogFromDate,
+      errorLogToDate,
+      pagination.currentPage,
+      pagination.pageSize,
+    ],
     queryFn: () => {
       const payload = {
         from_date: errorLogFromDate,
         to_date: errorLogToDate,
-        page,
-        per_page: pageSize,
+        page: pagination.currentPage,
+        per_page: pagination.pageSize,
       };
       return getErrorLogs(payload);
     },
@@ -132,6 +135,12 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
   const [open, setOpen] = useState(false);
 
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
+
+  // Update pagination when data changes
+  const totalCount = getErrorLogResponse?.total_count ?? errorLogs.length;
+  useEffect(() => {
+    pagination.setTotalItems(totalCount);
+  }, [totalCount, pagination]);
 
   useEffect(() => {
     if (getErrorLogResponse && Array.isArray(getErrorLogResponse.data)) {
@@ -294,61 +303,26 @@ const AdminErrorLogs: React.FC<AdminErrorLogsProps> = ({
           </Table>
 
           {/* Pagination */}
-          <div className="mt-4">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPage((p) => Math.max(1, p - 1));
-                    }}
-                  />
-                </PaginationItem>
-                <PaginationItem>
-                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                    {page} of{" "}
-                    {Math.max(
-                      1,
-                      Math.ceil(
-                        (getErrorLogResponse?.total_count ?? errorLogs.length) /
-                          pageSize
-                      )
-                    )}
-                  </div>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const totalPages = Math.max(
-                        1,
-                        Math.ceil(
-                          (getErrorLogResponse?.total_count ??
-                            errorLogs.length) / pageSize
-                        )
-                      );
-                      setPage((p) => Math.min(totalPages, p + 1));
-                    }}
-                  />
+          <CommonPagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={totalCount}
+            pageSize={pagination.pageSize}
+            onPageChange={pagination.setCurrentPage}
+            disabled={isLoadingLogs}
+          />
 
-                  {/* JSON Modal */}
-                  <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogContent className="max-w-3xl">
-                      <DialogHeader>
-                        <DialogTitle>Error Log Details</DialogTitle>
-                      </DialogHeader>
-                      <pre className="p-4 bg-muted rounded-md overflow-auto text-xs">
-                        {JSON.stringify(selectedLog, null, 2)}
-                      </pre>
-                    </DialogContent>
-                  </Dialog>
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
+          {/* JSON Modal */}
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Error Log Details</DialogTitle>
+              </DialogHeader>
+              <pre className="p-4 bg-muted rounded-md overflow-auto text-xs">
+                {JSON.stringify(selectedLog, null, 2)}
+              </pre>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>
