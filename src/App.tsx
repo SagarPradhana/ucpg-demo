@@ -387,6 +387,17 @@ const App = () => (
                         </ProtectedRoute>
                       }
                     />
+                    <Route
+                      path={ROUTE_CONFIG.ADMIN.REVENUE_OPS}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          requireNonUser={true}
+                        >
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
 
                     {/* Catch-all route for 404 errors */}
                     <Route

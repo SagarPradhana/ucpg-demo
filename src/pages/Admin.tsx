@@ -27,6 +27,7 @@ import {
   AdminErrorLogs,
   AdminReports,
   AdminCommissionSettings,
+  RevenueOps,
 } from "@/components/admin";
 import {
   SidebarProvider,
@@ -781,17 +782,7 @@ const Admin = () => {
       case "reports":
         return <AdminReports exportData={exportData} />;
       case "revenue-ops":
-        return (
-          <div className="space-y-6">
-            <div className="text-center py-12">
-              <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Revenue Operations</h3>
-              <p className="text-muted-foreground">
-                Revenue operations dashboard coming soon...
-              </p>
-            </div>
-          </div>
-        );
+        return <RevenueOps />;
       default:
         return (
           <AdminDashboard

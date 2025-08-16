@@ -31,6 +31,7 @@ export const ROUTE_CONFIG = {
     SETTINGS: '/admin/settings',
     ERROR_LOGS: '/admin/error-logs',
     REPORTS: '/admin/reports',
+    REVENUE_OPS: '/admin/revenue-ops',
   },
   
   // Error routes

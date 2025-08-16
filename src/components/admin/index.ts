@@ -9,3 +9,4 @@ export { default as AdminSettings } from './AdminSettings';
 export { default as AdminErrorLogs } from './AdminErrorLogs';
 export { default as AdminReports } from './AdminReports';
 export { default as AdminCommissionSettings } from './AdminCommissionSettings';
+export { default as RevenueOps } from './RevenueOps';
