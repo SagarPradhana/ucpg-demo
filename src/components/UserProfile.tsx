@@ -25,6 +25,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { ROUTE_CONFIG, isAdminRoute } from "@/config/routes";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
 import { useEffect } from "react";
@@ -354,23 +355,25 @@ const UserProfile = ({
         <DropdownMenuSeparator />
 
         {/* Portal Switching Buttons */}
-        {userProfile?.role === "admin" ? (
-          <DropdownMenuItem
-            onClick={() => navigate("/dashboard")}
-            className="cursor-pointer"
-          >
-            <UserCircle className="mr-2 h-4 w-4" />
-            <span>User Portal</span>
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem
-            onClick={() => navigate("/admin")}
-            className="cursor-pointer"
-          >
-            <Shield className="mr-2 h-4 w-4" />
-            <span>Admin Portal</span>
-          </DropdownMenuItem>
-        )}
+        {userProfile?.role &&
+          userProfile.role !== "user" &&
+          (isAdminRoute(location.pathname) ? (
+            <DropdownMenuItem
+              onClick={() => navigate(ROUTE_CONFIG.USER.DASHBOARD)}
+              className="cursor-pointer"
+            >
+              <UserCircle className="mr-2 h-4 w-4" />
+              <span>User Portal</span>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              onClick={() => navigate(ROUTE_CONFIG.ADMIN.DASHBOARD)}
+              className="cursor-pointer"
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              <span>Admin Portal</span>
+            </DropdownMenuItem>
+          ))}
 
         <DropdownMenuSeparator />
         <DropdownMenuItem

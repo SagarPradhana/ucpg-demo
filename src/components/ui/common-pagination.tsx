@@ -37,7 +37,7 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
   const handlePrevious = (e: React.MouseEvent) => {
     e.preventDefault();
     if (isPrevEnabled) {
-      onPageChange(currentPage - 1);
+      onPageChange(Math.max(1, currentPage - 1));
     }
   };
 
@@ -45,17 +45,17 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
   const handleNext = (e: React.MouseEvent) => {
     e.preventDefault();
     if (isNextEnabled) {
-      onPageChange(currentPage + 1);
+      onPageChange(Math.min(totalPages, currentPage + 1));
     }
   };
 
   // Calculate item range for display
   const getItemRange = () => {
     if (!totalItems || !pageSize) return null;
-    
+
     const startItem = (currentPage - 1) * pageSize + 1;
     const endItem = Math.min(currentPage * pageSize, totalItems);
-    
+
     return { startItem, endItem };
   };
 
@@ -75,18 +75,20 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
               href="#"
               onClick={handlePrevious}
               className={cn(
-                !isPrevEnabled && "opacity-50 cursor-not-allowed pointer-events-none"
+                !isPrevEnabled &&
+                  "opacity-50 cursor-not-allowed pointer-events-none"
               )}
               aria-disabled={!isPrevEnabled}
             />
           </PaginationItem>
-          
+
           {showInfo && (
             <PaginationItem>
               <div className="px-3 py-2 text-sm text-muted-foreground">
                 {itemRange ? (
                   <>
-                    {itemRange.startItem}-{itemRange.endItem} of {totalItems} items
+                    {itemRange.startItem}-{itemRange.endItem} of {totalItems}{" "}
+                    items
                     {" • "}
                   </>
                 ) : null}
@@ -94,13 +96,14 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
               </div>
             </PaginationItem>
           )}
-          
+
           <PaginationItem>
             <PaginationNext
               href="#"
               onClick={handleNext}
               className={cn(
-                !isNextEnabled && "opacity-50 cursor-not-allowed pointer-events-none"
+                !isNextEnabled &&
+                  "opacity-50 cursor-not-allowed pointer-events-none"
               )}
               aria-disabled={!isNextEnabled}
             />

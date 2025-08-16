@@ -145,6 +145,12 @@ export const ADMIN_TRANSITION_STATISTICS: Api = {
   method: HttpMethods.GET,
 };
 
+// Commission Income (Daily)
+export const ADMIN_COMMISSION_INCOME: Api = {
+  url: `${BACKEND_KPIX}/admin/dashboard/commission-income`,
+  method: HttpMethods.GET,
+};
+
 export const ADMIN_CURRENCY_DISTRIBUTION: Api = {
   url: `${BACKEND_KPIX}/admin/dashboard/currency-distribution`,
   method: HttpMethods.GET,

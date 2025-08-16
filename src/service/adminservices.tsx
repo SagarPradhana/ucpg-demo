@@ -25,6 +25,7 @@ import {
   ADMIN_COMMISSION_REPORTS,
   ADMIN_ERRORS_REPORTS,
   ADMIN_AUDIT_LOGS,
+  ADMIN_COMMISSION_INCOME,
 } from "./Urls";
 
 export const getUserRole = (params?: {
@@ -173,6 +174,23 @@ export const getAdminTransitionStatistics = () => {
   return response;
 };
 
+export const getAdminCommissionIncome = (params: {
+  from_date: number;
+  to_date: number;
+}) => {
+  const response = httpClient(ADMIN_COMMISSION_INCOME.url, {
+    method: ADMIN_COMMISSION_INCOME.method,
+    withAuth: true,
+    queryParams: params,
+  });
+  return response as Promise<{
+    status: string;
+    status_code: number;
+    message: string;
+    data: { total: number };
+  }>;
+};
+
 export const getAdminCurrencyDistribution = (params: {
   from_date: number; // epoch timestamp
   to_date: number; // epoch timestamp
@@ -248,7 +266,12 @@ export const updateAdminCommissionCurrency = (
 
 export const getAdminReports = async (
   reportValue: string,
-  data: { from_date: number; to_date: number }
+  data: {
+    from_date: number;
+    to_date: number;
+    page_size?: number;
+    page_no?: number;
+  }
 ) => {
   let apiConfig;
 
@@ -282,11 +305,65 @@ export const getAdminReports = async (
   return response;
 };
 
-export const getAuditLogs = (data: { from_date: number; to_date: number }) => {
-  const response = httpClient(ADMIN_AUDIT_LOGS?.url, {
+// Download reports as PDF or Excel by passing the appropriate flags
+export const downloadAdminReport = async (
+  reportValue: string,
+  params: {
+    from_date: number;
+    to_date: number;
+    is_pdf_download?: boolean;
+    is_excel_download?: boolean;
+  }
+) => {
+  let apiConfig;
+
+  switch (reportValue) {
+    case "transaction":
+      apiConfig = ADMIN_TRANSACTION_REPORTS;
+      break;
+    case "user":
+      apiConfig = ADMIN_USER_REPORTS;
+      break;
+    case "financial":
+      apiConfig = ADMIN_FINANCIAL_REPORTS;
+      break;
+    case "commission":
+      apiConfig = ADMIN_COMMISSION_REPORTS;
+      break;
+    case "errorlog":
+      apiConfig = ADMIN_ERRORS_REPORTS;
+      break;
+    default:
+      apiConfig = ADMIN_TRANSACTION_REPORTS;
+      break;
+  }
+
+  const response = await httpClient(apiConfig.url, {
+    method: apiConfig.method,
+    withAuth: true,
+    queryParams: params as Record<string, string | number | boolean>,
+    responseType: "blob",
+  });
+
+  return response as Blob;
+};
+
+export const getAuditLogs = (params: {
+  action?: string;
+  message?: string;
+  user_email?: string;
+  order_by?: string;
+  order_direction?: "asc" | "desc";
+  from_date: number; // epoch seconds (UTC)
+  to_date: number; // epoch seconds (UTC)
+  search?: string;
+  page_number?: number; // minimum: 1
+  limit?: number; // 1..200
+}) => {
+  const response = httpClient(ADMIN_AUDIT_LOGS.url, {
     method: ADMIN_AUDIT_LOGS.method,
     withAuth: true,
-    queryParams: data as Record<string, string | number | boolean>,
+    queryParams: params as Record<string, string | number | boolean>,
   });
   return response;
 };

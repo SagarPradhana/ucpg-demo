@@ -39,7 +39,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { getAdminReports } from "@/service/adminservices";
+import { getAdminReports, downloadAdminReport } from "@/service/adminservices";
 import { epochToCustomLocalStringTime } from "@/Common";
 import { NoData, NoDataPresets } from "@/components/ui/no-data";
 import CommonPagination from "@/components/ui/common-pagination";
@@ -132,12 +132,19 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
       selectedReport,
       epochRange.from_date,
       epochRange.to_date,
+      pagination.currentPage,
+      pagination.pageSize,
     ],
-    queryFn: () =>
-      getAdminReports(selectedReport, {
+    queryFn: () => {
+      const page_no = (pagination.currentPage - 1) * pagination.pageSize;
+      const page_size = pagination.pageSize;
+      return getAdminReports(selectedReport, {
         from_date: epochRange.from_date,
         to_date: epochRange.to_date,
-      }),
+        page_size,
+        page_no,
+      });
+    },
     gcTime: 60000,
     staleTime: 60000,
   });
@@ -164,10 +171,23 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
 
   // Update pagination when data changes
   const currentReportData = reportsData[selectedReport] || [];
+  // Use total_count from server if provided; fallback to local length
+  const serverTotalCount = (AdminReportsResponse as any)?.total_count as
+    | number
+    | undefined;
   useEffect(() => {
-    pagination.setTotalItems(currentReportData.length);
-    pagination.setCurrentPage(1); // Reset to first page when report type changes
-  }, [currentReportData.length, selectedReport, pagination]);
+    const total = serverTotalCount ?? currentReportData.length;
+    pagination.setTotalItems(total);
+    // Reset page when report type or time range changes to avoid out-of-range page
+    pagination.setCurrentPage(1);
+  }, [
+    serverTotalCount,
+    currentReportData.length,
+    selectedReport,
+    epochRange.from_date,
+    epochRange.to_date,
+    pagination,
+  ]);
 
   // Get paginated data for current report
   const getPaginatedData = (data: any[]) => {
@@ -181,9 +201,33 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
     (option) => option.value === selectedReport
   );
 
-  // Handle download
-  const handleDownload = (format: "pdf" | "xlsx") => {
-    exportData(selectedReport, format);
+  // Handle download (PDF/XLSX) with backend flags and blob saving
+  const handleDownload = async (format: "pdf" | "xlsx") => {
+    try {
+      const params = {
+        from_date: epochRange.from_date,
+        to_date: epochRange.to_date,
+        is_pdf_download: format === "pdf",
+        is_excel_download: format === "xlsx",
+      };
+      const blob = await downloadAdminReport(selectedReport, params);
+
+      // Build filename
+      const fileExt = format === "pdf" ? "pdf" : "xlsx";
+      const fileName = `${selectedReport}-report-${params.from_date}-${params.to_date}.${fileExt}`;
+
+      // Trigger browser download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to download report:", e);
+    }
   };
 
   return (
@@ -408,7 +452,7 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {getPaginatedData(reportsData?.transaction ?? [])?.map(
+                      {(reportsData?.transaction ?? [])?.map(
                         (item: any, index: number) => (
                           <TableRow key={index}>
                             <TableCell className="font-medium">
@@ -508,7 +552,7 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                   <CommonPagination
                     currentPage={pagination.currentPage}
                     totalPages={pagination.totalPages}
-                    totalItems={currentReportData.length}
+                    totalItems={serverTotalCount ?? currentReportData.length}
                     pageSize={pagination.pageSize}
                     onPageChange={pagination.setCurrentPage}
                     disabled={isLoading}
@@ -571,7 +615,7 @@ const AdminReports: React.FC<AdminReportsProps> = ({ exportData }) => {
                   <CommonPagination
                     currentPage={pagination.currentPage}
                     totalPages={pagination.totalPages}
-                    totalItems={currentReportData.length}
+                    totalItems={serverTotalCount ?? currentReportData.length}
                     pageSize={pagination.pageSize}
                     onPageChange={pagination.setCurrentPage}
                     disabled={isLoading}

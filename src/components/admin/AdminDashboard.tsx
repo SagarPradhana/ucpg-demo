@@ -55,8 +55,17 @@ import {
 } from "@/service/adminservices";
 import { getTodayDateRange } from "@/Common";
 import { TimeFilter } from "@/components/ui/time-filter";
-import { useTimeFilter } from "@/hooks/useTimeFilter";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { useTimeFilter, calculateRelativeTime } from "@/hooks/useTimeFilter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getRelativeTimeOptions } from "@/utils/timeFilters";
+import { getAdminCommissionIncome } from "@/service/adminservices";
 
 interface Transaction {
   id: string;
@@ -111,6 +120,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const { t } = useLanguage();
 
+  const [commissionIncomeDaily, setCommissionIncomeDaily] = useState<number>(0);
+
   // const { data: adminTransitionStatistics } = useQuery({
   //   queryKey: ["admin-transition-statistics"],
   //   queryFn: () => getAdminTransitionStatistics(),
@@ -147,10 +158,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const getPaginatedAuditLogs = () => {
-    const startIndex =
-      (auditLogsPagination.currentPage - 1) * auditLogsPagination.pageSize;
-    const endIndex = startIndex + auditLogsPagination.pageSize;
-    return filteredAuditLogs.slice(startIndex, endIndex);
+    // Server returns paginated results; no client-side slicing required
+    return auditLogs;
   };
 
   // Use the new time filter hook for audit logs
@@ -161,98 +170,114 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       console.log("Audit log time filter changed:", state);
     },
   });
+  // Freeze relative time range to avoid shifting window when page changes
+  const [auditTimeRange, setAuditTimeRange] = useState<{
+    from: number;
+    to: number;
+  }>(() => {
+    const rel = calculateRelativeTime(auditLogTimeFilter.value);
+    return {
+      from: Math.floor(rel.fromTimestamp / 1000),
+      to: Math.floor(rel.toTimestamp / 1000),
+    };
+  });
+  React.useEffect(() => {
+    const rel = calculateRelativeTime(auditLogTimeFilter.value);
+    setAuditTimeRange({
+      from: Math.floor(rel.fromTimestamp / 1000),
+      to: Math.floor(rel.toTimestamp / 1000),
+    });
+  }, [auditLogTimeFilter.value]);
   const { data: unclaimedFundsResponse } = useQuery({
     queryKey: ["admin-unclaimed-funds"],
     queryFn: () => getAdminUnclaimedFunds(getTodayDateRange()),
     gcTime: 60000,
     staleTime: 60000,
   });
-  const { data: auditLogsResponse } = useQuery({
-    queryKey: ["admin-auditLog"],
-    queryFn: () => getAuditLogs(getTodayDateRange()),
+
+  // Commission Income (Daily): today range
+  const { from_date: ciFrom, to_date: ciTo } = getTodayDateRange();
+  const { data: commissionIncomeResponse } = useQuery({
+    queryKey: ["admin-commission-income", ciFrom, ciTo],
+    queryFn: () =>
+      getAdminCommissionIncome({ from_date: ciFrom, to_date: ciTo }),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+  React.useEffect(() => {
+    const total = (commissionIncomeResponse as any)?.data?.total;
+    if (typeof total === "number") setCommissionIncomeDaily(total);
+  }, [commissionIncomeResponse]);
+  const {
+    data: auditLogsResponse,
+    isLoading: isLoadingAudit,
+    isError: isErrorAudit,
+  } = useQuery({
+    queryKey: [
+      "admin-auditLog",
+      auditTimeRange.from,
+      auditTimeRange.to,
+      auditLogsPagination.currentPage,
+      auditLogsPagination.pageSize,
+      userFilter,
+      actionFilter,
+      searchTerm,
+    ],
+    queryFn: () => {
+      const from_date = auditTimeRange.from;
+      const to_date = auditTimeRange.to;
+
+      const params: any = {
+        from_date,
+        to_date,
+        page_number: auditLogsPagination.currentPage,
+        limit: auditLogsPagination.pageSize,
+        order_by: "created_date",
+        order_direction: "desc",
+      };
+
+      if (userFilter !== "all") params.user_email = userFilter;
+      if (actionFilter !== "all") params.action = actionFilter;
+      if (searchTerm) params.search = searchTerm;
+
+      return getAuditLogs(params);
+    },
     gcTime: 60000,
     staleTime: 60000,
   });
   console.log(unclaimedFundsResponse);
 
   console.log(auditLogsResponse);
-  // Audit log state
+  // Audit logs from API
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [selectedAuditLog, setSelectedAuditLog] = useState<AuditLog | null>(
+    null
+  );
+  const [isAuditDialogOpen, setIsAuditDialogOpen] = useState(false);
 
-  // Sample audit log data
-  const auditLogs: AuditLog[] = [
-    {
-      id: "AL001",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      user: "admin@example.com",
-      action: "User Login",
-      resource: "Authentication System",
-      details: "Successful admin login",
-      ipAddress: "192.168.1.100",
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+  React.useEffect(() => {
+    const raw: any = auditLogsResponse as any;
+    const items: any[] = Array.isArray(raw?.data)
+      ? raw.data
+      : Array.isArray(raw)
+      ? raw
+      : [];
+    const mapped: AuditLog[] = items.map((item: any) => ({
+      id: item?.id,
+      timestamp: new Date(
+        ((item?.created_date ?? 0) as number) * 1000
+      ).toISOString(),
+      user: item?.user_email ?? "Unknown",
+      action: item?.action ?? "unknown",
+      resource: item?.message ?? "",
+      details: item?.message ?? "",
+      ipAddress: item?.ip_address ?? "",
+      userAgent: "",
       severity: "low",
-      status: "success",
-    },
-    {
-      id: "AL002",
-      timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-      user: "john.doe@example.com",
-      action: "Transaction Created",
-      resource: "Transaction #TXN123456",
-      details: "Created new transaction for $500 BTC",
-      ipAddress: "192.168.1.101",
-      userAgent: "Mozilla/5.0 (macOS; Intel Mac OS X 10_15_7)",
-      severity: "medium",
-      status: "success",
-    },
-    {
-      id: "AL003",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-      user: "jane.smith@example.com",
-      action: "Failed Login Attempt",
-      resource: "Authentication System",
-      details: "Invalid password attempt",
-      ipAddress: "192.168.1.102",
-      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1)",
-      severity: "high",
-      status: "failed",
-    },
-    {
-      id: "AL004",
-      timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-      user: "admin@example.com",
-      action: "Settings Updated",
-      resource: "System Configuration",
-      details: "Updated commission rates",
-      ipAddress: "192.168.1.100",
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-      severity: "medium",
-      status: "success",
-    },
-    {
-      id: "AL005",
-      timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-      user: "support@example.com",
-      action: "User Account Suspended",
-      resource: "User #USR789",
-      details: "Suspended user account due to suspicious activity",
-      ipAddress: "192.168.1.103",
-      userAgent: "Mozilla/5.0 (Linux; Android 11)",
-      severity: "critical",
-      status: "success",
-    },
-    {
-      id: "AL006",
-      timestamp: new Date(Date.now() - 1000 * 60 * 150).toISOString(),
-      user: "operator@example.com",
-      action: "Provider Configuration",
-      resource: "Payment Provider #PP001",
-      details: "Updated provider API settings",
-      ipAddress: "192.168.1.104",
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-      severity: "medium",
-      status: "success",
-    },
-  ];
+      status: item?.log_status ?? "success",
+    }));
+    setAuditLogs(mapped);
+  }, [auditLogsResponse]);
 
   // Get unique values for filters
   const uniqueUsers = useMemo(() => {
@@ -262,6 +287,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const uniqueActions = useMemo(() => {
     return Array.from(new Set(auditLogs.map((log) => log.action)));
   }, [auditLogs]);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    auditLogsPagination.setCurrentPage(1);
+  }, [auditLogTimeFilter.value, userFilter, actionFilter, searchTerm]);
 
   // Filter audit logs
   const filteredAuditLogs = useMemo(() => {
@@ -296,10 +326,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     auditLogTimeFilter.value,
   ]);
 
-  // Update audit logs pagination when filtered data changes
+  // Update audit logs pagination when server total count changes.
+  // Only update when total_count is provided to avoid resetting current page on subsequent pages.
   React.useEffect(() => {
-    auditLogsPagination.setTotalItems(filteredAuditLogs.length);
-  }, [filteredAuditLogs.length, auditLogsPagination]);
+    const total = (auditLogsResponse as any)?.total_count as number | undefined;
+    if (typeof total === "number" && !Number.isNaN(total)) {
+      auditLogsPagination.setTotalItems(total);
+    }
+  }, [auditLogsResponse, auditLogsPagination]);
 
   // Clear all filters
   const clearFilters = () => {
@@ -307,6 +341,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setUserFilter("all");
     setActionFilter("all");
     auditLogTimeFilter.handleRelativeChange("24h");
+    auditLogsPagination.setCurrentPage(1);
   };
 
   return (
@@ -373,20 +408,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {t("admin.dashboard.daily")})
                 </p>
                 <p className="text-xl sm:text-2xl font-bold truncate text-purple-700">
-                  ${dashboardStats.commissionIncome.daily.toLocaleString()}
+                  ${commissionIncomeDaily.toLocaleString()}
                 </p>
-                <p className="text-xs font-medium text-purple-600 truncate mt-1 flex items-center">
-                  <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M7 14l5-5 5 5"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  +8.2% from yesterday
-                </p>
+                <p className="text-xs font-medium text-purple-600 truncate mt-1"></p>
               </div>
               <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
                 <Percent className="h-6 w-6 text-purple-600" />
@@ -953,75 +977,186 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getPaginatedAuditLogs().map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">
-                        {new Date(log.timestamp).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="font-medium whitespace-nowrap">
-                        {log.user}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {log.action}
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {log.resource}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            log.status === "success"
-                              ? "default"
-                              : log.status === "failed"
-                              ? "destructive"
-                              : "secondary"
-                          }
-                        >
-                          {log.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            log.severity === "critical"
-                              ? "destructive"
-                              : log.severity === "high"
-                              ? "destructive"
-                              : log.severity === "medium"
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
-                          {log.severity}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">
-                        {log.ipAddress}
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="ghost">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                  {isLoadingAudit ? (
+                    // Loading state with skeleton rows
+                    Array.from({ length: auditLogsPagination.pageSize }).map(
+                      (_, idx) => (
+                        <TableRow key={`audit-skel-${idx}`}>
+                          <TableCell colSpan={8}>
+                            <Skeleton className="h-6 w-full" />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    )
+                  ) : getPaginatedAuditLogs().length === 0 ? (
+                    // No data state
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="text-center text-sm text-muted-foreground py-6"
+                      >
+                        No data available for the selected filters/time range.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    getPaginatedAuditLogs().map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="font-mono text-xs whitespace-nowrap">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="font-medium whitespace-nowrap">
+                          {log.user}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {log.action}
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {log.resource}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              log.status === "success"
+                                ? "default"
+                                : log.status === "failed"
+                                ? "destructive"
+                                : "secondary"
+                            }
+                          >
+                            {log.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              log.severity === "critical"
+                                ? "destructive"
+                                : log.severity === "high"
+                                ? "destructive"
+                                : log.severity === "medium"
+                                ? "secondary"
+                                : "outline"
+                            }
+                          >
+                            {log.severity}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs whitespace-nowrap">
+                          {log.ipAddress}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setSelectedAuditLog(log);
+                              setIsAuditDialogOpen(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
           </div>
 
           {/* Audit Logs Pagination */}
-          {filteredAuditLogs.length > 0 && (
+          {((auditLogsResponse as any)?.total_count ?? auditLogs.length) >
+            0 && (
             <CommonPagination
               currentPage={auditLogsPagination.currentPage}
               totalPages={auditLogsPagination.totalPages}
-              totalItems={filteredAuditLogs.length}
+              totalItems={
+                (auditLogsResponse as any)?.total_count ?? auditLogs.length
+              }
               pageSize={auditLogsPagination.pageSize}
-              onPageChange={auditLogsPagination.setCurrentPage}
+              onPageChange={(p) =>
+                !isLoadingAudit && auditLogsPagination.setCurrentPage(p)
+              }
+              disabled={isLoadingAudit}
             />
           )}
         </CardContent>
       </Card>
+
+      {/* Audit Log Details Modal */}
+      <Dialog open={isAuditDialogOpen} onOpenChange={setIsAuditDialogOpen}>
+        <DialogContent preventOutsideClose={false} className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Audit Log Details</DialogTitle>
+            <DialogDescription>
+              Full details for the selected audit log entry.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedAuditLog ? (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <span className="font-medium text-muted-foreground">
+                    Timestamp:
+                  </span>
+                  <div className="font-mono">
+                    {new Date(selectedAuditLog.timestamp).toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <span className="font-medium text-muted-foreground">
+                    User:
+                  </span>
+                  <div>{selectedAuditLog.user}</div>
+                </div>
+                <div>
+                  <span className="font-medium text-muted-foreground">
+                    Action:
+                  </span>
+                  <div>{selectedAuditLog.action}</div>
+                </div>
+                <div>
+                  <span className="font-medium text-muted-foreground">
+                    Status:
+                  </span>
+                  <div className="capitalize">{selectedAuditLog.status}</div>
+                </div>
+                <div>
+                  <span className="font-medium text-muted-foreground">
+                    Severity:
+                  </span>
+                  <div className="capitalize">{selectedAuditLog.severity}</div>
+                </div>
+                <div>
+                  <span className="font-medium text-muted-foreground">
+                    IP Address:
+                  </span>
+                  <div className="font-mono">
+                    {selectedAuditLog.ipAddress || "-"}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span className="font-medium text-muted-foreground">
+                  Message:
+                </span>
+                <div className="mt-1 p-3 bg-muted/40 rounded border text-xs break-words">
+                  {selectedAuditLog.details || selectedAuditLog.resource || "-"}
+                </div>
+              </div>
+
+              {/* Raw JSON for debugging/complete data view if needed later */}
+              {/* <pre className="mt-2 text-xs bg-muted/30 p-3 rounded overflow-auto max-h-60">
+                {JSON.stringify(selectedAuditLog, null, 2)}
+              </pre> */}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">No data</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
