@@ -143,7 +143,8 @@ export const hasPermission = (userProfile: UserProfile | null, permissionCode: s
  * Check if user has any of the required permissions
  */
 export const hasAnyPermission = (userProfile: UserProfile | null, permissionCodes: string[]): boolean => {
-  if (!userProfile?.permissions || permissionCodes.length === 0) {
+  const userData = (userProfile as any)?.data || userProfile;
+  if (!userData?.permissions || permissionCodes.length === 0) {
     return false;
   }
   
@@ -154,7 +155,8 @@ export const hasAnyPermission = (userProfile: UserProfile | null, permissionCode
  * Check if user has all required permissions
  */
 export const hasAllPermissions = (userProfile: UserProfile | null, permissionCodes: string[]): boolean => {
-  if (!userProfile?.permissions || permissionCodes.length === 0) {
+  const userData = (userProfile as any)?.data || userProfile;
+  if (!userData?.permissions || permissionCodes.length === 0) {
     return false;
   }
   
@@ -194,13 +196,24 @@ export const canAccessSection = (userProfile: UserProfile | null, sectionId: str
  * Get all accessible admin sections for a user
  */
 export const getAccessibleSections = (userProfile: UserProfile | null): string[] => {
-  if (!userProfile?.permissions) {
+  console.log("🔍 getAccessibleSections called with:", userProfile);
+
+  // Handle case where API response might be wrapped in a 'data' property
+  const userData = (userProfile as any)?.data || userProfile;
+
+  if (!userData?.permissions) {
+    console.log("❌ getAccessibleSections: No permissions found");
     return [];
   }
-  
-  return Object.keys(SECTION_PERMISSIONS).filter(sectionId => 
-    canAccessSection(userProfile, sectionId)
-  );
+
+  const accessibleSections = Object.keys(SECTION_PERMISSIONS).filter(sectionId => {
+    const hasAccess = canAccessSection(userProfile, sectionId);
+    console.log(`🔑 getAccessibleSections: Section "${sectionId}" access:`, hasAccess);
+    return hasAccess;
+  });
+
+  console.log("📋 getAccessibleSections result:", accessibleSections);
+  return accessibleSections;
 };
 
 /**

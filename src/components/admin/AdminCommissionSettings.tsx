@@ -26,7 +26,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { AlertTriangle, Calculator, Loader2, Percent, Coins, RefreshCw, Save } from "lucide-react";
+import {
+  AlertTriangle,
+  Calculator,
+  Loader2,
+  Percent,
+  Coins,
+  RefreshCw,
+  Save,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getAdminCommissionCurrencies,
@@ -38,6 +46,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import AddCurrencyModal from "./AddCurrencyModal";
 import DeleteCurrencyAction from "./DeleteCurrencyAction";
+import { PermissionGuard } from "@/components/PermissionGuard";
 import EditCurrencyModal from "./EditCurrencyModal";
 
 interface CommissionPolicy {
@@ -63,12 +72,12 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
   currencySettings,
   setCurrencySettings,
 }) => {
-  const { 
-    data: globalCommission, 
+  const {
+    data: globalCommission,
     isLoading: isLoadingGlobal,
     isError: isErrorGlobal,
     error: errorGlobal,
-    refetch: refetchGlobal
+    refetch: refetchGlobal,
   } = useQuery({
     queryKey: ["admin-commission-global"],
     queryFn: () => getAdminCommissionGlobal(),
@@ -76,12 +85,12 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
     staleTime: 60000,
   });
 
-  const { 
-    data: currencyCommission, 
+  const {
+    data: currencyCommission,
     isLoading: isLoadingCurrencies,
     isError: isErrorCurrencies,
     error: errorCurrencies,
-    refetch: refetchCurrencies
+    refetch: refetchCurrencies,
   } = useQuery({
     queryKey: ["admin-commission-currencies"],
     queryFn: () => getAdminCommissionCurrencies(),
@@ -193,18 +202,26 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
             {isLoadingGlobal && (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                <span className="text-muted-foreground">Loading global settings...</span>
+                <span className="text-muted-foreground">
+                  Loading global settings...
+                </span>
               </div>
             )}
-            
+
             {!isLoadingGlobal && isErrorGlobal && (
               <div className="flex flex-col items-center justify-center py-6 text-destructive">
                 <AlertTriangle className="w-12 h-12 text-destructive/70 mb-2" />
-                <p className="text-destructive font-medium">Error Loading Global Settings</p>
-                <p className="text-xs text-destructive/70 mt-1">{errorGlobal instanceof Error ? errorGlobal.message : 'Failed to load global commission settings'}</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <p className="text-destructive font-medium">
+                  Error Loading Global Settings
+                </p>
+                <p className="text-xs text-destructive/70 mt-1">
+                  {errorGlobal instanceof Error
+                    ? errorGlobal.message
+                    : "Failed to load global commission settings"}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="mt-4"
                   onClick={() => refetchGlobal()}
                 >
@@ -213,7 +230,7 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
                 </Button>
               </div>
             )}
-            
+
             {!isLoadingGlobal && !isErrorGlobal && (
               <>
                 <div className="flex items-center space-x-4">
@@ -344,13 +361,15 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
               <Coins className="h-5 w-5" />
               <span>Currency-Specific Commission</span>
             </div>
-            <AddCurrencyModal
-              onCreated={() =>
-                queryClient.invalidateQueries({
-                  queryKey: ["admin-commission-currencies"],
-                })
-              }
-            />
+            <PermissionGuard permission="CMA">
+              <AddCurrencyModal
+                onCreated={() =>
+                  queryClient.invalidateQueries({
+                    queryKey: ["admin-commission-currencies"],
+                  })
+                }
+              />
+            </PermissionGuard>
           </CardTitle>
           <CardDescription>
             Override global settings for specific cryptocurrencies
@@ -377,17 +396,23 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
                   </TableCell>
                 </TableRow>
               )}
-              
+
               {!isLoadingCurrencies && isErrorCurrencies && (
                 <TableRow>
                   <TableCell colSpan={4} className="py-10 text-center">
                     <div className="flex flex-col items-center justify-center text-destructive">
                       <AlertTriangle className="w-12 h-12 text-destructive/70 mb-2" />
-                      <p className="text-destructive font-medium">Error Loading Commission Settings</p>
-                      <p className="text-xs text-destructive/70 mt-1">{errorCurrencies instanceof Error ? errorCurrencies.message : 'Failed to load commission data'}</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <p className="text-destructive font-medium">
+                        Error Loading Commission Settings
+                      </p>
+                      <p className="text-xs text-destructive/70 mt-1">
+                        {errorCurrencies instanceof Error
+                          ? errorCurrencies.message
+                          : "Failed to load commission data"}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="mt-4"
                         onClick={() => refetchCurrencies()}
                       >
@@ -398,83 +423,103 @@ const AdminCommissionSettings: React.FC<AdminCommissionSettingsProps> = ({
                   </TableCell>
                 </TableRow>
               )}
-              
-              {!isLoadingCurrencies && !isErrorCurrencies && (!currencyCommission || !(currencyCommission as any)?.data || (currencyCommission as any)?.data?.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={4} className="py-10 text-center">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <Coins className="w-12 h-12 text-muted-foreground/50 mb-2" />
-                      <p className="text-muted-foreground font-medium">No Currency Commission Settings</p>
-                      <p className="text-xs text-muted-foreground/70 mt-1">No currency-specific commission rates have been configured</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-              
-              {!isLoadingCurrencies && !isErrorCurrencies && (currencyCommission as any)?.data?.length > 0 && (currencyCommission as any)?.data?.map((setting: any) => (
-                <TableRow key={setting.id ?? setting.currency}>
-                  <TableCell className="font-medium">
-                    {setting.currency}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      {editingPercentages[
-                        String(setting.id ?? setting.currency)
-                      ] ??
-                        setting.rate ??
-                        setting.percentage ??
-                        setting.value ??
-                        0}
-                      <Percent className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Badge
-                        variant={
-                          setting.is_active ?? setting.isActive
-                            ? "default"
-                            : "secondary"
-                        }
-                      >
-                        {setting.is_active ?? setting.isActive
-                          ? "Active"
-                          : "Inactive"}
-                      </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <EditCurrencyModal
-                        commission={{
-                          id: String(setting.id ?? setting.currency),
-                          currency: setting.currency,
-                          rate: Number(
-                            setting.rate ??
-                              setting.percentage ??
-                              setting.value ??
-                              0
-                          ),
-                          is_active: !!(setting.is_active ?? setting.isActive),
-                        }}
-                        onUpdated={() =>
-                          queryClient.invalidateQueries({
-                            queryKey: ["admin-commission-currencies"],
-                          })
-                        }
-                      />
-                      <DeleteCurrencyAction
-                        commissionId={String(setting.id ?? setting.currency)}
-                        onDeleted={() =>
-                          queryClient.invalidateQueries({
-                            queryKey: ["admin-commission-currencies"],
-                          })
-                        }
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+
+              {!isLoadingCurrencies &&
+                !isErrorCurrencies &&
+                (!currencyCommission ||
+                  !(currencyCommission as any)?.data ||
+                  (currencyCommission as any)?.data?.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-10 text-center">
+                      <div className="flex flex-col items-center justify-center text-muted-foreground">
+                        <Coins className="w-12 h-12 text-muted-foreground/50 mb-2" />
+                        <p className="text-muted-foreground font-medium">
+                          No Currency Commission Settings
+                        </p>
+                        <p className="text-xs text-muted-foreground/70 mt-1">
+                          No currency-specific commission rates have been
+                          configured
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+
+              {!isLoadingCurrencies &&
+                !isErrorCurrencies &&
+                (currencyCommission as any)?.data?.length > 0 &&
+                (currencyCommission as any)?.data?.map((setting: any) => (
+                  <TableRow key={setting.id ?? setting.currency}>
+                    <TableCell className="font-medium">
+                      {setting.currency}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        {editingPercentages[
+                          String(setting.id ?? setting.currency)
+                        ] ??
+                          setting.rate ??
+                          setting.percentage ??
+                          setting.value ??
+                          0}
+                        <Percent className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Badge
+                          variant={
+                            setting.is_active ?? setting.isActive
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          {setting.is_active ?? setting.isActive
+                            ? "Active"
+                            : "Inactive"}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <PermissionGuard permission="CME">
+                          <EditCurrencyModal
+                            commission={{
+                              id: String(setting.id ?? setting.currency),
+                              currency: setting.currency,
+                              rate: Number(
+                                setting.rate ??
+                                  setting.percentage ??
+                                  setting.value ??
+                                  0
+                              ),
+                              is_active: !!(
+                                setting.is_active ?? setting.isActive
+                              ),
+                            }}
+                            onUpdated={() =>
+                              queryClient.invalidateQueries({
+                                queryKey: ["admin-commission-currencies"],
+                              })
+                            }
+                          />
+                        </PermissionGuard>
+                        <PermissionGuard permission="CMD">
+                          <DeleteCurrencyAction
+                            commissionId={String(
+                              setting.id ?? setting.currency
+                            )}
+                            onDeleted={() =>
+                              queryClient.invalidateQueries({
+                                queryKey: ["admin-commission-currencies"],
+                              })
+                            }
+                          />
+                        </PermissionGuard>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </CardContent>

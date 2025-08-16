@@ -139,7 +139,7 @@ interface AdminUser {
 const Admin = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState("dashboard");
+  const [activeSection, setActiveSection] = useState<string | null>(null);
   const { toast } = useToast();
   const { t } = useLanguage();
 
@@ -202,26 +202,93 @@ const Admin = () => {
 
   // URL-based routing - sync activeSection with URL
   useEffect(() => {
+    // Wait for user profile data to be loaded
+    if (!userProfileData) {
+      console.log("🔄 Admin: Waiting for user profile data...");
+      return;
+    }
+
     const path = location.pathname;
+    console.log(
+      "🔄 Admin: Processing path:",
+      path,
+      "with user data:",
+      userProfileData
+    );
+    console.log(
+      "🔍 Admin: User permissions:",
+      (userProfileData as any)?.permissions
+    );
+    console.log("🔍 Admin: User role:", (userProfileData as any)?.role);
+
     if (path === "/admin" || path === "/admin/") {
-      // Find the first accessible section for the user
+      // If dashboard is accessible, show it by default on first load
+      const dashboardAccessible = canAccessSection(
+        userProfileData,
+        "dashboard"
+      );
       const accessibleSections = getAccessibleSections(userProfileData);
-      if (accessibleSections.length > 0) {
-        setActiveSection(accessibleSections[0]);
+      console.log(
+        "🔑 Admin: Accessible sections:",
+        accessibleSections,
+        "Dashboard:",
+        dashboardAccessible
+      );
+
+      if (dashboardAccessible) {
+        console.log("🏠 Admin: Showing dashboard by default");
+        setActiveSection("dashboard");
+      } else if (accessibleSections.length > 0) {
+        // Redirect to the first accessible NON-dashboard sidebar section
+        const firstNonDashboardFromMenu =
+          menuItems && menuItems.length > 0
+            ? menuItems.find((m) => m.id !== "dashboard")?.id
+            : undefined;
+        const firstNonDashboard =
+          firstNonDashboardFromMenu ||
+          accessibleSections.find((s) => s !== "dashboard");
+
+        if (firstNonDashboard) {
+          console.log(
+            "➡️ Admin: Redirecting to first NON-dashboard section:",
+            firstNonDashboard
+          );
+          setActiveSection(firstNonDashboard);
+          // Avoid redundant navigation if already on target
+          if (location.pathname !== `/admin/${firstNonDashboard}`) {
+            navigate(`/admin/${firstNonDashboard}`);
+          }
+        } else {
+          console.log("ℹ️ Admin: Only dashboard accessible, showing overview");
+          setActiveSection("overview");
+        }
       } else {
-        setActiveSection("dashboard"); // fallback
+        // No accessible sections - this shouldn't happen for non-user roles
+        console.log("❌ Admin: No accessible sections found");
+        setActiveSection("no-access");
       }
     } else if (path.startsWith("/admin/")) {
       const section = path.replace("/admin/", "");
+      console.log("🔍 Admin: Checking access to section:", section);
+
       // Check if user has access to this section
       if (canAccessSection(userProfileData, section)) {
+        console.log("✅ Admin: Access granted to section:", section);
         setActiveSection(section);
       } else {
+        console.log("❌ Admin: Access denied to section:", section);
         // Redirect to first accessible section
         const accessibleSections = getAccessibleSections(userProfileData);
         if (accessibleSections.length > 0) {
+          console.log(
+            "🔄 Admin: Redirecting to accessible section:",
+            accessibleSections[0]
+          );
           navigate(`/admin/${accessibleSections[0]}`);
         } else {
+          console.log(
+            "🔄 Admin: No accessible sections, redirecting to /admin"
+          );
           navigate("/admin");
         }
       }
@@ -288,7 +355,7 @@ const Admin = () => {
       menus: userData?.menus,
     });
 
-    // Super admin bypass - show all menu items
+    // Check if user has super admin role for full access
     if (userData?.role === "super_admin") {
       console.log("👑 Admin: Super admin detected - showing all menu items");
       return allMenuItems;
@@ -588,6 +655,19 @@ const Admin = () => {
   // All render functions have been moved to separate components
 
   const renderSection = () => {
+    // Show loading state while determining accessible sections
+    if (!activeSection) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <h3 className="text-lg font-semibold mb-2">Loading...</h3>
+          <p className="text-muted-foreground">
+            Determining accessible sections...
+          </p>
+        </div>
+      );
+    }
+
     // Check if user has permission to access the current section
     if (!canAccessSection(userProfileData, activeSection)) {
       return (
@@ -602,6 +682,44 @@ const Admin = () => {
     }
 
     switch (activeSection) {
+      case "overview":
+        return (
+          <div className="space-y-6">
+            <div className="text-center py-8">
+              <Crown className="h-16 w-16 text-primary mx-auto mb-4" />
+              <h1 className="text-3xl font-bold mb-2">{t("admin.title")}</h1>
+              <p className="text-muted-foreground text-lg mb-8">
+                {t("admin.subtitle")}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {menuItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="group cursor-pointer"
+                  onClick={() => handleSectionChange(item.id)}
+                >
+                  <div className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-all duration-200 hover:border-primary/50 group-hover:scale-105">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="bg-primary/10 p-3 rounded-lg group-hover:bg-primary/20 transition-colors">
+                        <item.icon className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+                          {item.label}
+                        </h3>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Click to access {item.label.toLowerCase()} section
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
       case "dashboard":
         return (
           <AdminDashboard
@@ -732,7 +850,14 @@ const Admin = () => {
           <Sidebar className="flex-shrink-0 hidden lg:flex lg:w-64 xl:w-72 border-r border-border">
             <SidebarContent className="flex flex-col h-full bg-card">
               <SidebarHeader className="flex-shrink-0 p-4 border-b border-border">
-                <div className="flex items-center space-x-3">
+                <div
+                  className="flex items-center space-x-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -m-2 transition-colors"
+                  onClick={() => {
+                    setActiveSection("overview");
+                    navigate("/admin");
+                  }}
+                  title="Return to Admin Overview"
+                >
                   <div className="bg-primary/10 p-2 rounded-lg flex-shrink-0">
                     <Crown className="h-5 w-5 xl:h-6 xl:w-6 text-primary" />
                   </div>
@@ -790,11 +915,19 @@ const Admin = () => {
 
                       <div className="min-w-0 flex-1">
                         <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold capitalize truncate">
-                          {menuItems.find((item) => item.id === activeSection)
-                            ?.label || "Dashboard"}
+                          {activeSection
+                            ? menuItems.find(
+                                (item) => item.id === activeSection
+                              )?.label || activeSection
+                            : "Loading..."}
                         </h1>
                         <p className="text-xs sm:text-sm text-muted-foreground truncate hidden sm:block">
-                          Manage your {activeSection.replace("-", " ")} settings
+                          {activeSection
+                            ? `Manage your ${activeSection.replace(
+                                "-",
+                                " "
+                              )} settings`
+                            : "Determining accessible sections..."}
                         </p>
                       </div>
                     </div>

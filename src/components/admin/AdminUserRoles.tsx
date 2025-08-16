@@ -78,6 +78,7 @@ import {
   updateUserRolesActive,
 } from "@/service/adminservices";
 import { toast } from "../ui/use-toast";
+import { PermissionGuard } from "@/components/PermissionGuard";
 import { epochToCustomLocalStringTime } from "@/Common";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -320,12 +321,14 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                 open={isCreateUserModalOpen}
                 onOpenChange={setIsCreateUserModalOpen}
               >
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t("admin.userRoles.addAdmin")}
-                  </Button>
-                </DialogTrigger>
+                <PermissionGuard permission="URA">
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      {t("admin.userRoles.addAdmin")}
+                    </Button>
+                  </DialogTrigger>
+                </PermissionGuard>
 
                 <DialogContent className="sm:max-w-[500px] p-0 flex flex-col max-h-[90vh] overflow-visible">
                   {/* HEADER */}
@@ -644,60 +647,68 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setIsEdit(true);
-                            createUserForm.reset({
-                              fullName: user.name,
-                              email: user.email,
-                              role: user.role,
-                            });
-                            setSelectedPermissions(user.permissions);
-                            setIsCreateUserModalOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            updateUserActiveStatus({
-                              payLoad: {
-                                is_active: !user?.isActive,
-                              },
-                              userId: user?.id,
-                            });
-                          }}
-                          title={user.isActive ? "Set inactive" : "Set active"}
-                        >
-                          {user.isActive ? (
-                            <ToggleRight className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          title="Delete user"
-                          onClick={() => {
-                            updateUserActiveStatus({
-                              payLoad: {
-                                is_deleted: !user?.isDeleted,
-                              },
-                              userId: user?.id,
-                            });
-                          }}
-                        >
-                          {user?.isDeleted ? (
-                            <RotateCcw className="h-4 w-4" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <PermissionGuard permission="URE">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setIsEdit(true);
+                              createUserForm.reset({
+                                fullName: user.name,
+                                email: user.email,
+                                role: user.role,
+                              });
+                              setSelectedPermissions(user.permissions);
+                              setIsCreateUserModalOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
+                        <PermissionGuard permission="URM">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              updateUserActiveStatus({
+                                payLoad: {
+                                  is_active: !user?.isActive,
+                                },
+                                userId: user?.id,
+                              });
+                            }}
+                            title={
+                              user.isActive ? "Set inactive" : "Set active"
+                            }
+                          >
+                            {user.isActive ? (
+                              <ToggleRight className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </PermissionGuard>
+                        <PermissionGuard permission="URD">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Delete user"
+                            onClick={() => {
+                              updateUserActiveStatus({
+                                payLoad: {
+                                  is_deleted: !user?.isDeleted,
+                                },
+                                userId: user?.id,
+                              });
+                            }}
+                          >
+                            {user?.isDeleted ? (
+                              <RotateCcw className="h-4 w-4" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </PermissionGuard>
                       </div>
                     </TableCell>
                   </TableRow>

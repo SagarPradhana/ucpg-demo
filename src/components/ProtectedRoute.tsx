@@ -14,6 +14,7 @@ interface ProtectedRouteProps {
   requireAuth?: boolean; // Whether route requires authentication
   allowedRoles?: string[]; // Which roles are allowed to access this route
   blockAdmins?: boolean; // Whether to block admin users from this route
+  requireNonUser?: boolean; // Whether to require non-user role (for admin access)
   redirectTo?: string; // Where to redirect if access is denied
 }
 
@@ -34,6 +35,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAuth = true,
   allowedRoles = ["user"], // Default to allowing regular users
   blockAdmins = false,
+  requireNonUser = false, // Default to false for backward compatibility
   redirectTo = "/login",
 }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -132,9 +134,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const isUserAllowed = (user: any): boolean => {
     const userRole = checkUserRole(user);
 
+    // If route requires non-user role (admin access), check that user is not a regular user
+    if (requireNonUser && userRole === "user") {
+      return false;
+    }
+
     // If route blocks admins and user is not a regular user, deny access
     if (blockAdmins && userRole !== "user") {
       return false;
+    }
+
+    // If requireNonUser is true, allow any non-user role
+    if (requireNonUser && userRole !== "user") {
+      return true;
     }
 
     // Check if user role is in allowed roles

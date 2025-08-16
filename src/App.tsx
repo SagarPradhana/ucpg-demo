@@ -265,14 +265,13 @@ const App = () => (
                       }
                     />
 
-                    {/* Admin Routes - Only for admin users */}
+                    {/* Admin Routes - Only for non-user roles */}
                     <Route
                       path={ROUTE_CONFIG.ADMIN.PANEL}
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>
@@ -283,8 +282,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>
@@ -295,8 +293,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>
@@ -307,8 +304,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>
@@ -319,8 +315,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>
@@ -331,8 +326,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>
@@ -343,8 +337,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>
@@ -355,8 +348,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>
@@ -367,8 +359,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>
@@ -379,8 +370,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>
@@ -391,8 +381,7 @@ const App = () => (
                       element={
                         <ProtectedRoute
                           requireAuth={true}
-                          allowedRoles={["admin", "super_admin"]}
-                          blockAdmins={false}
+                          requireNonUser={true}
                         >
                           <Admin />
                         </ProtectedRoute>

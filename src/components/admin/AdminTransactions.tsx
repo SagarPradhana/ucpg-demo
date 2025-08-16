@@ -19,12 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, X, Loader2, RefreshCw } from "lucide-react";
+import { Search, Eye, X, Loader2, RefreshCw, Edit } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import CommonPagination from "@/components/ui/common-pagination";
 import { usePagination } from "@/hooks/usePagination";
 import { getAdminTransactions } from "@/service/adminservices";
 import { epochRangeForLabel } from "@/utils/timeFilters";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 interface Transaction {
   id: string;
@@ -337,8 +338,16 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
 
       {/* Transactions Table */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>All Transactions</CardTitle>
+          <PermissionGuard permission="TRM">
+            <div className="flex space-x-2">
+              <Button size="sm" variant="outline">
+                Export Data
+              </Button>
+              <Button size="sm">Add Transaction</Button>
+            </div>
+          </PermissionGuard>
         </CardHeader>
         <CardContent>
           <Table>
@@ -482,19 +491,41 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="ghost">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            handleTransactionCancel(tx.id ?? tx.transaction_id)
-                          }
-                          disabled={(tx.status ?? tx.tx_status) === "cancelled"}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <PermissionGuard permission="TRV">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="View transaction details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
+                        <PermissionGuard permission="TRM">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Edit transaction"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
+                        <PermissionGuard permission="TRC">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              handleTransactionCancel(
+                                tx.id ?? tx.transaction_id
+                              )
+                            }
+                            disabled={
+                              (tx.status ?? tx.tx_status) === "cancelled"
+                            }
+                            title="Cancel transaction"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
                       </div>
                     </TableCell>
                   </TableRow>

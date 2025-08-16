@@ -18,7 +18,7 @@ export const ROUTE_CONFIG = {
     SERVICES: '/services',
   },
   
-  // Admin routes - only for admin users
+  // Admin routes - only for non-user roles
   ADMIN: {
     PANEL: '/admin',
     DASHBOARD: '/admin/dashboard',

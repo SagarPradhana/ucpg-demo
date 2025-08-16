@@ -70,15 +70,15 @@ const RouteProtectionDebug: React.FC<RouteProtectionDebugProps> = ({
     }
 
     if (routeType === "admin") {
-      if (userRole === "admin") {
+      if (userRole !== "user") {
         return {
           status: "allowed",
-          reason: "Admin user accessing admin route",
+          reason: `Non-user role (${userRole}) accessing admin route`,
         };
       } else {
         return {
           status: "denied",
-          reason: "Non-admin user trying to access admin route",
+          reason: "Regular user trying to access admin route",
         };
       }
     }
