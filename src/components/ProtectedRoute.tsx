@@ -124,10 +124,28 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   };
 
   const checkUserRole = (user: any): string => {
-    // Check various places where role might be stored
-    if (user.role) return user.role;
-    if (user.metadata?.role) return user.metadata.role;
-    if (user.metadata?.isAdmin) return "super_admin";
+    // Normalize role variants (e.g., "super-admin", "Super Admin") to consistent keys
+    const rawRole =
+      user?.role ||
+      user?.metadata?.role ||
+      (user?.metadata?.isAdmin ? "super_admin" : undefined);
+
+    if (typeof rawRole === "string") {
+      const normalized = rawRole
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .replace(/-/g, "_");
+
+      if (normalized.includes("super") && normalized.includes("admin"))
+        return "super_admin";
+      if (normalized.includes("admin")) return "admin";
+      if (normalized === "user") return "user";
+
+      // Fallback: return normalized value (treated as non-user if not exactly 'user')
+      return normalized;
+    }
+
+    if (user?.metadata?.isAdmin) return "super_admin";
     return "user"; // Default to user role
   };
 
@@ -177,7 +195,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check if user is allowed to access this route
   if (!isUserAllowed(authUser)) {
-    // If user is not allowed (e.g., admin trying to access user routes), show 404
+    // For admin-only routes, allow provisional access and let the page handle fine-grained permission checks
+    if (requireNonUser) {
+      return <>{children}</>;
+    }
+    // Otherwise, show 404 for unauthorized access
     return <NotFound />;
   }
 

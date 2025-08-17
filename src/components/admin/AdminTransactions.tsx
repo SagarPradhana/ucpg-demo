@@ -26,6 +26,15 @@ import { usePagination } from "@/hooks/usePagination";
 import { getAdminTransactions } from "@/service/adminservices";
 import { epochRangeForLabel } from "@/utils/timeFilters";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { epochToCustomLocalStringTime } from "@/Common";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { QRCodeSVG } from "qrcode.react";
 
 interface Transaction {
   id: string;
@@ -82,9 +91,18 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
 
   // Build server query params from filters
   const params = useMemo(() => {
+    // Clamp page size to API constraints [1, 100]
+    const clampedPageSize = Math.max(1, Math.min(100, pagination.pageSize));
+
+    const page_no = pagination.currentPage; // 1-based per transactions API requirement
     return {
+      // Primary API params (1-based for Transactions API)
+      page_no,
+      page_size: clampedPageSize,
+      // Legacy support (keep if backend accepts page/limit as 1-based)
       page: pagination.currentPage,
-      limit: pagination.pageSize,
+      limit: clampedPageSize,
+
       transaction_status:
         transactionFilters.status !== "all"
           ? transactionFilters.status
@@ -95,6 +113,7 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
           : undefined,
       date_from: epochRange.from_date,
       date_to: epochRange.to_date,
+      search: transactionFilters.search?.trim() || undefined,
       // transaction_type, currency_type, target_crypto_currency, user_id can be added later
     } as const;
   }, [
@@ -129,10 +148,32 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
       serverItems.length
     : 0;
 
-  // Update pagination when data changes
+  // Update pagination when data changes and reset on filter/time change
   useEffect(() => {
     pagination.setTotalItems(totalCount);
   }, [totalCount, pagination]);
+
+  useEffect(() => {
+    // Reset page when filters or time range change to avoid out-of-range page
+    pagination.setCurrentPage(1);
+  }, [
+    transactionFilters.status,
+    transactionFilters.currency,
+    transactionFilters.search,
+    epochRange.from_date,
+    epochRange.to_date,
+    pagination,
+  ]);
+  // State for details modal
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedTx, setSelectedTx] = useState<any | null>(null);
+
+  const handleView = (tx: any) => {
+    console.log("VIEW CLICK", tx);
+    setSelectedTx(tx);
+    setDetailsOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -327,11 +368,6 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                 </div>
               </div>
             )}
-
-            {/* Epoch Debug Info */}
-            <p className="text-xs text-muted-foreground">
-              from_date: {epochRange.from_date} | to_date: {epochRange.to_date}
-            </p>
           </div>
         </CardContent>
       </Card>
@@ -340,20 +376,33 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>All Transactions</CardTitle>
-          <PermissionGuard permission="TRM">
-            <div className="flex space-x-2">
-              <Button size="sm" variant="outline">
-                Export Data
-              </Button>
-              <Button size="sm">Add Transaction</Button>
+          <div className="flex items-center gap-3">
+            {/* Page size selector */}
+            <div className="flex items-center gap-2 text-sm">
+              <Label className="text-sm">Per page</Label>
+              <Select
+                value={String(pagination.pageSize)}
+                onValueChange={(v) => pagination.setPageSize(Number(v))}
+              >
+                <SelectTrigger className="h-9 w-[90px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 50, 100].map((s) => (
+                    <SelectItem key={s} value={String(s)}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </PermissionGuard>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Currency</TableHead>
@@ -445,19 +494,21 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
               )}
 
               {!isLoading &&
-                serverItems.map((tx: any) => (
+                serverItems?.map((tx: any) => (
                   <TableRow key={tx.id ?? tx.transaction_id}>
                     <TableCell className="font-medium">
-                      {tx.id ?? tx.transaction_id}
+                      {tx.transaction_name ?? "-"}
                     </TableCell>
                     <TableCell>
-                      {tx.date
-                        ? new Date(tx.date).toLocaleString()
+                      {tx.created_date
+                        ? epochToCustomLocalStringTime(tx.created_date)
                         : tx.created_at
                         ? new Date(tx.created_at).toLocaleString()
                         : "-"}
                     </TableCell>
-                    <TableCell>{tx.amount ?? tx.total_amount ?? "-"}</TableCell>
+                    <TableCell>
+                      {tx.original_amount ?? tx.original_amount ?? "-"}
+                    </TableCell>
                     <TableCell>
                       {tx.currency ?? tx.currency_code ?? "-"}
                     </TableCell>
@@ -469,11 +520,11 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                           ) as any
                         }
                       >
-                        {tx.status ?? tx.tx_status}
+                        {tx.status ?? "-"}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {tx.commission ?? tx.platform_fee ?? "-"}
+                      {tx.commission_amount ?? tx.commission_amount ?? "-"}
                     </TableCell>
                     <TableCell>
                       {tx.netAmount ?? tx.net_amount ?? "-"}
@@ -486,7 +537,7 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                           ) as any
                         }
                       >
-                        {tx.qrStatus ?? tx.qr_status ?? "-"}
+                        {tx.qr_status ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -496,6 +547,7 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                             size="sm"
                             variant="ghost"
                             title="View transaction details"
+                            onClick={() => handleView(tx)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -544,6 +596,236 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
         onPageChange={pagination.setCurrentPage}
         disabled={isLoading}
       />
+
+      {/* Details Modal */}
+      <Dialog open={detailsOpen} onOpenChange={(o) => setDetailsOpen(o)}>
+        <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto z-[60]">
+          <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              Transaction Details
+            </DialogTitle>
+            <DialogDescription>
+              Comprehensive view of the selected transaction
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTx && (
+            <div className="space-y-6">
+              {/* --- Top summary --- */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-lg border bg-card">
+                  <p className="text-xs text-muted-foreground">Amount</p>
+                  <p className="text-lg font-semibold truncate">
+                    {selectedTx.original_amount} {selectedTx.currency}
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg border bg-card">
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <Badge className="w-fit mt-1">{selectedTx.status}</Badge>
+                </div>
+                <div className="p-4 rounded-lg border bg-card">
+                  <p className="text-xs text-muted-foreground">Type</p>
+                  <p className="text-lg font-semibold capitalize truncate">
+                    {selectedTx.transaction_type || "-"}
+                  </p>
+                </div>
+              </div>
+
+              {/* --- Middle details --- */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Identifiers */}
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">Identifiers</p>
+                  <dl className="text-xs space-y-1 text-muted-foreground">
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        ID:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">{selectedTx.id}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        3rd Party TX ID:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.third_party_transaction_id || "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        User ID:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.user_id || "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Transaction Name:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.transaction_name || "-"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                {/* Amounts */}
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">Amounts</p>
+                  <dl className="text-xs space-y-1 text-muted-foreground">
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Original:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.original_amount} {selectedTx.currency}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Net Amount:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.net_amount ?? "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Commission:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.commission_amount ?? "-"} (
+                        {selectedTx.commission_rate ?? "-"}%)
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Received:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.received_amount ?? "-"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                {/* Payment */}
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">Payment</p>
+                  <dl className="text-xs space-y-1 text-muted-foreground">
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Method:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.payment_method || "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        3rd Party Site:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.third_party_site_name || "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Target Crypto:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.target_crypto_currency || "-"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                {/* QR & Links */}
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">QR & Links</p>
+                  <dl className="text-xs space-y-2 text-muted-foreground">
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Payment Link:
+                      </dt>{" "}
+                      <dd className="ml-2 inline break-all">
+                        {selectedTx.payment_link || "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        QR Expires:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.qr_expires_at
+                          ? epochToCustomLocalStringTime(
+                              selectedTx.qr_expires_at
+                            )
+                          : "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        QR Status:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.qr_status ? "Active" : "Inactive"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+
+              {/* QR code */}
+              {selectedTx.qr_code_url && (
+                <div className="p-4 rounded-lg border bg-card">
+                  <p className="text-sm font-medium mb-3">Payment QR</p>
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <QRCodeSVG
+                      value={selectedTx.payment_link || selectedTx.qr_code_url}
+                      size={160}
+                    />
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>Scan to open payment page.</p>
+                      {selectedTx.payment_link && (
+                        <p className="break-all">
+                          <span className="font-semibold text-foreground">
+                            Link:
+                          </span>
+                          <span className="ml-2">
+                            {selectedTx.payment_link}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Metadata & raw JSON */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">Metadata</p>
+                  <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-48">
+                    {JSON.stringify(
+                      selectedTx.transaction_metadata || {},
+                      null,
+                      2
+                    )}
+                  </pre>
+                </div>
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">Raw Transaction</p>
+                  <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-48">
+                    {JSON.stringify(selectedTx, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
