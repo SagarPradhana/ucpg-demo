@@ -93,15 +93,46 @@ const RevenueOps: React.FC = () => {
     }
   }, [txTotal, txPagination]);
 
-  const commissionTotal = (commissionIncomeResp as any)?.data?.total ?? 0;
+  // Helper function to safely extract numeric values
+  const safeNumber = (value: any): number => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
+  // Debug logging to understand API response structure
+  React.useEffect(() => {
+    if (commissionIncomeResp) {
+      console.log("Commission Income Response:", commissionIncomeResp);
+    }
+    if (fundsResp) {
+      console.log("Funds Response:", fundsResp);
+    }
+    if (currencyDistributionResp) {
+      console.log("Currency Distribution Response:", currencyDistributionResp);
+    }
+  }, [commissionIncomeResp, fundsResp, currencyDistributionResp]);
+
+  const commissionTotal = safeNumber(
+    (commissionIncomeResp as any)?.data?.total ??
+      (commissionIncomeResp as any)?.total ??
+      0
+  );
 
   const distItems: Array<{ name: string; value: number; color?: string }> =
     Array.isArray((currencyDistributionResp as any)?.data)
       ? (currencyDistributionResp as any).data
       : [];
 
-  const claimed = (fundsResp as any)?.data?.claimed ?? 0;
-  const unclaimed = (fundsResp as any)?.data?.unclaimed ?? 0;
+  const claimed = safeNumber(
+    (fundsResp as any)?.data?.claimed ?? (fundsResp as any)?.claimed ?? 0
+  );
+  const unclaimed = safeNumber(
+    (fundsResp as any)?.data?.unclaimed ?? (fundsResp as any)?.unclaimed ?? 0
+  );
 
   return (
     <div className="space-y-6">
@@ -149,7 +180,10 @@ const RevenueOps: React.FC = () => {
                   Commission Income
                 </p>
                 <p className="text-2xl font-bold">
-                  ${commissionTotal?.toLocaleString?.() ?? commissionTotal}
+                  $
+                  {typeof commissionTotal === "number"
+                    ? commissionTotal.toLocaleString()
+                    : commissionTotal}
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-green-600" />
@@ -163,7 +197,10 @@ const RevenueOps: React.FC = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Claimed Funds</p>
                 <p className="text-2xl font-bold">
-                  ${claimed?.toLocaleString?.() ?? claimed}
+                  $
+                  {typeof claimed === "number"
+                    ? claimed.toLocaleString()
+                    : claimed}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-600" />
@@ -177,7 +214,10 @@ const RevenueOps: React.FC = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Unclaimed Funds</p>
                 <p className="text-2xl font-bold">
-                  ${unclaimed?.toLocaleString?.() ?? unclaimed}
+                  $
+                  {typeof unclaimed === "number"
+                    ? unclaimed.toLocaleString()
+                    : unclaimed}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-orange-600" />
@@ -292,7 +332,10 @@ const RevenueOps: React.FC = () => {
             <Skeleton className="h-6 w-48" />
           ) : (
             <div className="text-lg font-semibold">
-              ${commissionTotal?.toLocaleString?.() ?? commissionTotal}
+              $
+              {typeof commissionTotal === "number"
+                ? commissionTotal.toLocaleString()
+                : commissionTotal}
             </div>
           )}
         </CardContent>
@@ -310,7 +353,10 @@ const RevenueOps: React.FC = () => {
               <Skeleton className="h-6 w-48" />
             ) : (
               <div className="text-lg font-semibold">
-                ${claimed?.toLocaleString?.() ?? claimed}
+                $
+                {typeof claimed === "number"
+                  ? claimed.toLocaleString()
+                  : claimed}
               </div>
             )}
           </div>
@@ -320,7 +366,10 @@ const RevenueOps: React.FC = () => {
               <Skeleton className="h-6 w-48" />
             ) : (
               <div className="text-lg font-semibold">
-                ${unclaimed?.toLocaleString?.() ?? unclaimed}
+                $
+                {typeof unclaimed === "number"
+                  ? unclaimed.toLocaleString()
+                  : unclaimed}
               </div>
             )}
           </div>

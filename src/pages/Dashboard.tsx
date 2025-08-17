@@ -508,7 +508,7 @@ const Dashboard = () => {
                   <Download className="h-4 w-4 mr-2" />
                   {t("dashboard.receive")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("history")}>
+                <DropdownMenuItem onClick={() => navigate("/history")}>
                   <History className="h-4 w-4 mr-2" />
                   {t("dashboard.history")}
                 </DropdownMenuItem>
@@ -842,7 +842,7 @@ const Dashboard = () => {
                     <Button
                       variant="outline"
                       className="w-full mt-4"
-                      onClick={() => setActiveTab("history")}
+                      onClick={() => navigate("/history")}
                     >
                       {t("dashboard.viewAllTransactions")}
                     </Button>

@@ -26,6 +26,8 @@ import {
   ADMIN_ERRORS_REPORTS,
   ADMIN_AUDIT_LOGS,
   ADMIN_COMMISSION_INCOME,
+  USER_TRANSACTIONS_HISTORY,
+  USER_TRANSACTIONS_STATS,
 } from "./Urls";
 
 export const getUserRole = (params?: {
@@ -99,6 +101,49 @@ export const getAdminTransactions = (params?: {
 }) => {
   const response = httpClient(ADMIN_TRANSACTIONS.url, {
     method: ADMIN_TRANSACTIONS.method,
+    withAuth: true,
+    queryParams: params as Record<
+      string,
+      string | number | boolean | null | undefined
+    >,
+  });
+  return response;
+};
+
+// User Transactions History
+export const getUserTransactionsHistory = (params: {
+  user_id: string; // required
+  transaction_type?: string | null;
+  status?: string | null;
+  currency?: string | null;
+  target_crypto_currency?: string | null;
+  search?: string | null;
+  from_date?: number | null; // epoch seconds
+  to_date?: number | null; // epoch seconds
+  sort_by?: string; // default created_date
+  sort_order?: string; // default desc
+  page_size?: number; // default 50, max 200
+  page_no?: number; // default 1
+}) => {
+  const response = httpClient(USER_TRANSACTIONS_HISTORY.url, {
+    method: USER_TRANSACTIONS_HISTORY.method,
+    withAuth: true,
+    queryParams: params as Record<
+      string,
+      string | number | boolean | null | undefined
+    >,
+  });
+  return response;
+};
+
+// User Transactions Stats
+export const getUserTransactionsStats = (params: {
+  user_id: string; // required
+  from_date?: number | null;
+  to_date?: number | null;
+}) => {
+  const response = httpClient(USER_TRANSACTIONS_STATS.url, {
+    method: USER_TRANSACTIONS_STATS.method,
     withAuth: true,
     queryParams: params as Record<
       string,

@@ -183,3 +183,15 @@ export const ADMIN_AUDIT_LOGS: Api = {
   url: `${BACKEND_KPIX}/admin/dashboard/activity_logs`,
   method: HttpMethods.GET,
 };
+
+// User transactions history
+export const USER_TRANSACTIONS_HISTORY: Api = {
+  url: `${BACKEND_KPIX}/user/transactions/history`,
+  method: HttpMethods.GET,
+};
+
+// User transactions stats
+export const USER_TRANSACTIONS_STATS: Api = {
+  url: `${BACKEND_KPIX}/user/transactions/stats`,
+  method: HttpMethods.GET,
+};

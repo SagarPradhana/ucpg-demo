@@ -733,15 +733,7 @@ const Admin = () => {
           />
         );
       case "transactions":
-        return (
-          <AdminTransactions
-            transactions={transactions}
-            transactionFilters={transactionFilters}
-            setTransactionFilters={setTransactionFilters}
-            getStatusBadge={getStatusBadge}
-            handleTransactionCancel={handleTransactionCancel}
-          />
-        );
+        return <AdminTransactions />;
       case "promo-codes":
         return (
           <AdminPromoCodes

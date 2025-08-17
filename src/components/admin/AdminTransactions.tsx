@@ -24,7 +24,8 @@ import { useQuery } from "@tanstack/react-query";
 import CommonPagination from "@/components/ui/common-pagination";
 import { usePagination } from "@/hooks/usePagination";
 import { getAdminTransactions } from "@/service/adminservices";
-import { epochRangeForLabel } from "@/utils/timeFilters";
+import { TimeFilter } from "@/components/ui/time-filter";
+import { useTimeFilter } from "@/hooks/useTimeFilter";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { epochToCustomLocalStringTime } from "@/Common";
 import {
@@ -36,58 +37,55 @@ import {
 } from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
 
-interface Transaction {
-  id: string;
-  date: string;
-  amount: number;
-  currency: string;
-  status: "sent" | "received" | "expired" | "cancelled";
-  commission: number;
-  netAmount: number;
-  providerFee: number;
-  qrStatus: "active" | "used" | "expired";
-}
-
 interface TransactionFilters {
   status: string;
   currency: string;
   search: string;
 }
 
-interface AdminTransactionsProps {
-  // legacy props (not used with server data)
-  transactions: Transaction[];
-  transactionFilters: TransactionFilters;
-  setTransactionFilters: React.Dispatch<
-    React.SetStateAction<TransactionFilters>
-  >;
-  getStatusBadge: (status: string) => string;
-  handleTransactionCancel: (transactionId: string) => void;
-}
+const AdminTransactions: React.FC = () => {
+  // Helper function for status badges (moved from props)
+  const getStatusBadge = (
+    status: string
+  ): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status?.toLowerCase()) {
+      case "sent":
+      case "completed":
+      case "success":
+        return "default";
+      case "received":
+      case "pending":
+        return "secondary";
+      case "expired":
+      case "cancelled":
+      case "failed":
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
 
-const AdminTransactions: React.FC<AdminTransactionsProps> = ({
-  transactions,
-  transactionFilters,
-  setTransactionFilters,
-  getStatusBadge,
-  handleTransactionCancel,
-}) => {
+  // Handle transaction cancel (moved from props)
+  const handleTransactionCancel = (transactionId: string) => {
+    // TODO: Implement cancel transaction API call
+    console.log("Cancel transaction:", transactionId);
+  };
+  // Local state for filters (replacing legacy props)
+  const [localFilters, setLocalFilters] = useState<TransactionFilters>({
+    status: "all",
+    currency: "all",
+    search: "",
+  });
   // Pagination hook
   const pagination = usePagination({
     initialPage: 1,
     pageSize: 10,
   });
 
-  // Time filter state - same as AdminReports
-  const [timeLabel, setTimeLabel] = useState<string>("Today");
-  const [epochRange, setEpochRange] = useState(() =>
-    epochRangeForLabel("Today")
-  );
-
-  // Custom date range state
-  const [showCustomDates, setShowCustomDates] = useState(false);
-  const [customDateFrom, setCustomDateFrom] = useState("");
-  const [customDateTo, setCustomDateTo] = useState("");
+  // Time filter using unified hook (epoch-based)
+  const timeFilter = useTimeFilter({ mode: "epoch", defaultValue: "Today" });
+  const from_date = timeFilter.epochRange.from_date;
+  const to_date = timeFilter.epochRange.to_date;
 
   // Build server query params from filters
   const params = useMemo(() => {
@@ -104,24 +102,20 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
       limit: clampedPageSize,
 
       transaction_status:
-        transactionFilters.status !== "all"
-          ? transactionFilters.status
-          : undefined,
+        localFilters.status !== "all" ? localFilters.status : undefined,
       currency:
-        transactionFilters.currency !== "all"
-          ? transactionFilters.currency
-          : undefined,
-      date_from: epochRange.from_date,
-      date_to: epochRange.to_date,
-      search: transactionFilters.search?.trim() || undefined,
+        localFilters.currency !== "all" ? localFilters.currency : undefined,
+      date_from: from_date,
+      date_to: to_date,
+      search: localFilters.search?.trim() || undefined,
       // transaction_type, currency_type, target_crypto_currency, user_id can be added later
     } as const;
   }, [
     pagination.currentPage,
     pagination.pageSize,
-    transactionFilters,
-    epochRange.from_date,
-    epochRange.to_date,
+    localFilters,
+    timeFilter.epochRange.from_date,
+    timeFilter.epochRange.to_date,
   ]);
 
   const {
@@ -157,11 +151,11 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
     // Reset page when filters or time range change to avoid out-of-range page
     pagination.setCurrentPage(1);
   }, [
-    transactionFilters.status,
-    transactionFilters.currency,
-    transactionFilters.search,
-    epochRange.from_date,
-    epochRange.to_date,
+    localFilters.status,
+    localFilters.currency,
+    localFilters.search,
+    from_date,
+    to_date,
     pagination,
   ]);
   // State for details modal
@@ -195,9 +189,9 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                 <Input
                   placeholder="Transaction ID..."
                   className="pl-8 h-9 text-sm"
-                  value={transactionFilters.search}
+                  value={localFilters.search}
                   onChange={(e) =>
-                    setTransactionFilters((prev) => ({
+                    setLocalFilters((prev) => ({
                       ...prev,
                       search: e.target.value,
                     }))
@@ -210,9 +204,9 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">Status</Label>
               <Select
-                value={transactionFilters.status}
+                value={localFilters.status}
                 onValueChange={(value) =>
-                  setTransactionFilters((prev) => ({ ...prev, status: value }))
+                  setLocalFilters((prev) => ({ ...prev, status: value }))
                 }
               >
                 <SelectTrigger className="h-9 text-sm">
@@ -232,9 +226,9 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">Currency</Label>
               <Select
-                value={transactionFilters.currency}
+                value={localFilters.currency}
                 onValueChange={(value) =>
-                  setTransactionFilters((prev) => ({
+                  setLocalFilters((prev) => ({
                     ...prev,
                     currency: value,
                   }))
@@ -260,16 +254,13 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
               <Button
                 variant="outline"
                 onClick={() => {
-                  setTransactionFilters({
+                  setLocalFilters({
                     status: "all",
                     currency: "all",
                     search: "",
                   });
-                  setTimeLabel("Today");
-                  setEpochRange(epochRangeForLabel("Today"));
-                  setShowCustomDates(false);
-                  setCustomDateFrom("");
-                  setCustomDateTo("");
+                  timeFilter.handleEpochChange("Today");
+                  pagination.setCurrentPage(1);
                 }}
                 className="w-full h-9 text-sm"
               >
@@ -282,92 +273,17 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
           {/* Time Filter Section */}
           <div className="border-t pt-4 space-y-3">
             <Label className="text-sm font-medium">Time Range</Label>
-            <Select
-              value={timeLabel}
-              onValueChange={(label: string) => {
-                setTimeLabel(label);
-                if (label === "Custom") {
-                  setShowCustomDates(true);
-                } else {
-                  setShowCustomDates(false);
-                  setEpochRange(epochRangeForLabel(label));
-                }
-              }}
-            >
-              <SelectTrigger className="w-full h-9 text-sm">
-                <SelectValue placeholder="Select time range" />
-              </SelectTrigger>
-              <SelectContent>
-                {[
-                  "Today",
-                  "Yesterday",
-                  "Last 7 Days",
-                  "Last 30 Days",
-                  "This Week",
-                  "Last Week",
-                  "This Month",
-                  "Last Month",
-                  "Custom",
-                ].map((label) => (
-                  <SelectItem key={label} value={label}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Custom Date Inputs */}
-            {showCustomDates && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs font-medium">From Date</Label>
-                  <Input
-                    type="date"
-                    value={customDateFrom}
-                    onChange={(e) => {
-                      setCustomDateFrom(e.target.value);
-                      if (e.target.value && customDateTo) {
-                        const fromEpoch = Math.floor(
-                          new Date(e.target.value).getTime() / 1000
-                        );
-                        const toEpoch =
-                          Math.floor(new Date(customDateTo).getTime() / 1000) +
-                          86399;
-                        setEpochRange({
-                          from_date: fromEpoch,
-                          to_date: toEpoch,
-                        });
-                      }
-                    }}
-                    className="text-xs h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-medium">To Date</Label>
-                  <Input
-                    type="date"
-                    value={customDateTo}
-                    onChange={(e) => {
-                      setCustomDateTo(e.target.value);
-                      if (customDateFrom && e.target.value) {
-                        const fromEpoch = Math.floor(
-                          new Date(customDateFrom).getTime() / 1000
-                        );
-                        const toEpoch =
-                          Math.floor(
-                            new Date(e.target.value).getTime() / 1000
-                          ) + 86399;
-                        setEpochRange({
-                          from_date: fromEpoch,
-                          to_date: toEpoch,
-                        });
-                      }
-                    }}
-                    className="text-xs h-8"
-                  />
-                </div>
-              </div>
-            )}
+            <TimeFilter
+              mode="epoch"
+              value={timeFilter.value}
+              onChange={timeFilter.handleEpochChange}
+              epochRange={timeFilter.epochRange}
+              onEpochRangeChange={() => {}}
+              label="Time Range"
+              placeholder="Select time range"
+              variant="compact"
+              showIcon={true}
+            />
           </div>
         </CardContent>
       </Card>
@@ -497,7 +413,7 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                 serverItems?.map((tx: any) => (
                   <TableRow key={tx.id ?? tx.transaction_id}>
                     <TableCell className="font-medium">
-                      {tx.transaction_name ?? "-"}
+                      {tx.transaction_name ?? tx.id ?? "-"}
                     </TableCell>
                     <TableCell>
                       {tx.created_date
@@ -507,37 +423,35 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                         : "-"}
                     </TableCell>
                     <TableCell>
-                      {tx.original_amount ?? tx.original_amount ?? "-"}
+                      {tx.amount ?? tx.original_amount ?? "-"}
                     </TableCell>
                     <TableCell>
                       {tx.currency ?? tx.currency_code ?? "-"}
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={
-                          getStatusBadge(
-                            (tx.status ?? tx.tx_status) as string
-                          ) as any
-                        }
+                        variant={getStatusBadge(
+                          (tx.transaction_status ??
+                            tx.status ??
+                            tx.tx_status) as string
+                        )}
                       >
-                        {tx.status ?? "-"}
+                        {tx.transaction_status ?? tx.status ?? "-"}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {tx.commission_amount ?? tx.commission_amount ?? "-"}
+                      {tx.commission_amount ?? tx.commission ?? "-"}
                     </TableCell>
                     <TableCell>
-                      {tx.netAmount ?? tx.net_amount ?? "-"}
+                      {tx.net_amount ?? tx.netAmount ?? "-"}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={
-                          getStatusBadge(
-                            (tx.qrStatus ?? tx.qr_status) as string
-                          ) as any
+                          tx.qr_status === "active" ? "default" : "secondary"
                         }
                       >
-                        {tx.qr_status ? "Active" : "Inactive"}
+                        {tx.qr_status ?? "inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -571,7 +485,9 @@ const AdminTransactions: React.FC<AdminTransactionsProps> = ({
                               )
                             }
                             disabled={
-                              (tx.status ?? tx.tx_status) === "cancelled"
+                              (tx.transaction_status ??
+                                tx.status ??
+                                tx.tx_status) === "cancelled"
                             }
                             title="Cancel transaction"
                           >

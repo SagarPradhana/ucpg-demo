@@ -16,6 +16,7 @@ export const ROUTE_CONFIG = {
     RECEIVE_WITH_ID: '/receive/:id',
     PROFILE: '/profile',
     SERVICES: '/services',
+    HISTORY: '/history',
   },
   
   // Admin routes - only for non-user roles

@@ -20,6 +20,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import Services from "./pages/Services";
+import History from "./pages/History";
 import ChatbotDemo from "./pages/ChatbotDemo";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
@@ -261,6 +262,18 @@ const App = () => (
                           blockAdmins={false}
                         >
                           <Services />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTE_CONFIG.USER.HISTORY}
+                      element={
+                        <ProtectedRoute
+                          requireAuth={true}
+                          allowedRoles={["user", "admin", "super_admin"]}
+                          blockAdmins={false}
+                        >
+                          <History />
                         </ProtectedRoute>
                       }
                     />
