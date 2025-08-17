@@ -101,6 +101,11 @@ export const ADMIN_TRANSACTIONS: Api = {
   method: HttpMethods.GET,
 };
 
+export const ADMIN_TRANSACTION_CANCEL: Api = {
+  url: `${BACKEND_KPIX}/admin/transactions/{0}/cancel`,
+  method: HttpMethods.PATCH,
+};
+
 export const ADMIN_EXCHANGE_SETTINGS: Api = {
   url: `${BACKEND_KPIX}/admin/exchange/rates`,
   method: HttpMethods.GET,

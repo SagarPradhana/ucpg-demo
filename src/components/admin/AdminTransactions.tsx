@@ -20,10 +20,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Eye, X, Loader2, RefreshCw, Edit } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import CommonPagination from "@/components/ui/common-pagination";
 import { usePagination } from "@/hooks/usePagination";
-import { getAdminTransactions } from "@/service/adminservices";
+import {
+  getAdminTransactions,
+  cancelAdminTransaction,
+} from "@/service/adminservices";
 import { TimeFilter } from "@/components/ui/time-filter";
 import { useTimeFilter } from "@/hooks/useTimeFilter";
 import { PermissionGuard } from "@/components/PermissionGuard";
@@ -35,6 +38,18 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
 interface TransactionFilters {
@@ -65,10 +80,45 @@ const AdminTransactions: React.FC = () => {
     }
   };
 
-  // Handle transaction cancel (moved from props)
+  // Cancel transaction mutation
+  const cancelMutation = useMutation({
+    mutationFn: ({
+      transactionId,
+      reason,
+    }: {
+      transactionId: string;
+      reason: string;
+    }) => cancelAdminTransaction(transactionId, { reason }),
+    onSuccess: () => {
+      toast.success("Transaction cancelled successfully");
+      // Invalidate and refetch transactions
+      queryClient.invalidateQueries({ queryKey: ["admin-transactions"] });
+      // Reset modal state
+      setCancelModalOpen(false);
+      setSelectedTransactionId("");
+      setCancelReason("");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to cancel transaction");
+    },
+  });
+
+  // Handle cancel button click
   const handleTransactionCancel = (transactionId: string) => {
-    // TODO: Implement cancel transaction API call
-    console.log("Cancel transaction:", transactionId);
+    setSelectedTransactionId(transactionId);
+    setCancelModalOpen(true);
+  };
+
+  // Handle cancel confirmation
+  const handleCancelConfirm = () => {
+    if (!selectedTransactionId || !cancelReason.trim()) {
+      toast.error("Please provide a reason for cancellation");
+      return;
+    }
+    cancelMutation.mutate({
+      transactionId: selectedTransactionId,
+      reason: cancelReason.trim(),
+    });
   };
   // Local state for filters (replacing legacy props)
   const [localFilters, setLocalFilters] = useState<TransactionFilters>({
@@ -86,6 +136,15 @@ const AdminTransactions: React.FC = () => {
   const timeFilter = useTimeFilter({ mode: "epoch", defaultValue: "Today" });
   const from_date = timeFilter.epochRange.from_date;
   const to_date = timeFilter.epochRange.to_date;
+
+  // Cancel modal state
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [selectedTransactionId, setSelectedTransactionId] =
+    useState<string>("");
+  const [cancelReason, setCancelReason] = useState("");
+
+  // Query client for cache invalidation
+  const queryClient = useQueryClient();
 
   // Build server query params from filters
   const params = useMemo(() => {
@@ -466,15 +525,7 @@ const AdminTransactions: React.FC = () => {
                             <Eye className="h-4 w-4" />
                           </Button>
                         </PermissionGuard>
-                        <PermissionGuard permission="TRM">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Edit transaction"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </PermissionGuard>
+
                         <PermissionGuard permission="TRC">
                           <Button
                             size="sm"
@@ -487,7 +538,8 @@ const AdminTransactions: React.FC = () => {
                             disabled={
                               (tx.transaction_status ??
                                 tx.status ??
-                                tx.tx_status) === "cancelled"
+                                tx.tx_status) === "cancelled" ||
+                              cancelMutation.isPending
                             }
                             title="Cancel transaction"
                           >
@@ -504,14 +556,16 @@ const AdminTransactions: React.FC = () => {
       </Card>
 
       {/* Pagination */}
-      <CommonPagination
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        totalItems={totalCount}
-        pageSize={pagination.pageSize}
-        onPageChange={pagination.setCurrentPage}
-        disabled={isLoading}
-      />
+      {totalCount > 0 && (
+        <CommonPagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={totalCount}
+          pageSize={pagination.pageSize}
+          onPageChange={(p) => !isLoading && pagination.setCurrentPage(p)}
+          disabled={isLoading}
+        />
+      )}
 
       {/* Details Modal */}
       <Dialog open={detailsOpen} onOpenChange={(o) => setDetailsOpen(o)}>
@@ -742,6 +796,50 @@ const AdminTransactions: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Transaction Confirmation Modal */}
+      <AlertDialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Transaction</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this transaction? This action
+              cannot be undone. Please provide a reason for cancellation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="cancel-reason" className="text-sm font-medium">
+              Reason for cancellation *
+            </Label>
+            <Textarea
+              id="cancel-reason"
+              placeholder="Enter the reason for cancelling this transaction..."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="mt-2"
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setCancelModalOpen(false);
+                setCancelReason("");
+                setSelectedTransactionId("");
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelConfirm}
+              disabled={!cancelReason.trim() || cancelMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelMutation.isPending ? "Cancelling..." : "Apply"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

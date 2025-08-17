@@ -7,6 +7,7 @@ import {
   UPDATE_USER_ROLE,
   UPDATE_USER_ROLE_DATA,
   ADMIN_TRANSACTIONS,
+  ADMIN_TRANSACTION_CANCEL,
   ADMIN_EXCHANGE_SETTINGS,
   ADMIN_SETTINGS,
   ADMIN_SETTINGS_UPDATE,
@@ -108,6 +109,17 @@ export const getAdminTransactions = (params?: {
     >,
   });
   return response;
+};
+
+export const cancelAdminTransaction = (
+  transactionId: string,
+  data: { reason: string }
+) => {
+  return httpClient(FormatUrl(ADMIN_TRANSACTION_CANCEL.url, transactionId), {
+    method: ADMIN_TRANSACTION_CANCEL.method,
+    withAuth: true,
+    data,
+  });
 };
 
 // User Transactions History
