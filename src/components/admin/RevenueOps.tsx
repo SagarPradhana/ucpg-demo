@@ -22,6 +22,7 @@ import {
   getAdminCurrencyDistribution,
   getAdminUnclaimedFunds,
 } from "@/service/adminservices";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 // RevenueOps dashboard: time-filtered view of dashboard metrics excluding audit logs
 const RevenueOps: React.FC = () => {
@@ -135,247 +136,259 @@ const RevenueOps: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header + Time Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 className="text-xl font-semibold">Revenue Operations</h2>
-        <div className="w-full sm:w-auto">
-          <TimeFilter
-            mode="epoch"
-            value={timeFilter.value}
-            onChange={timeFilter.handleEpochChange}
-            epochRange={timeFilter.epochRange}
-            onEpochRangeChange={() => {
-              /* epochRange is derived from label via hook */
-            }}
-            label="Time Range"
-            placeholder="Select time range"
-            variant="compact"
-            showIcon={true}
-          />
+    <PermissionGuard
+      section="revenue-ops"
+      fallback={
+        <div className="text-sm text-muted-foreground">Access denied</div>
+      }
+      showFallback
+    >
+      <div className="space-y-6">
+        {/* Header + Time Filter */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-xl font-semibold">Revenue Operations</h2>
+          <div className="w-full sm:w-auto">
+            <TimeFilter
+              mode="epoch"
+              value={timeFilter.value}
+              onChange={timeFilter.handleEpochChange}
+              epochRange={timeFilter.epochRange}
+              onEpochRangeChange={() => {
+                /* epochRange is derived from label via hook */
+              }}
+              label="Time Range"
+              placeholder="Select time range"
+              variant="compact"
+              showIcon={true}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Total Transactions
-                </p>
-                <p className="text-2xl font-bold">{txTotal}</p>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Total Transactions
+                  </p>
+                  <p className="text-2xl font-bold">{txTotal}</p>
+                </div>
+                <Activity className="h-8 w-8 text-blue-600" />
               </div>
-              <Activity className="h-8 w-8 text-blue-600" />
-            </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-green-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Commission Income
+                  </p>
+                  <p className="text-2xl font-bold">
+                    $
+                    {typeof commissionTotal === "number"
+                      ? commissionTotal.toLocaleString()
+                      : commissionTotal}
+                  </p>
+                </div>
+                <DollarSign className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-purple-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Claimed Funds</p>
+                  <p className="text-2xl font-bold">
+                    $
+                    {typeof claimed === "number"
+                      ? claimed.toLocaleString()
+                      : claimed}
+                  </p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-orange-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Unclaimed Funds
+                  </p>
+                  <p className="text-2xl font-bold">
+                    $
+                    {typeof unclaimed === "number"
+                      ? unclaimed.toLocaleString()
+                      : unclaimed}
+                  </p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Currency Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PieChart className="h-5 w-5" /> Currency Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isDistLoading ? (
+              <Skeleton className="h-24 w-full" />
+            ) : distItems.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                No data for selected range.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {distItems.map((d, i) => (
+                  <Badge key={`${d.name}-${i}`} variant="outline">
+                    {d.name}: {d.value}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Commission Income
-                </p>
-                <p className="text-2xl font-bold">
-                  $
-                  {typeof commissionTotal === "number"
-                    ? commissionTotal.toLocaleString()
-                    : commissionTotal}
-                </p>
-              </div>
-              <DollarSign className="h-8 w-8 text-green-600" />
+        {/* Transactions Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Currency</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isTxLoading ? (
+                    Array.from({ length: txPagination.pageSize }).map(
+                      (_, idx) => (
+                        <TableRow key={`tx-skel-${idx}`}>
+                          <TableCell colSpan={5}>
+                            <Skeleton className="h-6 w-full" />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    )
+                  ) : txItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center text-sm text-muted-foreground py-6"
+                      >
+                        No data available.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    txItems.map((tx: any) => (
+                      <TableRow key={tx?.id}>
+                        <TableCell className="font-mono text-xs">
+                          {tx?.id}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(
+                            (tx?.created_date ?? 0) * 1000
+                          ).toLocaleString()}
+                        </TableCell>
+                        <TableCell>{tx?.amount}</TableCell>
+                        <TableCell>{tx?.currency}</TableCell>
+                        <TableCell>{tx?.transaction_status}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
+
+            {txTotal > 0 && (
+              <CommonPagination
+                currentPage={txPagination.currentPage}
+                totalPages={txPagination.totalPages}
+                totalItems={txTotal}
+                pageSize={txPagination.pageSize}
+                onPageChange={txPagination.setCurrentPage}
+              />
+            )}
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Claimed Funds</p>
-                <p className="text-2xl font-bold">
+        {/* Commission Income */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Commission Income</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isCommissionLoading ? (
+              <Skeleton className="h-6 w-48" />
+            ) : (
+              <div className="text-lg font-semibold">
+                $
+                {typeof commissionTotal === "number"
+                  ? commissionTotal.toLocaleString()
+                  : commissionTotal}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Claimed / Unclaimed Funds */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Funds</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Claimed</div>
+              {isFundsLoading ? (
+                <Skeleton className="h-6 w-48" />
+              ) : (
+                <div className="text-lg font-semibold">
                   $
                   {typeof claimed === "number"
                     ? claimed.toLocaleString()
                     : claimed}
-                </p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-purple-600" />
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-orange-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Unclaimed Funds</p>
-                <p className="text-2xl font-bold">
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">
+                Unclaimed
+              </div>
+              {isFundsLoading ? (
+                <Skeleton className="h-6 w-48" />
+              ) : (
+                <div className="text-lg font-semibold">
                   $
                   {typeof unclaimed === "number"
                     ? unclaimed.toLocaleString()
                     : unclaimed}
-                </p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-orange-600" />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Currency Distribution */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PieChart className="h-5 w-5" /> Currency Distribution
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isDistLoading ? (
-            <Skeleton className="h-24 w-full" />
-          ) : distItems.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              No data for selected range.
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {distItems.map((d, i) => (
-                <Badge key={`${d.name}-${i}`} variant="outline">
-                  {d.name}: {d.value}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Transactions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Currency</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isTxLoading ? (
-                  Array.from({ length: txPagination.pageSize }).map(
-                    (_, idx) => (
-                      <TableRow key={`tx-skel-${idx}`}>
-                        <TableCell colSpan={5}>
-                          <Skeleton className="h-6 w-full" />
-                        </TableCell>
-                      </TableRow>
-                    )
-                  )
-                ) : txItems.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center text-sm text-muted-foreground py-6"
-                    >
-                      No data available.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  txItems.map((tx: any) => (
-                    <TableRow key={tx?.id}>
-                      <TableCell className="font-mono text-xs">
-                        {tx?.id}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(
-                          (tx?.created_date ?? 0) * 1000
-                        ).toLocaleString()}
-                      </TableCell>
-                      <TableCell>{tx?.amount}</TableCell>
-                      <TableCell>{tx?.currency}</TableCell>
-                      <TableCell>{tx?.transaction_status}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {txTotal > 0 && (
-            <CommonPagination
-              currentPage={txPagination.currentPage}
-              totalPages={txPagination.totalPages}
-              totalItems={txTotal}
-              pageSize={txPagination.pageSize}
-              onPageChange={txPagination.setCurrentPage}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Commission Income */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Commission Income</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isCommissionLoading ? (
-            <Skeleton className="h-6 w-48" />
-          ) : (
-            <div className="text-lg font-semibold">
-              $
-              {typeof commissionTotal === "number"
-                ? commissionTotal.toLocaleString()
-                : commissionTotal}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Claimed / Unclaimed Funds */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Funds</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <div className="text-sm text-muted-foreground mb-1">Claimed</div>
-            {isFundsLoading ? (
-              <Skeleton className="h-6 w-48" />
-            ) : (
-              <div className="text-lg font-semibold">
-                $
-                {typeof claimed === "number"
-                  ? claimed.toLocaleString()
-                  : claimed}
-              </div>
-            )}
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground mb-1">Unclaimed</div>
-            {isFundsLoading ? (
-              <Skeleton className="h-6 w-48" />
-            ) : (
-              <div className="text-lg font-semibold">
-                $
-                {typeof unclaimed === "number"
-                  ? unclaimed.toLocaleString()
-                  : unclaimed}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    </PermissionGuard>
   );
 };
 

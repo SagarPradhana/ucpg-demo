@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -26,11 +26,33 @@ import { usePagination } from "@/hooks/usePagination";
 import {
   getUserTransactionsHistory,
   getUserTransactionsStats,
+  cancelAdminTransaction,
 } from "@/service/adminservices";
+import { toast } from "sonner";
 import { epochRangeForLabel } from "@/utils/timeFilters";
 import { epochToCustomLocalStringTime } from "@/Common";
-import { Loader2, RefreshCw, Search, ArrowLeft } from "lucide-react";
+import { Search, ArrowLeft, Eye, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { QRCodeSVG } from "qrcode.react";
 
 const statusBadgeColor = (status?: string) => {
   switch ((status || "").toLowerCase()) {
@@ -131,6 +153,62 @@ const History: React.FC = () => {
       (data as any)?.data?.[0]?.total_count ??
       items.length
     : 0;
+
+  // State for details and cancel actions
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedTx, setSelectedTx] = useState<any | null>(null);
+
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [selectedTransactionId, setSelectedTransactionId] =
+    useState<string>("");
+
+  // Query client
+  const queryClient = useQueryClient();
+
+  // Cancel transaction mutation (reusing admin endpoint for now)
+  const cancelMutation = useMutation({
+    mutationFn: ({
+      transactionId,
+      reason,
+    }: {
+      transactionId: string;
+      reason: string;
+    }) => cancelAdminTransaction(transactionId, { reason }),
+    onSuccess: () => {
+      toast.success("Transaction cancelled successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["user-transactions-history"],
+      });
+      setCancelModalOpen(false);
+      setSelectedTransactionId("");
+      setCancelReason("");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to cancel transaction");
+    },
+  });
+
+  const handleView = (tx: any) => {
+    setSelectedTx(tx);
+    setDetailsOpen(true);
+  };
+
+  const handleTransactionCancel = (transactionId: string) => {
+    setSelectedTransactionId(transactionId);
+    setCancelModalOpen(true);
+  };
+
+  const handleCancelConfirm = () => {
+    if (!selectedTransactionId || !cancelReason.trim()) {
+      toast.error("Please provide a reason for cancellation");
+      return;
+    }
+    cancelMutation.mutate({
+      transactionId: selectedTransactionId,
+      reason: cancelReason.trim(),
+    });
+  };
 
   useEffect(() => {
     pagination.setTotalItems(totalCount);
@@ -381,13 +459,14 @@ const History: React.FC = () => {
                   <TableHead>Currency</TableHead>
                   <TableHead>Target Crypto</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   Array.from({ length: pagination.pageSize }).map((_, idx) => (
                     <TableRow key={`hist-skel-${idx}`}>
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={9}>
                         <div className="flex items-center gap-3 py-2">
                           <Skeleton className="h-4 w-40" />
                           <Skeleton className="h-4 w-16" />
@@ -403,7 +482,7 @@ const History: React.FC = () => {
                 ) : isError ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={9}
                       className="text-center py-6 text-red-600"
                     >
                       Failed to load history.
@@ -412,7 +491,7 @@ const History: React.FC = () => {
                 ) : items.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={9}
                       className="text-center py-6 text-muted-foreground"
                     >
                       No transactions found.
@@ -449,6 +528,34 @@ const History: React.FC = () => {
                           ? epochToCustomLocalStringTime(tx.created_date)
                           : "-"}
                       </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="View transaction details"
+                            onClick={() => handleView(tx)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              handleTransactionCancel(
+                                tx.id ?? tx.transaction_id
+                              )
+                            }
+                            disabled={
+                              (tx.status ?? tx.transaction_status) ===
+                                "cancelled" || cancelMutation.isPending
+                            }
+                            title="Cancel transaction"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -456,17 +563,295 @@ const History: React.FC = () => {
             </Table>
           </div>
 
-          <CommonPagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            totalItems={pagination.totalItems}
-            pageSize={pagination.pageSize}
-            onPageChange={(page) => pagination.setCurrentPage(page)}
-            className="mt-3"
-            disabled={isLoading}
-          />
+          {pagination.totalItems > 0 && (
+            <CommonPagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
+              pageSize={pagination.pageSize}
+              onPageChange={(page) =>
+                !isLoading && pagination.setCurrentPage(page)
+              }
+              className="mt-3"
+              disabled={isLoading}
+            />
+          )}
         </CardContent>
       </Card>
+
+      {/* Details Modal */}
+      <Dialog open={detailsOpen} onOpenChange={(o) => setDetailsOpen(o)}>
+        <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto z-[60]">
+          <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              Transaction Details
+            </DialogTitle>
+            <DialogDescription>
+              Comprehensive view of the selected transaction
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTx && (
+            <div className="space-y-6">
+              {/* Top summary */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-lg border bg-card">
+                  <p className="text-xs text-muted-foreground">Amount</p>
+                  <p className="text-lg font-semibold truncate">
+                    {selectedTx.original_amount} {selectedTx.currency}
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg border bg-card">
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <Badge className="w-fit mt-1">{selectedTx.status}</Badge>
+                </div>
+                <div className="p-4 rounded-lg border bg-card">
+                  <p className="text-xs text-muted-foreground">Type</p>
+                  <p className="text-lg font-semibold capitalize truncate">
+                    {selectedTx.transaction_type || "-"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Middle details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Identifiers */}
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">Identifiers</p>
+                  <dl className="text-xs space-y-1 text-muted-foreground">
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        ID:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">{selectedTx.id}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        3rd Party TX ID:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.third_party_transaction_id || "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        User ID:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.user_id || "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Transaction Name:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.transaction_name || "-"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                {/* Amounts */}
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">Amounts</p>
+                  <dl className="text-xs space-y-1 text-muted-foreground">
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Original:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.original_amount} {selectedTx.currency}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Net Amount:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.net_amount ?? "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Commission:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.commission_amount ?? "-"} (
+                        {selectedTx.commission_rate ?? "-"}%)
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Received:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.received_amount ?? "-"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                {/* Payment */}
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">Payment</p>
+                  <dl className="text-xs space-y-1 text-muted-foreground">
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Method:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.payment_method || "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        3rd Party Site:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.third_party_site_name || "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Target Crypto:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.target_crypto_currency || "-"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                {/* QR & Links */}
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">QR & Links</p>
+                  <dl className="text-xs space-y-2 text-muted-foreground">
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        Payment Link:
+                      </dt>{" "}
+                      <dd className="ml-2 inline break-all">
+                        {selectedTx.payment_link || "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        QR Expires:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.qr_expires_at
+                          ? epochToCustomLocalStringTime(
+                              selectedTx.qr_expires_at
+                            )
+                          : "-"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        QR Status:
+                      </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.qr_status ? "Active" : "Inactive"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+
+              {/* QR code */}
+              {selectedTx.qr_code_url && (
+                <div className="p-4 rounded-lg border bg-card">
+                  <p className="text-sm font-medium mb-3">Payment QR</p>
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <QRCodeSVG
+                      value={selectedTx.payment_link || selectedTx.qr_code_url}
+                      size={160}
+                    />
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>Scan to open payment page.</p>
+                      {selectedTx.payment_link && (
+                        <p className="break-all">
+                          <span className="font-semibold text-foreground">
+                            Link:
+                          </span>
+                          <span className="ml-2">
+                            {selectedTx.payment_link}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Metadata & raw JSON */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">Metadata</p>
+                  <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-48">
+                    {JSON.stringify(
+                      selectedTx.transaction_metadata || {},
+                      null,
+                      2
+                    )}
+                  </pre>
+                </div>
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <p className="text-sm font-medium">Raw Transaction</p>
+                  <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-48">
+                    {JSON.stringify(selectedTx, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Transaction Confirmation Modal */}
+      <AlertDialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Transaction</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this transaction? This action
+              cannot be undone. Please provide a reason for cancellation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="cancel-reason" className="text-sm font-medium">
+              Reason for cancellation *
+            </Label>
+            <Textarea
+              id="cancel-reason"
+              placeholder="Enter the reason for cancelling this transaction..."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="mt-2"
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setCancelModalOpen(false);
+                setCancelReason("");
+                setSelectedTransactionId("");
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelConfirm}
+              disabled={!cancelReason.trim() || cancelMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelMutation.isPending ? "Cancelling..." : "Apply"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

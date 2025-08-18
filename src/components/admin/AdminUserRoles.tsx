@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useSelector } from "react-redux";
+import { RootState } from "@/types";
 import {
   Card,
   CardContent,
@@ -108,10 +110,10 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
     password: z.string().min(6, "Password must be at least 6 characters"),
     role: z.enum(
       [
-        "super-admin",
-        "transaction-admin",
-        "provider-admin",
-        "statistics-admin",
+        "super_admin",
+        "transaction_admin",
+        "provider_admin",
+        "statistics_admin",
         "user",
       ],
       {
@@ -163,11 +165,94 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
       fullName: "",
       email: "",
       password: "",
-      role: "super-admin",
+      role: "super_admin",
     },
   });
 
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const currentUser = useSelector(
+    (state: RootState) => state.singleUserDetails.userDetails
+  ) as any;
+  const currentRole = (currentUser?.role || "user")
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+
+  // Compute allowed assignable roles for the current admin
+  const allowedRoles: Array<{
+    value: CreateUserFormData["role"];
+    label: string;
+    icon: React.ReactNode;
+  }> = useMemo(() => {
+    const all = [
+      {
+        value: "super_admin",
+        label: "Super Admin",
+        icon: <Crown className="h-4 w-4 mr-2 text-yellow-600" />,
+      },
+      {
+        value: "transaction_admin",
+        label: "Transaction Admin",
+        icon: <CreditCard className="h-4 w-4 mr-2 text-blue-600" />,
+      },
+      {
+        value: "provider_admin",
+        label: "Provider Admin",
+        icon: <Building2 className="h-4 w-4 mr-2 text-green-600" />,
+      },
+      {
+        value: "statistics_admin",
+        label: "Statistics Admin",
+        icon: <BarChart3 className="h-4 w-4 mr-2 text-purple-600" />,
+      },
+      {
+        value: "user",
+        label: "User",
+        icon: <User className="h-4 w-4 mr-2 text-gray-600" />,
+      },
+    ] as Array<{
+      value: CreateUserFormData["role"];
+      label: string;
+      icon: React.ReactNode;
+    }>;
+
+    if (currentRole === "super_admin") return all;
+    if (currentRole === "transaction_admin") {
+      return all.filter((r) =>
+        [
+          "transaction_admin",
+          "provider_admin",
+          "statistics_admin",
+          "user",
+        ].includes(r.value)
+      );
+    }
+    if (currentRole === "provider_admin") {
+      return all.filter((r) =>
+        ["provider_admin", "statistics_admin", "user"].includes(r.value)
+      );
+    }
+    if (currentRole === "statistics_admin") {
+      return all.filter((r) => ["statistics_admin", "user"].includes(r.value));
+    }
+    // default: non-admin can only add user
+    return all.filter((r) => ["user"].includes(r.value));
+  }, [currentRole]);
+
+  const allowedRoleValues = useMemo(
+    () => allowedRoles.map((r) => r.value),
+    [allowedRoles]
+  );
+  const canEditTargetRole = (role: string | undefined | null): boolean => {
+    const target = (role || "user")
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/-/g, "_");
+    return (
+      currentRole === "super_admin" ||
+      (allowedRoleValues as any).includes(target)
+    );
+  };
 
   // Server-provided pagination/meta (fallback to client values if missing)
   const serverPageNo = (getRoleUserResponse as any)?.page_no as
@@ -282,11 +367,23 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
 
   // Handle create user form submission
   const handleCreateUser = () => {
+    const selectedRole = createUserForm.getValues()?.role;
+    if (
+      currentRole !== "super_admin" &&
+      !(allowedRoleValues as any).includes(selectedRole)
+    ) {
+      return toast({
+        title: "Permission denied",
+        description:
+          "Your role cannot assign the selected role. Please choose an allowed role.",
+        variant: "destructive",
+      });
+    }
+
     const addpayload = {
       name: createUserForm.getValues()?.fullName,
       email: createUserForm.getValues()?.email,
-
-      role: createUserForm.getValues()?.role,
+      role: selectedRole,
     };
 
     const editPayload = {
@@ -313,13 +410,19 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
-                  setPage(1);
+                  pagination.setCurrentPage(1);
                 }}
                 className="w-64"
               />
               <Dialog
                 open={isCreateUserModalOpen}
-                onOpenChange={setIsCreateUserModalOpen}
+                onOpenChange={(open) => {
+                  setIsCreateUserModalOpen(open);
+                  if (open && !isEdit) {
+                    const firstAllowed = allowedRoles[0]?.value ?? "user";
+                    createUserForm.setValue("role", firstAllowed);
+                  }
+                }}
               >
                 <PermissionGuard permission="URA">
                   <DialogTrigger asChild>
@@ -399,36 +502,14 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="super_admin">
-                                    <div className="flex items-center">
-                                      <Crown className="h-4 w-4 mr-2 text-yellow-600" />
-                                      Super Admin
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="transaction_admin">
-                                    <div className="flex items-center">
-                                      <CreditCard className="h-4 w-4 mr-2 text-blue-600" />
-                                      Transaction Admin
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="provider_admin">
-                                    <div className="flex items-center">
-                                      <Building2 className="h-4 w-4 mr-2 text-green-600" />
-                                      Provider Admin
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="statistics_admin">
-                                    <div className="flex items-center">
-                                      <BarChart3 className="h-4 w-4 mr-2 text-purple-600" />
-                                      Statistics Admin
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="user">
-                                    <div className="flex items-center">
-                                      <User className="h-4 w-4 mr-2 text-gray-600" />
-                                      User
-                                    </div>
-                                  </SelectItem>
+                                  {allowedRoles.map((r) => (
+                                    <SelectItem key={r.value} value={r.value}>
+                                      <div className="flex items-center">
+                                        {r.icon}
+                                        {r.label}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -535,7 +616,7 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                           fullName: "",
                           email: "",
                           password: "",
-                          role: "super-admin",
+                          role: "super_admin",
                         });
                         setIsCreateUserModalOpen(false);
                         setSelectedPermissions([]);
@@ -648,22 +729,30 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                     <TableCell>
                       <div className="flex space-x-2">
                         <PermissionGuard permission="URE">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setIsEdit(true);
-                              createUserForm.reset({
-                                fullName: user.name,
-                                email: user.email,
-                                role: user.role,
-                              });
-                              setSelectedPermissions(user.permissions);
-                              setIsCreateUserModalOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          {canEditTargetRole(user.role) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setIsEdit(true);
+                                createUserForm.reset({
+                                  fullName: user.name,
+                                  email: user.email,
+                                  role: (user.role as any)
+                                    ?.toLowerCase()
+                                    ?.replace(/\s+/g, "_")
+                                    ?.replace(
+                                      /-/g,
+                                      "_"
+                                    ) as CreateUserFormData["role"],
+                                });
+                                setSelectedPermissions(user.permissions);
+                                setIsCreateUserModalOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
                         </PermissionGuard>
                         <PermissionGuard permission="URM">
                           <Button
