@@ -104,9 +104,9 @@ export const SupportChatbot: React.FC<SupportChatbotProps> = ({
       verification: "Account verification increases your limits and provides access to additional features."
     }
   };
-  
+
   // Merge default and custom knowledge bases
-  const knowledgeBase = customKnowledgeBase 
+  const knowledgeBase = customKnowledgeBase
     ? { ...defaultKnowledgeBase, ...customKnowledgeBase }
     : defaultKnowledgeBase;
 
@@ -117,7 +117,7 @@ export const SupportChatbot: React.FC<SupportChatbotProps> = ({
 
     // Check for common greetings
     if (/^(hello|hi|hey|greetings|howdy)\b/i.test(query)) {
-      return "Hello! I'm your UCPG support assistant. I can help you with dashboard navigation, sending/receiving payments, services, and account management. What would you like to know?";
+      return "Hello! I'm your CryptoFlow support assistant. I can help you with dashboard navigation, sending/receiving payments, services, and account management. What would you like to know?";
     }
 
     // Check for thanks
@@ -137,7 +137,7 @@ export const SupportChatbot: React.FC<SupportChatbotProps> = ({
 
     // Score-based matching for knowledge base entries
     let bestMatch = { score: 0, response: "" };
-    
+
     // Dashboard related queries
     if (
       query.includes("dashboard") ||
@@ -226,7 +226,7 @@ export const SupportChatbot: React.FC<SupportChatbotProps> = ({
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    
+
     // Call the onUserMessage callback if provided
     onUserMessage?.(input.trim());
 
@@ -234,7 +234,7 @@ export const SupportChatbot: React.FC<SupportChatbotProps> = ({
     try {
       // Get response - either from custom handler or default
       let responseContent: string;
-      
+
       if (getCustomResponse) {
         responseContent = await Promise.resolve(getCustomResponse(input.trim()));
       } else {
@@ -273,7 +273,7 @@ export const SupportChatbot: React.FC<SupportChatbotProps> = ({
       handleSend();
     }
   };
-  
+
   // Toggle chatbot visibility
   const toggleChat = () => {
     setChatOpen(!chatOpen);
@@ -455,14 +455,14 @@ export const SupportChatbot: React.FC<SupportChatbotProps> = ({
                           msg.sender === "user"
                             ? "#3b82f6"
                             : theme === "dark"
-                            ? "#334155"
-                            : "#e2e8f0",
+                              ? "#334155"
+                              : "#e2e8f0",
                         color:
                           msg.sender === "user"
                             ? "#ffffff"
                             : theme === "dark"
-                            ? "#f1f5f9"
-                            : "#1e293b",
+                              ? "#f1f5f9"
+                              : "#1e293b",
                         whiteSpace: "pre-wrap",
                         wordBreak: "break-word",
                       }}
@@ -476,9 +476,8 @@ export const SupportChatbot: React.FC<SupportChatbotProps> = ({
               <div
                 style={{
                   padding: "10px 15px",
-                  borderTop: `1px solid ${
-                    theme === "dark" ? "#334155" : "#e2e8f0"
-                  }`,
+                  borderTop: `1px solid ${theme === "dark" ? "#334155" : "#e2e8f0"
+                    }`,
                   backgroundColor: theme === "dark" ? "#1e293b" : "#ffffff",
                   display: "flex",
                   alignItems: "center",
@@ -494,9 +493,8 @@ export const SupportChatbot: React.FC<SupportChatbotProps> = ({
                     flex: 1,
                     padding: "8px 12px",
                     borderRadius: "20px",
-                    border: `1px solid ${
-                      theme === "dark" ? "#334155" : "#cbd5e1"
-                    }`,
+                    border: `1px solid ${theme === "dark" ? "#334155" : "#cbd5e1"
+                      }`,
                     backgroundColor: theme === "dark" ? "#0f172a" : "#f8fafc",
                     color: theme === "dark" ? "#f1f5f9" : "#1e293b",
                     fontSize: "14px",

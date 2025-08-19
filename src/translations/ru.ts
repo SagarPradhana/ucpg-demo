@@ -1,6 +1,6 @@
 export const ru = {
   // App Title & Brand
-  "app.title": "UCPG",
+  "app.title": "CryptoFlow",
   "app.fullName": "Универсальный Криптоплатежный Шлюз",
   "app.tagline": "Безопасно, Конфиденциально, Анонимно",
 
@@ -26,7 +26,7 @@ export const ru = {
   "auth.loginSuccess": "Успешный вход в систему",
   "auth.logoutSuccess": "Вы успешно вышли из системы",
   "auth.welcomeBack": "Добро пожаловать",
-  "auth.welcomeToUCPG": "Добро пожаловать в UCPG",
+  "auth.welcomeToUCPG": "Добро пожаловать в CryptoFlow",
   "auth.successfullyLoggedIn": "Успешный вход в вашу учетную запись",
   "auth.incorrectCredentials": "Неверные учетные данные",
   "auth.failedLogin": "Не удалось войти в вашу учетную запись",
@@ -69,7 +69,7 @@ export const ru = {
   "home.hero.learnMore": "Подробнее",
   "home.hero.getStarted": "Начать",
   
-  "home.features.title": "Почему выбирают UCPG?",
+  "home.features.title": "Почему выбирают CryptoFlow?",
   "home.features.subtitle": "Ощутите будущее глобальных платежей с нашим инновационным криптошлюзом",
   "home.features.globalAccess": "Глобальный доступ",
   "home.features.globalAccessDesc": "Принимайте платежи из 190+ стран в их местных валютах",
@@ -88,7 +88,7 @@ export const ru = {
   "home.howItWorks.step3.desc": "Получите анонимную криптовалюту мгновенно в ваш кошелек",
   
   "home.cta.title": "Готовы начать?",
-  "home.cta.subtitle": "Присоединяйтесь к тысячам пользователей, которые доверяют UCPG для своих криптоплатежных потребностей",
+  "home.cta.subtitle": "Присоединяйтесь к тысячам пользователей, которые доверяют CryptoFlow для своих криптоплатежных потребностей",
   "home.cta.startJourney": "Начните свое путешествие",
   
   "home.footer.copyright": "© 2024 Универсальный Криптоплатежный Шлюз. Все права защищены.",
@@ -98,7 +98,7 @@ export const ru = {
   "home.features.secureCrypto": "Безопасные криптоплатежи",
 
   // Dashboard
-  "dashboard.title": "UCPG",
+  "dashboard.title": "CryptoFlow",
   "dashboard.anonymityDisclaimer": "Эта платформа обеспечивает вашу анонимность. Персональные данные не собираются и не хранятся. Все транзакции используют анонимные идентификаторы. Для поддержки используйте ваш ID транзакции.",
   "dashboard.totalBalance": "Общий баланс",
   "dashboard.fromLastMonth": "с прошлого месяца",
@@ -270,14 +270,14 @@ export const ru = {
   "profile.customizeExperience": "Настройте свой опыт",
 
   // Support Chatbot
-  "support.chatbot.title": "Помощник UCPG",
+  "support.chatbot.title": "Помощник CryptoFlow",
   "support.chatbot.subtitle": "Как я могу помочь вам сегодня?",
-  "support.chatbot.placeholder": "Спросите меня что-нибудь о UCPG...",
+  "support.chatbot.placeholder": "Спросите меня что-нибудь о CryptoFlow...",
   "support.chatbot.send": "Отправить",
   "support.chatbot.close": "Закрыть",
   "support.chatbot.minimize": "Свернуть",
   "support.chatbot.typing": "Ассистент печатает...",
-  "support.chatbot.welcome": "Привет! Я ваш помощник UCPG. Я могу помочь с:",
+  "support.chatbot.welcome": "Привет! Я ваш помощник CryptoFlow. Я могу помочь с:",
   "support.chatbot.helpTopics": "• Панелью управления и управлением аккаунтом\n• Отправкой криптоплатежей\n• Получением платежей и созданием ссылок\n• Использованием сервисов платформы\n• Профилем и настройками\n• Общей навигацией по платформе",
   "support.chatbot.askQuestion": "О чём хотели бы узнать?",
   "support.chatbot.quickHelp": "Быстрая помощь",

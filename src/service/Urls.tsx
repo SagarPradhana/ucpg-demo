@@ -64,7 +64,7 @@ export const UPDATEUSERPASSWORD: Api = {
 };
 
 export const REFRESH_TOKEN: Api = {
-  url: `${BACKEND_KPIX}/auth/refreshtoken`,
+  url: `${BACKEND_KPIX}/auth/refresh-token`,
   method: HttpMethods.POST,
 };
 

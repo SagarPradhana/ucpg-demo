@@ -28,7 +28,7 @@ const Index = () => {
               <div className="bg-primary/10 p-2 rounded-lg">
                 <Coins className="h-6 w-6 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold">UCPG</h1>
+              <h1 className="text-2xl font-bold">CryptoFlow</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/login">
@@ -83,7 +83,7 @@ const Index = () => {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Why Choose UCPG?</h2>
+            <h2 className="text-3xl font-bold mb-4">Why Choose CryptoFlow?</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Experience the future of global payments with our innovative
               crypto gateway
@@ -155,7 +155,7 @@ const Index = () => {
           <div className="text-center max-w-2xl mx-auto space-y-8 animate-fade-in">
             <h2 className="text-3xl font-bold">Ready to Get Started?</h2>
             <p className="text-primary-foreground/80">
-              Join thousands of users who trust UCPG for their crypto payment
+              Join thousands of users who trust CryptoFlow for their crypto payment
               needs
             </p>
             <Link to="/login">

@@ -1,6 +1,6 @@
 export const tr = {
   // App Title & Brand
-  "app.title": "UCPG",
+  "app.title": "CryptoFlow",
   "app.fullName": "Evrensel Kripto Ödeme Geçidi",
   "app.tagline": "Güvenli, Özel, Anonim",
 
@@ -26,7 +26,7 @@ export const tr = {
   "auth.loginSuccess": "Başarıyla giriş yapıldı",
   "auth.logoutSuccess": "Başarıyla çıkış yapıldı",
   "auth.welcomeBack": "Tekrar hoş geldiniz",
-  "auth.welcomeToUCPG": "UCPG'ye hoş geldiniz",
+  "auth.welcomeToUCPG": "CryptoFlow'a hoş geldiniz",
   "auth.successfullyLoggedIn": "Hesabınıza başarıyla giriş yapıldı",
   "auth.incorrectCredentials": "Yanlış kimlik bilgileri",
   "auth.failedLogin": "Hesabınıza giriş yapılamadı",
@@ -69,7 +69,7 @@ export const tr = {
   "home.hero.learnMore": "Daha Fazla Öğren",
   "home.hero.getStarted": "Başla",
   
-  "home.features.title": "Neden UCPG'yi Seçmelisiniz?",
+  "home.features.title": "Neden CryptoFlow'yu Seçmelisiniz?",
   "home.features.subtitle": "Yenilikçi kripto geçidimizle küresel ödemelerin geleceğini deneyimleyin",
   "home.features.globalAccess": "Küresel Erişim",
   "home.features.globalAccessDesc": "190+ ülkeden yerel para birimlerinde ödeme kabul edin",
@@ -88,7 +88,7 @@ export const tr = {
   "home.howItWorks.step3.desc": "Anonim kripto parayı anında cüzdanınızda alın",
   
   "home.cta.title": "Başlamaya Hazır mısınız?",
-  "home.cta.subtitle": "Kripto ödeme ihtiyaçları için UCPG'ye güvenen binlerce kullanıcıya katılın",
+  "home.cta.subtitle": "Kripto ödeme ihtiyaçları için CryptoFlow'ya güvenen binlerce kullanıcıya katılın",
   "home.cta.startJourney": "Yolculuğunuzu Başlatın",
   
   "home.footer.copyright": "© 2024 Evrensel Kripto Ödeme Geçidi. Tüm hakları saklıdır.",
@@ -98,7 +98,7 @@ export const tr = {
   "home.features.secureCrypto": "Güvenli kripto ödemeler",
 
   // Dashboard
-  "dashboard.title": "UCPG",
+  "dashboard.title": "CryptoFlow",
   "dashboard.anonymityDisclaimer": "Bu platform anonimliğinizi sağlar. Kişisel veri toplanmaz veya saklanmaz. Tüm işlemler anonim tanımlayıcılar kullanır. Destek için işlem kimliğinizi kullanın.",
   "dashboard.totalBalance": "Toplam Bakiye",
   "dashboard.fromLastMonth": "geçen aydan itibaren",
@@ -270,14 +270,14 @@ export const tr = {
   "profile.customizeExperience": "Deneyiminizi özelleştirin",
 
   // Support Chatbot
-  "support.chatbot.title": "UCPG Destek Asistanı",
+  "support.chatbot.title": "CryptoFlow Destek Asistanı",
   "support.chatbot.subtitle": "Bugün size nasıl yardımcı olabilirim?",
-  "support.chatbot.placeholder": "UCPG hakkında herhangi bir şey sorun...",
+  "support.chatbot.placeholder": "CryptoFlow hakkında herhangi bir şey sorun...",
   "support.chatbot.send": "Gönder",
   "support.chatbot.close": "Kapat",
   "support.chatbot.minimize": "Küçült",
   "support.chatbot.typing": "Asistan yazıyor...",
-  "support.chatbot.welcome": "Merhaba! UCPG destek asistanınızım. Size şunlarda yardımcı olabilirim:",
+  "support.chatbot.welcome": "Merhaba! CryptoFlow destek asistanınızım. Size şunlarda yardımcı olabilirim:",
   "support.chatbot.helpTopics": "• Kontrol paneli ve hesap yönetimi\n• Kripto ödeme gönderme\n• Ödeme alma ve bağlantı oluşturma\n• Platform hizmetlerini kullanma\n• Profil ve ayar yönetimi\n• Genel platform navigasyonu",
   "support.chatbot.askQuestion": "Ne hakkında bilgi almak istiyorsunuz?",
   "support.chatbot.quickHelp": "Hızlı Yardım",
@@ -308,7 +308,7 @@ export const tr = {
   "support.quick.anonymousTx": "Anonim ödeme nasıl çalışır?",
 
   // Role Selection Modal
-  "roleSelection.title": "UCPG'ye Hoş Geldiniz",
+  "roleSelection.title": "CryptoFlow'ya Hoş Geldiniz",
   "roleSelection.subtitle": "Admin yetkileriniz bulunmaktadır. Lütfen platforma nasıl erişmek istediğinizi seçin.",
   "roleSelection.admin.title": "Yönetici",
   "roleSelection.admin.subtitle": "Tam sistem erişimi ve yönetimi",

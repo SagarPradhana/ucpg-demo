@@ -176,7 +176,7 @@ const Signup = () => {
             <div className="bg-primary/10 p-2 rounded-lg">
               <Shield className="h-6 w-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold">UCPG</h1>
+            <h1 className="text-2xl font-bold">CryptoFlow</h1>
           </div>
           <p className="text-muted-foreground text-sm">
             Universal Crypto Payment Gateway

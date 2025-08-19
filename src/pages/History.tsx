@@ -31,7 +31,7 @@ import {
 import { toast } from "sonner";
 import { epochRangeForLabel } from "@/utils/timeFilters";
 import { epochToCustomLocalStringTime } from "@/Common";
-import { Search, ArrowLeft, Eye, X } from "lucide-react";
+import { Search, ArrowLeft, Eye, X, Send, Download, Activity, TrendingUp, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -150,8 +150,8 @@ const History: React.FC = () => {
     : [];
   const totalCount: number = data
     ? (data as any)?.total_count ??
-      (data as any)?.data?.[0]?.total_count ??
-      items.length
+    (data as any)?.data?.[0]?.total_count ??
+    items.length
     : 0;
 
   // State for details and cancel actions
@@ -244,68 +244,150 @@ const History: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Stats summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="border rounded-md p-3">
-              <div className="text-xs text-muted-foreground mb-1">Send</div>
-              {isStatsLoading ? (
-                <Skeleton className="h-6 w-40" />
-              ) : (
-                <div className="text-sm space-y-1">
-                  <div>Total: {(statsData as any)?.data?.send?.total ?? 0}</div>
-                  <div>
-                    Pending: {(statsData as any)?.data?.send?.pending ?? 0}
+          {/* Enhanced Stats summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Send Card */}
+            <div className="relative overflow-hidden rounded-xl border border-border/60 bg-gradient-to-b from-background to-muted/30">
+              <div className="absolute right-0 -top-6 opacity-10">
+                <Send className="h-24 w-24" />
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-md bg-primary/10 text-primary">
+                    <Send className="h-4 w-4" />
                   </div>
-                  <div>Sent: {(statsData as any)?.data?.send?.sent ?? 0}</div>
-                  <div>
-                    Amount: {(statsData as any)?.data?.send?.amount_total ?? 0}
-                  </div>
+                  <span className="text-xs font-medium text-muted-foreground">Send</span>
                 </div>
-              )}
+                {isStatsLoading ? (
+                  <Skeleton className="h-24 w-full" />
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-md border p-3 bg-background">
+                      <div className="text-[11px] text-muted-foreground">Total</div>
+                      <div className="text-base font-semibold">
+                        {(statsData as any)?.data?.send?.total ?? 0}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-3 bg-background">
+                      <div className="text-[11px] text-muted-foreground">Pending</div>
+                      <div className="text-base font-semibold flex items-center gap-1">
+                        <Clock className="h-4 w-4 text-amber-500" />
+                        {(statsData as any)?.data?.send?.pending ?? 0}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-3 bg-background col-span-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-[11px] text-muted-foreground">Sent</div>
+                          <div className="text-base font-semibold flex items-center gap-1">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            {(statsData as any)?.data?.send?.sent ?? 0}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[11px] text-muted-foreground">Amount</div>
+                          <div className="text-base font-semibold">
+                            {(statsData as any)?.data?.send?.amount_total ?? 0}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="border rounded-md p-3">
-              <div className="text-xs text-muted-foreground mb-1">Receive</div>
-              {isStatsLoading ? (
-                <Skeleton className="h-6 w-40" />
-              ) : (
-                <div className="text-sm space-y-1">
-                  <div>
-                    Total: {(statsData as any)?.data?.receive?.total ?? 0}
+
+            {/* Receive Card */}
+            <div className="relative overflow-hidden rounded-xl border border-border/60 bg-gradient-to-b from-background to-muted/30">
+              <div className="absolute right-0 -top-6 opacity-10">
+                <Download className="h-24 w-24" />
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-md bg-primary/10 text-primary">
+                    <Download className="h-4 w-4" />
                   </div>
-                  <div>
-                    Pending: {(statsData as any)?.data?.receive?.pending ?? 0}
-                  </div>
-                  <div>
-                    Cancelled:{" "}
-                    {(statsData as any)?.data?.receive?.cancelled ?? 0}
-                  </div>
-                  <div>
-                    Amount:{" "}
-                    {(statsData as any)?.data?.receive?.amount_total ?? 0}
-                  </div>
+                  <span className="text-xs font-medium text-muted-foreground">Receive</span>
                 </div>
-              )}
+                {isStatsLoading ? (
+                  <Skeleton className="h-24 w-full" />
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-md border p-3 bg-background">
+                      <div className="text-[11px] text-muted-foreground">Total</div>
+                      <div className="text-base font-semibold">
+                        {(statsData as any)?.data?.receive?.total ?? 0}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-3 bg-background">
+                      <div className="text-[11px] text-muted-foreground">Pending</div>
+                      <div className="text-base font-semibold flex items-center gap-1">
+                        <Clock className="h-4 w-4 text-amber-500" />
+                        {(statsData as any)?.data?.receive?.pending ?? 0}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-3 bg-background">
+                      <div className="text-[11px] text-muted-foreground">Cancelled</div>
+                      <div className="text-base font-semibold flex items-center gap-1">
+                        <XCircle className="h-4 w-4 text-red-500" />
+                        {(statsData as any)?.data?.receive?.cancelled ?? 0}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-3 bg-background">
+                      <div className="text-[11px] text-muted-foreground">Amount</div>
+                      <div className="text-base font-semibold">
+                        {(statsData as any)?.data?.receive?.amount_total ?? 0}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="border rounded-md p-3">
-              <div className="text-xs text-muted-foreground mb-1">Summary</div>
-              {isStatsLoading ? (
-                <Skeleton className="h-6 w-40" />
-              ) : (
-                <div className="text-sm space-y-1">
-                  <div>
-                    Active:{" "}
-                    {(statsData as any)?.data?.derived?.active_payments ?? 0}
+
+            {/* Summary Card */}
+            <div className="relative overflow-hidden rounded-xl border border-border/60 bg-gradient-to-b from-background to-muted/30">
+              <div className="absolute right-0 -top-6 opacity-10">
+                <Activity className="h-24 w-24" />
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-md bg-primary/10 text-primary">
+                    <Activity className="h-4 w-4" />
                   </div>
-                  <div>
-                    Completed:{" "}
-                    {(statsData as any)?.data?.derived?.completed_payments ?? 0}
-                  </div>
-                  <div>
-                    Total Balance:{" "}
-                    {(statsData as any)?.data?.derived?.total_balance ?? 0}
-                  </div>
+                  <span className="text-xs font-medium text-muted-foreground">Summary</span>
                 </div>
-              )}
+                {isStatsLoading ? (
+                  <Skeleton className="h-24 w-full" />
+                ) : (
+                  <div className="space-y-3 text-sm">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-md border p-3 bg-background">
+                        <div className="text-[11px] text-muted-foreground">Active</div>
+                        <div className="text-base font-semibold">
+                          {(statsData as any)?.data?.derived?.active_payments ?? 0}
+                        </div>
+                      </div>
+                      <div className="rounded-md border p-3 bg-background">
+                        <div className="text-[11px] text-muted-foreground">Completed</div>
+                        <div className="text-base font-semibold">
+                          {(statsData as any)?.data?.derived?.completed_payments ?? 0}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-3 bg-background">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-emerald-500" />
+                          <div className="text-[11px] text-muted-foreground">Total Balance</div>
+                        </div>
+                        <div className="text-base font-semibold">
+                          {(statsData as any)?.data?.derived?.total_balance ?? 0}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -548,7 +630,7 @@ const History: React.FC = () => {
                             }
                             disabled={
                               (tx.status ?? tx.transaction_status) ===
-                                "cancelled" || cancelMutation.isPending
+                              "cancelled" || cancelMutation.isPending
                             }
                             title="Cancel transaction"
                           >
@@ -742,8 +824,8 @@ const History: React.FC = () => {
                       <dd className="ml-2 inline">
                         {selectedTx.qr_expires_at
                           ? epochToCustomLocalStringTime(
-                              selectedTx.qr_expires_at
-                            )
+                            selectedTx.qr_expires_at
+                          )
                           : "-"}
                       </dd>
                     </div>

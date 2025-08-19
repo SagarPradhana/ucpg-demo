@@ -178,7 +178,7 @@ const Login = () => {
       tokenManager.refreshTokenCheck();
 
       toast({
-        title: "Welcome to UCPG",
+        title: "Welcome to CryptoFlow",
         description: response?.message || "Login successful",
       });
 
@@ -243,7 +243,7 @@ const Login = () => {
             <div className="bg-primary/10 p-2 rounded-lg">
               <Coins className="h-6 w-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold">UCPG</h1>
+            <h1 className="text-2xl font-bold">CryptoFlow</h1>
           </div>
           <p className="text-muted-foreground text-sm">
             Universal Crypto Payment Gateway

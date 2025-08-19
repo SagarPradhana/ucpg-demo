@@ -1,6 +1,6 @@
 export const en = {
   // App Title & Brand
-  "app.title": "UCPG",
+  "app.title": "CryptoFlow",
   "app.fullName": "Universal Crypto Payment Gateway",
   "app.tagline": "Secure, Private, Anonymous",
 
@@ -26,7 +26,7 @@ export const en = {
   "auth.loginSuccess": "Logged in successfully",
   "auth.logoutSuccess": "You have been successfully logged out",
   "auth.welcomeBack": "Welcome back",
-  "auth.welcomeToUCPG": "Welcome to UCPG",
+  "auth.welcomeToUCPG": "Welcome to CryptoFlow",
   "auth.successfullyLoggedIn": "Successfully logged in to your account",
   "auth.incorrectCredentials": "Incorrect credentials",
   "auth.failedLogin": "Failed logged in to your account",
@@ -69,7 +69,7 @@ export const en = {
   "home.hero.learnMore": "Learn More",
   "home.hero.getStarted": "Get Started",
   
-  "home.features.title": "Why Choose UCPG?",
+  "home.features.title": "Why Choose CryptoFlow?",
   "home.features.subtitle": "Experience the future of global payments with our innovative crypto gateway",
   "home.features.globalAccess": "Global Access",
   "home.features.globalAccessDesc": "Accept payments from 190+ countries in their local currencies",
@@ -88,7 +88,7 @@ export const en = {
   "home.howItWorks.step3.desc": "Get anonymous cryptocurrency instantly in your wallet",
   
   "home.cta.title": "Ready to Get Started?",
-  "home.cta.subtitle": "Join thousands of users who trust UCPG for their crypto payment needs",
+  "home.cta.subtitle": "Join thousands of users who trust CryptoFlow for their crypto payment needs",
   "home.cta.startJourney": "Start Your Journey",
   
   "home.footer.copyright": "© 2024 Universal Crypto Payment Gateway. All rights reserved.",
@@ -98,7 +98,7 @@ export const en = {
   "home.features.secureCrypto": "Secure crypto payments",
 
   // Dashboard
-  "dashboard.title": "UCPG",
+  "dashboard.title": "CryptoFlow",
   "dashboard.anonymityDisclaimer": "This platform ensures your anonymity. No personal data is collected or stored. All transactions use anonymous identifiers. For support, use your transaction ID.",
   "dashboard.totalBalance": "Total Balance",
   "dashboard.fromLastMonth": "from last month",
@@ -337,14 +337,14 @@ export const en = {
   "profile.customizeExperience": "Customize your experience",
 
   // Support Chatbot
-  "support.chatbot.title": "UCPG Support Assistant",
+  "support.chatbot.title": "CryptoFlow Support Assistant",
   "support.chatbot.subtitle": "How can I help you today?",
-  "support.chatbot.placeholder": "Ask me anything about UCPG...",
+  "support.chatbot.placeholder": "Ask me anything about CryptoFlow...",
   "support.chatbot.send": "Send",
   "support.chatbot.close": "Close",
   "support.chatbot.minimize": "Minimize",
   "support.chatbot.typing": "Assistant is typing...",
-  "support.chatbot.welcome": "Hello! I'm your UCPG support assistant. I can help you with:",
+  "support.chatbot.welcome": "Hello! I'm your CryptoFlow support assistant. I can help you with:",
   "support.chatbot.helpTopics": "• Dashboard and account management\n• Sending crypto payments\n• Receiving payments and generating links\n• Using platform services\n• Profile and settings management\n• General platform navigation",
   "support.chatbot.askQuestion": "What would you like to know?",
   "support.chatbot.quickHelp": "Quick Help",
@@ -375,7 +375,7 @@ export const en = {
   "support.quick.anonymousTx": "How does anonymous payment work?",
 
   // Role Selection Modal
-  "roleSelection.title": "Welcome to UCPG",
+  "roleSelection.title": "Welcome to CryptoFlow",
   "roleSelection.subtitle": "You have admin privileges. Please select how you'd like to access the platform.",
   "roleSelection.admin.title": "Administrator",
   "roleSelection.admin.subtitle": "Full system access and management",
