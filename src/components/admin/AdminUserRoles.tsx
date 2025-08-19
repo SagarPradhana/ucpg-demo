@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -67,6 +68,7 @@ import {
   RefreshCw,
   ArchiveRestoreIcon,
   RotateCcw,
+  Eye,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -90,19 +92,19 @@ interface AdminUser {
   name: string;
   email: string;
   role:
-    | "super-admin"
-    | "transaction-admin"
-    | "provider-admin"
-    | "statistics-admin";
+  | "super-admin"
+  | "transaction-admin"
+  | "provider-admin"
+  | "statistics-admin";
   lastLogin: string;
   isActive: boolean;
   permissions: string[];
   isDeleted: boolean;
 }
 
-interface AdminUserRolesProps {}
+interface AdminUserRolesProps { }
 
-const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
+const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
   const { t } = useLanguage();
   const createUserSchema = z.object({
     fullName: z.string().min(2, "Full name must be at least 2 characters"),
@@ -159,6 +161,10 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
+  // View user modal state
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewUser, setViewUser] = useState<AdminUser | null>(null);
+
   const createUserForm = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
@@ -173,7 +179,11 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
   const currentUser = useSelector(
     (state: RootState) => state.singleUserDetails.userDetails
   ) as any;
-  const currentRole = (currentUser?.role || "user")
+  const authUser = useSelector((state: RootState) => state.auth.userDetails) as any;
+  // Support both raw user object and API-wrapped { data: {...} }, with auth fallback
+  const currentUserData =
+    (currentUser && (currentUser.data || currentUser)) || authUser || null;
+  const currentRole = (currentUserData?.role || "user")
     .toLowerCase()
     .replace(/\s+/g, "_")
     .replace(/-/g, "_");
@@ -216,42 +226,59 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
       icon: React.ReactNode;
     }>;
 
+    // super_admin can assign all roles
     if (currentRole === "super_admin") return all;
+
+    // Non-super admins can only assign their own admin role
     if (currentRole === "transaction_admin") {
-      return all.filter((r) =>
-        [
-          "transaction_admin",
-          "provider_admin",
-          "statistics_admin",
-          "user",
-        ].includes(r.value)
-      );
+      return all.filter((r) => ["transaction_admin"].includes(r.value));
     }
     if (currentRole === "provider_admin") {
-      return all.filter((r) =>
-        ["provider_admin", "statistics_admin", "user"].includes(r.value)
-      );
+      return all.filter((r) => ["provider_admin"].includes(r.value));
     }
     if (currentRole === "statistics_admin") {
-      return all.filter((r) => ["statistics_admin", "user"].includes(r.value));
+      return all.filter((r) => ["statistics_admin"].includes(r.value));
     }
-    // default: non-admin can only add user
-    return all.filter((r) => ["user"].includes(r.value));
+
+    // default: no admin assignment for regular users
+    return [];
   }, [currentRole]);
 
   const allowedRoleValues = useMemo(
     () => allowedRoles.map((r) => r.value),
     [allowedRoles]
   );
-  const canEditTargetRole = (role: string | undefined | null): boolean => {
+
+  // Only allow managing users of the same admin role (or all if super_admin)
+  const canManageTargetRole = (role: string | undefined | null): boolean => {
     const target = (role || "user")
       .toLowerCase()
       .replace(/\s+/g, "_")
       .replace(/-/g, "_");
-    return (
-      currentRole === "super_admin" ||
-      (allowedRoleValues as any).includes(target)
-    );
+
+    if (currentRole === "super_admin") return true;
+
+    return target === currentRole;
+  };
+  const prettyRole = (role?: string) => {
+    const r = (role || "")
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/-/g, "_");
+    switch (r) {
+      case "super_admin":
+        return "Super Admin";
+      case "transaction_admin":
+        return "Transaction Admin";
+      case "provider_admin":
+        return "Provider Admin";
+      case "statistics_admin":
+        return "Statistics Admin";
+      case "user":
+        return "User";
+      default:
+        return role || "-";
+    }
   };
 
   // Server-provided pagination/meta (fallback to client values if missing)
@@ -570,19 +597,19 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                                                     ) =>
                                                       checked
                                                         ? setSelectedPermissions(
-                                                            (prev) => [
-                                                              ...prev,
-                                                              permission.code,
-                                                            ]
-                                                          )
+                                                          (prev) => [
+                                                            ...prev,
+                                                            permission.code,
+                                                          ]
+                                                        )
                                                         : setSelectedPermissions(
-                                                            (prev) =>
-                                                              prev.filter(
-                                                                (p) =>
-                                                                  p !==
-                                                                  permission.code
-                                                              )
-                                                          )
+                                                          (prev) =>
+                                                            prev.filter(
+                                                              (p) =>
+                                                                p !==
+                                                                permission.code
+                                                            )
+                                                        )
                                                     }
                                                   />
                                                   <Label
@@ -636,9 +663,81 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                           ? "Updating..."
                           : "Creating..."
                         : isEdit
-                        ? "Update User"
-                        : "Create User"}
+                          ? "Update User"
+                          : "Create User"}
                     </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* View user details modal */}
+              <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+                <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
+                  <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 border-b">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>{viewUser?.name?.[0] || "U"}</AvatarFallback>
+                        </Avatar>
+                        <span>{viewUser?.name}</span>
+                      </DialogTitle>
+                      <DialogDescription className="flex items-center gap-2">
+                        <Badge variant="outline">{prettyRole(viewUser?.role)}</Badge>
+                        <span className="text-xs text-muted-foreground">{viewUser?.email}</span>
+                      </DialogDescription>
+                    </DialogHeader>
+                  </div>
+
+                  <div className="p-6 space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground">User ID</p>
+                        <p className="font-medium break-all">{viewUser?.id}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <p>
+                          <Badge variant={viewUser?.isActive ? "default" : "secondary"}>
+                            {viewUser?.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Last Login</p>
+                        <p className="font-medium">{viewUser?.lastLogin || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Deleted</p>
+                        <p>
+                          {viewUser?.isDeleted ? (
+                            <Badge variant="destructive">Deleted</Badge>
+                          ) : (
+                            <Badge variant="outline">No</Badge>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-semibold mb-2">Permissions</p>
+                      {viewUser?.permissions && viewUser.permissions.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {viewUser.permissions.map((perm) => (
+                            <Badge key={perm} variant="secondary" className="text-xs">
+                              {perm}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No permissions assigned</p>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end gap-2 border-t pt-4">
+                      <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+                        Close
+                      </Button>
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -729,7 +828,7 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                     <TableCell>
                       <div className="flex space-x-2">
                         <PermissionGuard permission="URE">
-                          {canEditTargetRole(user.role) && (
+                          {canManageTargetRole(user.role) && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -755,48 +854,66 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                           )}
                         </PermissionGuard>
                         <PermissionGuard permission="URM">
+                          {canManageTargetRole(user.role) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                updateUserActiveStatus({
+                                  payLoad: {
+                                    is_active: !user?.isActive,
+                                  },
+                                  userId: user?.id,
+                                });
+                              }}
+                              title={
+                                user.isActive ? "Set inactive" : "Set active"
+                              }
+                            >
+                              {user.isActive ? (
+                                <ToggleRight className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          )}
+                        </PermissionGuard>
+                        {/* View details button - available to anyone who can view user roles */}
+                        <PermissionGuard permission="URV">
                           <Button
                             size="sm"
                             variant="ghost"
+                            title="View details"
                             onClick={() => {
-                              updateUserActiveStatus({
-                                payLoad: {
-                                  is_active: !user?.isActive,
-                                },
-                                userId: user?.id,
-                              });
+                              setViewUser(user);
+                              setIsViewModalOpen(true);
                             }}
-                            title={
-                              user.isActive ? "Set inactive" : "Set active"
-                            }
                           >
-                            {user.isActive ? (
-                              <ToggleRight className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                            )}
+                            <Eye className="h-4 w-4" />
                           </Button>
                         </PermissionGuard>
                         <PermissionGuard permission="URD">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Delete user"
-                            onClick={() => {
-                              updateUserActiveStatus({
-                                payLoad: {
-                                  is_deleted: !user?.isDeleted,
-                                },
-                                userId: user?.id,
-                              });
-                            }}
-                          >
-                            {user?.isDeleted ? (
-                              <RotateCcw className="h-4 w-4" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
+                          {canManageTargetRole(user.role) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Delete user"
+                              onClick={() => {
+                                updateUserActiveStatus({
+                                  payLoad: {
+                                    is_deleted: !user?.isDeleted,
+                                  },
+                                  userId: user?.id,
+                                });
+                              }}
+                            >
+                              {user?.isDeleted ? (
+                                <RotateCcw className="h-4 w-4" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
                         </PermissionGuard>
                       </div>
                     </TableCell>
