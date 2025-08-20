@@ -52,6 +52,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { loginActions } from "@/store/loginReducer";
 import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import { getUser } from "@/service/auth";
+import { getUserTransactionsHistory } from "@/service/adminservices";
+import { epochToCustomLocalStringTime } from "@/Common";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import UserProfile from "@/components/UserProfile";
 import SingleUserDetailsCard from "@/components/SingleUserDetailsCard";
 import DashboardDebugInfo from "@/components/DashboardDebugInfo";
@@ -352,47 +361,225 @@ const Dashboard = () => {
     setExpandedTransaction(expandedTransaction === txId ? null : txId);
   };
 
-  const mockTransactions = [
-    {
-      id: 1,
-      type: "received",
-      amount: "0.0045 BTC",
-      fiat: "$180.00 USD",
-      status: "completed",
-      time: "2 min ago",
-      sender: "anonymous-abc123@example.com",
-      recipient: "Your Wallet",
-      transactionHash: "0x1234567890abcdef",
-      network: "Bitcoin",
-      fee: "$0.25 USD",
-    },
-    {
-      id: 2,
-      type: "sent",
-      amount: "0.0023 ETH",
-      fiat: "$95.50 EUR",
-      status: "pending",
-      time: "1 hour ago",
-      sender: "Your Wallet",
-      recipient: "anonymous-xyz789@example.com",
-      transactionHash: "0xabcdef1234567890",
-      network: "Ethereum",
-      fee: "$1.45 EUR",
-    },
-    {
-      id: 3,
-      type: "received",
-      amount: "0.0156 BTC",
-      fiat: "$625.00 GBP",
-      status: "completed",
-      time: "3 hours ago",
-      sender: "anonymous-def456@example.com",
-      recipient: "Your Wallet",
-      transactionHash: "0x567890abcdef1234",
-      network: "Bitcoin",
-      fee: "$0.85 GBP",
-    },
-  ];
+  // RecentTransactions component uses History API to show latest 5 items
+  const RecentTransactions: React.FC = () => {
+    const authUser = useSelector((store: RootState) => store.auth.userDetails);
+    const [detailsOpen, setDetailsOpen] = useState(false);
+    const [selectedTx, setSelectedTx] = useState<any | null>(null);
+
+    const { data, isLoading, isError, error, refetch } = useQuery({
+      queryKey: ["dashboard-recent-transactions", authUser?.id],
+      queryFn: async () => {
+        const params = {
+          user_id: authUser?.id as string,
+          sort_by: "created_date",
+          sort_order: "desc",
+          page_size: 5,
+          page_no: 1,
+        } as const;
+        try {
+          return await getUserTransactionsHistory(params as any);
+        } catch (err: any) {
+          throw err;
+        }
+      },
+      enabled: !!authUser?.id,
+      retry: 1,
+      staleTime: 60_000,
+      gcTime: 60_000,
+    });
+
+    const items: any[] = data ? ((data as any)?.data ?? (data as any)?.items ?? []) : [];
+
+    const statusBadgeColor = (status?: string) => {
+      switch ((status || "").toLowerCase()) {
+        case "sent":
+        case "completed":
+        case "success":
+          return "bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400";
+        case "pending":
+          return "bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400";
+        case "cancelled":
+        case "expired":
+        case "failed":
+          return "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400";
+        default:
+          return "bg-gray-100 dark:bg-gray-900/20 text-gray-600 dark:text-gray-400";
+      }
+    };
+
+    const handleView = (tx: any) => {
+      setSelectedTx(tx);
+      setDetailsOpen(true);
+    };
+
+    return (
+      <div className="space-y-4">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={`recent-skel-${i}`} className="border rounded-lg p-4">
+              <div className="h-5 w-40 bg-muted rounded mb-2" />
+              <div className="h-4 w-60 bg-muted rounded" />
+            </div>
+          ))
+        ) : isError ? (
+          <div className="text-center text-sm">
+            <div className="text-red-600 mb-2">{(error as any)?.message || "Failed to load transactions"}</div>
+            <Button size="sm" onClick={() => refetch()}>Retry</Button>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center text-muted-foreground text-sm">No recent transactions</div>
+        ) : (
+          items.map((tx: any) => (
+            <div key={tx.id} className="border rounded-lg p-4 transition-all duration-200 hover:shadow-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`px-2 py-1 rounded text-xs font-medium ${statusBadgeColor(tx.status)}`}>
+                    {tx.status ?? "-"}
+                  </div>
+                  <div className="text-sm">
+                    <div className="font-medium">
+                      {tx.transaction_type ?? "-"} • {tx.original_amount ?? 0} {tx.currency ?? ""}
+                    </div>
+                    <div className="text-muted-foreground text-xs">
+                      {tx.target_crypto_currency ?? "-"} • {tx.created_date ? epochToCustomLocalStringTime(tx.created_date) : "-"}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-muted-foreground font-mono truncate max-w-[220px]" title={tx.id}>
+                    {tx.id}
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => handleView(tx)} title="View transaction details">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Details Modal */}
+        <Dialog open={detailsOpen} onOpenChange={(o) => setDetailsOpen(o)}>
+          <DialogContent className="max-w-3xl z-[60]">
+            <DialogHeader>
+              <DialogTitle>Transaction Details</DialogTitle>
+              <DialogDescription>Overview of the selected transaction</DialogDescription>
+            </DialogHeader>
+
+            {selectedTx && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-3 rounded-lg border bg-card">
+                    <p className="text-xs text-muted-foreground">Amount</p>
+                    <p className="text-base font-semibold truncate">
+                      {selectedTx.original_amount} {selectedTx.currency}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-card">
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${statusBadgeColor(selectedTx.status)}`}>
+                      {selectedTx.status}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-card">
+                    <p className="text-xs text-muted-foreground">Type</p>
+                    <p className="text-base font-semibold capitalize truncate">
+                      {selectedTx.transaction_type || "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-3 rounded-lg border bg-card space-y-2">
+                    <p className="text-sm font-medium">Identifiers</p>
+                    <dl className="text-xs space-y-1 text-muted-foreground">
+                      <div>
+                        <dt className="font-semibold inline text-foreground">ID:</dt>{" "}
+                        <dd className="ml-2 inline">{selectedTx.id}</dd>
+                      </div>
+                      {selectedTx.transaction_id && (
+                        <div>
+                          <dt className="font-semibold inline text-foreground">TX ID:</dt>{" "}
+                          <dd className="ml-2 inline">{selectedTx.transaction_id}</dd>
+                        </div>
+                      )}
+                      {selectedTx.provider_transaction_id && (
+                        <div>
+                          <dt className="font-semibold inline text-foreground">Provider TX ID:</dt>{" "}
+                          <dd className="ml-2 inline">{selectedTx.provider_transaction_id}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+
+                  <div className="p-3 rounded-lg border bg-card space-y-2">
+                    <p className="text-sm font-medium">Timing</p>
+                    <dl className="text-xs space-y-1 text-muted-foreground">
+                      <div>
+                        <dt className="font-semibold inline text-foreground">Created:</dt>{" "}
+                        <dd className="ml-2 inline">
+                          {selectedTx.created_date ? epochToCustomLocalStringTime(selectedTx.created_date) : "-"}
+                        </dd>
+                      </div>
+                      {selectedTx.updated_date && (
+                        <div>
+                          <dt className="font-semibold inline text-foreground">Updated:</dt>{" "}
+                          <dd className="ml-2 inline">
+                            {epochToCustomLocalStringTime(selectedTx.updated_date)}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-3 rounded-lg border bg-card space-y-2">
+                    <p className="text-sm font-medium">Amounts</p>
+                    <dl className="text-xs space-y-1 text-muted-foreground">
+                      <div>
+                        <dt className="font-semibold inline text-foreground">Original:</dt>{" "}
+                        <dd className="ml-2 inline">{selectedTx.original_amount} {selectedTx.currency}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-semibold inline text-foreground">Net:</dt>{" "}
+                        <dd className="ml-2 inline">{selectedTx.net_amount ?? '-'}</dd>
+                      </div>
+                      {selectedTx.target_crypto_currency && (
+                        <div>
+                          <dt className="font-semibold inline text-foreground">Target Crypto:</dt>{" "}
+                          <dd className="ml-2 inline">{selectedTx.target_crypto_currency}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+
+                  <div className="p-3 rounded-lg border bg-card space-y-2">
+                    <p className="text-sm font-medium">Status Info</p>
+                    <dl className="text-xs space-y-1 text-muted-foreground">
+                      {selectedTx.status_reason && (
+                        <div>
+                          <dt className="font-semibold inline text-foreground">Reason:</dt>{" "}
+                          <dd className="ml-2 inline">{selectedTx.status_reason}</dd>
+                        </div>
+                      )}
+                      {selectedTx.cancel_reason && (
+                        <div>
+                          <dt className="font-semibold inline text-foreground">Cancel Reason:</dt>{" "}
+                          <dd className="ml-2 inline">{selectedTx.cancel_reason}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  };
 
   const [convertedAmount, setConvertedAmount] = useState("");
   const [exchangeRate, setExchangeRate] = useState(1);
@@ -482,9 +669,8 @@ const Dashboard = () => {
                 className="flex items-center space-x-2"
               >
                 <RefreshCw
-                  className={`h-4 w-4 ${
-                    refreshBalanceMutation.isPending ? "animate-spin" : ""
-                  }`}
+                  className={`h-4 w-4 ${refreshBalanceMutation.isPending ? "animate-spin" : ""
+                    }`}
                 />
                 <span className="hidden sm:inline">
                   {refreshBalanceMutation.isPending
@@ -555,9 +741,8 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground flex items-center space-x-1">
                 <TrendingUp className="h-3 w-3" />
                 <span
-                  className={`font-semibold ${
-                    balanceChange >= 0 ? "text-green-500" : "text-red-500"
-                  }`}
+                  className={`font-semibold ${balanceChange >= 0 ? "text-green-500" : "text-red-500"
+                    }`}
                 >
                   {balanceChange >= 0 ? "+" : ""}
                   {balanceChange}%
@@ -697,148 +882,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mockTransactions.slice(0, 3).map((tx) => (
-                      <div
-                        key={tx.id}
-                        className="border rounded-lg p-4 transition-all duration-200 hover:shadow-md"
-                      >
-                        <div
-                          className="flex items-center justify-between cursor-pointer hover:bg-muted/50 rounded-md p-2 -m-2 transition-colors"
-                          onClick={() => toggleTransactionDetails(tx.id)}
-                          aria-label={`${
-                            expandedTransaction === tx.id
-                              ? "Collapse"
-                              : "Expand"
-                          } transaction details for ${tx.amount}`}
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div
-                              className={`p-3 rounded-full ${
-                                tx.type === "received"
-                                  ? "bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400"
-                                  : "bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                              }`}
-                            >
-                              {tx.type === "received" ? (
-                                <Download className="h-5 w-5" />
-                              ) : (
-                                <Upload className="h-5 w-5" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-base font-semibold">
-                                {tx.amount}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {tx.fiat} • {tx.network}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <div className="text-right">
-                              <Badge
-                                variant={
-                                  tx.status === "completed"
-                                    ? "default"
-                                    : "secondary"
-                                }
-                                className={
-                                  tx.status === "pending"
-                                    ? "bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400"
-                                    : tx.status === "completed"
-                                    ? "bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400"
-                                    : ""
-                                }
-                              >
-                                {tx.status === "completed"
-                                  ? t("transaction.completed")
-                                  : tx.status === "pending"
-                                  ? t("transaction.pending")
-                                  : t(`transaction.${tx.status}`)}
-                              </Badge>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {tx.time}
-                              </p>
-                            </div>
-                            {expandedTransaction === tx.id ? (
-                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Collapsible Transaction Details */}
-                        {expandedTransaction === tx.id && (
-                          <div className="mt-4 pt-4 border-t space-y-3 animate-in slide-in-from-top-2">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                              <div className="space-y-2">
-                                <div className="flex items-center space-x-2">
-                                  <User className="h-4 w-4 text-muted-foreground" />
-                                  <span className="font-medium">
-                                    {t("transaction.from")}:
-                                  </span>
-                                  <span className="text-muted-foreground font-mono text-xs">
-                                    {tx.sender}
-                                  </span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <User className="h-4 w-4 text-muted-foreground" />
-                                  <span className="font-medium">
-                                    {t("transaction.to")}:
-                                  </span>
-                                  <span className="text-muted-foreground font-mono text-xs">
-                                    {tx.recipient}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="flex items-center space-x-2">
-                                  <Network className="h-4 w-4 text-muted-foreground" />
-                                  <span className="font-medium">
-                                    {t("transaction.network")}:
-                                  </span>
-                                  <span className="text-muted-foreground">
-                                    {tx.network}
-                                  </span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <Coins className="h-4 w-4 text-muted-foreground" />
-                                  <span className="font-medium">
-                                    {t("transaction.fee")}:
-                                  </span>
-                                  <span className="text-muted-foreground">
-                                    {tx.fee}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2 pt-2">
-                              <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">
-                                {t("transaction.hash")}:
-                              </span>
-                              <span className="text-muted-foreground font-mono text-xs break-all">
-                                {tx.transactionHash}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(
-                                    tx.transactionHash
-                                  );
-                                  // Removed non-API copy toast
-                                }}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-
+                    <RecentTransactions />
                     <Button
                       variant="outline"
                       className="w-full mt-4"

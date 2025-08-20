@@ -78,7 +78,8 @@ const History: React.FC = () => {
   const pagination = usePagination({ initialPage: 1, pageSize: 10 });
 
   // Filters
-  const [search, setSearch] = useState("");
+  const [rawSearch, setRawSearch] = useState("");
+  const [search, setSearch] = useState(""); // debounced
   const [status, setStatus] = useState<string>("all");
   const [transactionType, setTransactionType] = useState<string>("all");
   const [currency, setCurrency] = useState<string>("all");
@@ -87,6 +88,12 @@ const History: React.FC = () => {
   const [epochRange, setEpochRange] = useState(() =>
     epochRangeForLabel("Last 30 Days")
   );
+
+  // Debounce search input to reduce API calls
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(rawSearch), 400);
+    return () => clearTimeout(t);
+  }, [rawSearch]);
 
   // Build params
   const params = useMemo(() => {
@@ -118,10 +125,19 @@ const History: React.FC = () => {
     pagination.pageSize,
   ]);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["user-transactions-history", params],
-    queryFn: () => getUserTransactionsHistory(params as any),
+    queryFn: async () => {
+      try {
+        return await getUserTransactionsHistory(params as any);
+      } catch (err: any) {
+        // Surface a friendly toast but still let react-query manage the error state
+        toast.error(err?.message || "Failed to load history");
+        throw err;
+      }
+    },
     enabled: !!authUser?.id,
+    retry: 1,
     gcTime: 60000,
     staleTime: 60000,
   });
@@ -134,13 +150,20 @@ const History: React.FC = () => {
       epochRange.from_date,
       epochRange.to_date,
     ],
-    queryFn: () =>
-      getUserTransactionsStats({
-        user_id: authUser?.id as string,
-        from_date: epochRange.from_date,
-        to_date: epochRange.to_date,
-      }),
+    queryFn: async () => {
+      try {
+        return await getUserTransactionsStats({
+          user_id: authUser?.id as string,
+          from_date: epochRange.from_date,
+          to_date: epochRange.to_date,
+        });
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to load stats");
+        throw err;
+      }
+    },
     enabled: !!authUser?.id,
+    retry: 1,
     gcTime: 60000,
     staleTime: 60000,
   });
@@ -399,8 +422,8 @@ const History: React.FC = () => {
                 <Input
                   placeholder="Transaction ID or Name..."
                   className="pl-8 h-9 text-sm"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={rawSearch}
+                  onChange={(e) => setRawSearch(e.target.value)}
                 />
               </div>
             </div>
@@ -565,9 +588,14 @@ const History: React.FC = () => {
                   <TableRow>
                     <TableCell
                       colSpan={9}
-                      className="text-center py-6 text-red-600"
+                      className="text-center py-6"
                     >
-                      Failed to load history.
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-red-600">{(error as any)?.message || "Failed to load history."}</span>
+                        <Button size="sm" onClick={() => refetch()}>
+                          Retry
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : items.length === 0 ? (

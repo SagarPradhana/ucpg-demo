@@ -38,7 +38,19 @@ import { RootState } from "./types";
 import { ROUTE_CONFIG } from "./config/routes";
 import { SupportChatbot } from "./components/SupportChatbot";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 60_000,
+      gcTime: 60_000,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
 
 // Component to initialize TokenManager and StorageDebugger
 const AppInitializer = () => {
@@ -55,7 +67,13 @@ const AppInitializer = () => {
       // Clear Redux state on token expiration
       store.dispatch(loginActions.clearUserDetails());
       store.dispatch(singleUserDetailsActions.clearSingleUserDetails());
-      console.log("Token expired, user should be redirected to login");
+      console.log("Token expired, redirecting to login");
+      // Force redirect to login to prevent stuck UI
+      try {
+        window.location.assign("/login");
+      } catch (e) {
+        window.location.href = "/login";
+      }
     });
 
     return () => {
