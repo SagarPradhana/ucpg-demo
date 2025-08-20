@@ -16,20 +16,19 @@ import { Shield, Coins, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useDispatch } from "react-redux";
 import { loginActions } from "@/store/loginReducer";
-import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 import { jwtDecode } from "jwt-decode";
-import { login, getUser } from "@/service/auth";
+import { login } from "@/service/auth";
 import TokenManager from "@/utils/tokenManager";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { User, LoginCredentials, ApiResponse, LoginResponse } from "@/types";
-import { getMetadataValue, fixMalformedMetadata } from "@/utils/metadataUtils";
+import { getMetadataValue } from "@/utils/metadataUtils";
 import RoleSelectionModal from "@/components/RoleSelectionModal";
 import { useAuth } from "@/hooks/useAuth";
 
 const Login = () => {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
   const [loginObj, setLoginObj] = useState({
     email: "",
     password: "",
@@ -41,116 +40,17 @@ const Login = () => {
     name: string;
     email: string;
   } | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [shouldFetchProfile, setShouldFetchProfile] = useState(false);
 
-  // Initialize userId from auth state if available
-  useEffect(() => {
-    if (user?.id && !userId) {
-      setUserId(user.id);
-    }
-  }, [user?.id, userId]);
   const navigate = useNavigate();
   const { toast } = useToast();
   const dispatch = useDispatch();
   const { setLanguageFromProfile } = useLanguage();
-  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && !showRoleModal && !hasUsedRoleModal) {
       navigate("/dashboard");
     }
   }, [isLoading, isAuthenticated, navigate, showRoleModal, hasUsedRoleModal]);
-
-  // Query for fetching user profile - enabled when user is authenticated
-  const getUserProfileQuery = useQuery({
-    queryKey: ["userProfile", userId],
-    queryFn: () => {
-      if (!userId) {
-        throw new Error("User ID not available");
-      }
-      console.log("🔄 Login: Fetching user profile for ID:", userId);
-      return getUser(userId);
-    },
-    enabled: (shouldFetchProfile || isAuthenticated) && !!userId,
-    staleTime: 1000 * 60 * 5, // Consider data stale after 5 minutes
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-  });
-
-  // Handle query success and error with useEffect
-  useEffect(() => {
-    if (getUserProfileQuery.isSuccess && getUserProfileQuery.data) {
-      console.log(
-        "✅ User profile data received and updating Redux:",
-        getUserProfileQuery.data
-      );
-
-      dispatch(
-        singleUserDetailsActions.setSingleUserDetails(
-          getUserProfileQuery.data as User
-        )
-      );
-
-      console.log("✅ User profile stored in Redux");
-
-      // Only reset the fetch trigger if it was initiated by login
-      if (shouldFetchProfile) {
-        setShouldFetchProfile(false);
-      }
-    }
-  }, [
-    getUserProfileQuery.isSuccess,
-    getUserProfileQuery.data,
-    dispatch,
-    shouldFetchProfile,
-  ]);
-
-  useEffect(() => {
-    if (getUserProfileQuery.isError) {
-      console.error(
-        "❌ Failed to fetch user profile:",
-        getUserProfileQuery.error
-      );
-      dispatch(
-        singleUserDetailsActions.setSingleUserError(
-          getUserProfileQuery.error?.message || "Failed to fetch user profile"
-        )
-      );
-
-      // Show error toast only if it was triggered by login, not by background refetch
-      if (shouldFetchProfile) {
-        toast({
-          title: "Profile Loading Failed",
-          description: "Could not load user profile. Please refresh the page.",
-          variant: "destructive",
-        });
-
-        // Reset the fetch trigger only if it was initiated by login
-        setShouldFetchProfile(false);
-      }
-    }
-  }, [
-    getUserProfileQuery.isError,
-    getUserProfileQuery.error,
-    dispatch,
-    toast,
-    shouldFetchProfile,
-  ]);
-
-  // Utility functions for manual profile refetch
-  const refetchProfile = (targetUserId?: string) => {
-    const userIdToFetch = targetUserId || userId;
-    if (userIdToFetch) {
-      queryClient.invalidateQueries({
-        queryKey: ["userProfile", userIdToFetch],
-      });
-    }
-  };
-
-  const refetchAllUserQueries = () => {
-    queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-    queryClient.invalidateQueries({ queryKey: ["user"] });
-  };
 
   const loginMutation = useMutation({
     mutationFn: (loginData: LoginCredentials) => login(loginData),
@@ -182,17 +82,6 @@ const Login = () => {
         description: response?.message || "Login successful",
       });
 
-      // Fetch user profile data immediately after login
-      if (decodedUser?.id) {
-        console.log(
-          "🔄 Login: Starting user profile fetch for ID:",
-          decodedUser.id
-        );
-        dispatch(singleUserDetailsActions.setLoading(true));
-        setUserId(decodedUser.id);
-        setShouldFetchProfile(true);
-      }
-
       if (decodedUser?.role !== "user") {
         setUserInfo({
           name: response?.data?.user?.name || decodedUser?.name || "User",
@@ -201,13 +90,10 @@ const Login = () => {
             decodedUser?.email ||
             loginObj?.email,
         });
-        // Show role selection modal and prevent useEffect from interfering
         setHasUsedRoleModal(true);
         setShowRoleModal(true);
       } else {
-        if (getUserProfileQuery.isSuccess) {
-          navigate("/dashboard");
-        }
+        navigate("/dashboard");
       }
     },
     onError: (error: any) => {
@@ -318,19 +204,12 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full group"
-                disabled={
-                  loginMutation.isPending || getUserProfileQuery.isLoading
-                }
+                disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     <span>Signing In...</span>
-                  </div>
-                ) : getUserProfileQuery.isLoading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    <span>Loading Profile...</span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">

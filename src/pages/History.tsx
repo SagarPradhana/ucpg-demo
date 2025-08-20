@@ -31,7 +31,19 @@ import {
 import { toast } from "sonner";
 import { epochRangeForLabel } from "@/utils/timeFilters";
 import { epochToCustomLocalStringTime } from "@/Common";
-import { Search, ArrowLeft, Eye, X, Send, Download, Activity, TrendingUp, Clock, CheckCircle, XCircle } from "lucide-react";
+import {
+  Search,
+  ArrowLeft,
+  Eye,
+  X,
+  Send,
+  Download,
+  Activity,
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -173,8 +185,8 @@ const History: React.FC = () => {
     : [];
   const totalCount: number = data
     ? (data as any)?.total_count ??
-    (data as any)?.data?.[0]?.total_count ??
-    items.length
+      (data as any)?.data?.[0]?.total_count ??
+      items.length
     : 0;
 
   // State for details and cancel actions
@@ -279,20 +291,26 @@ const History: React.FC = () => {
                   <div className="p-2 rounded-md bg-primary/10 text-primary">
                     <Send className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-medium text-muted-foreground">Send</span>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Send
+                  </span>
                 </div>
                 {isStatsLoading ? (
                   <Skeleton className="h-24 w-full" />
                 ) : (
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-md border p-3 bg-background">
-                      <div className="text-[11px] text-muted-foreground">Total</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Total
+                      </div>
                       <div className="text-base font-semibold">
                         {(statsData as any)?.data?.send?.total ?? 0}
                       </div>
                     </div>
                     <div className="rounded-md border p-3 bg-background">
-                      <div className="text-[11px] text-muted-foreground">Pending</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Pending
+                      </div>
                       <div className="text-base font-semibold flex items-center gap-1">
                         <Clock className="h-4 w-4 text-amber-500" />
                         {(statsData as any)?.data?.send?.pending ?? 0}
@@ -301,14 +319,18 @@ const History: React.FC = () => {
                     <div className="rounded-md border p-3 bg-background col-span-2">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-[11px] text-muted-foreground">Sent</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            Sent
+                          </div>
                           <div className="text-base font-semibold flex items-center gap-1">
                             <CheckCircle className="h-4 w-4 text-green-500" />
                             {(statsData as any)?.data?.send?.sent ?? 0}
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-[11px] text-muted-foreground">Amount</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            Amount
+                          </div>
                           <div className="text-base font-semibold">
                             {(statsData as any)?.data?.send?.amount_total ?? 0}
                           </div>
@@ -330,34 +352,44 @@ const History: React.FC = () => {
                   <div className="p-2 rounded-md bg-primary/10 text-primary">
                     <Download className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-medium text-muted-foreground">Receive</span>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Receive
+                  </span>
                 </div>
                 {isStatsLoading ? (
                   <Skeleton className="h-24 w-full" />
                 ) : (
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-md border p-3 bg-background">
-                      <div className="text-[11px] text-muted-foreground">Total</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Total
+                      </div>
                       <div className="text-base font-semibold">
                         {(statsData as any)?.data?.receive?.total ?? 0}
                       </div>
                     </div>
                     <div className="rounded-md border p-3 bg-background">
-                      <div className="text-[11px] text-muted-foreground">Pending</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Pending
+                      </div>
                       <div className="text-base font-semibold flex items-center gap-1">
                         <Clock className="h-4 w-4 text-amber-500" />
                         {(statsData as any)?.data?.receive?.pending ?? 0}
                       </div>
                     </div>
                     <div className="rounded-md border p-3 bg-background">
-                      <div className="text-[11px] text-muted-foreground">Cancelled</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Cancelled
+                      </div>
                       <div className="text-base font-semibold flex items-center gap-1">
                         <XCircle className="h-4 w-4 text-red-500" />
                         {(statsData as any)?.data?.receive?.cancelled ?? 0}
                       </div>
                     </div>
                     <div className="rounded-md border p-3 bg-background">
-                      <div className="text-[11px] text-muted-foreground">Amount</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Amount
+                      </div>
                       <div className="text-base font-semibold">
                         {(statsData as any)?.data?.receive?.amount_total ?? 0}
                       </div>
@@ -377,7 +409,9 @@ const History: React.FC = () => {
                   <div className="p-2 rounded-md bg-primary/10 text-primary">
                     <Activity className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-medium text-muted-foreground">Summary</span>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Summary
+                  </span>
                 </div>
                 {isStatsLoading ? (
                   <Skeleton className="h-24 w-full" />
@@ -385,15 +419,21 @@ const History: React.FC = () => {
                   <div className="space-y-3 text-sm">
                     <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-md border p-3 bg-background">
-                        <div className="text-[11px] text-muted-foreground">Active</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Active
+                        </div>
                         <div className="text-base font-semibold">
-                          {(statsData as any)?.data?.derived?.active_payments ?? 0}
+                          {(statsData as any)?.data?.derived?.active_payments ??
+                            0}
                         </div>
                       </div>
                       <div className="rounded-md border p-3 bg-background">
-                        <div className="text-[11px] text-muted-foreground">Completed</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Completed
+                        </div>
                         <div className="text-base font-semibold">
-                          {(statsData as any)?.data?.derived?.completed_payments ?? 0}
+                          {(statsData as any)?.data?.derived
+                            ?.completed_payments ?? 0}
                         </div>
                       </div>
                     </div>
@@ -401,10 +441,13 @@ const History: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <TrendingUp className="h-4 w-4 text-emerald-500" />
-                          <div className="text-[11px] text-muted-foreground">Total Balance</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            Total Balance
+                          </div>
                         </div>
                         <div className="text-base font-semibold">
-                          {(statsData as any)?.data?.derived?.total_balance ?? 0}
+                          {(statsData as any)?.data?.derived?.total_balance ??
+                            0}
                         </div>
                       </div>
                     </div>
@@ -586,12 +629,11 @@ const History: React.FC = () => {
                   ))
                 ) : isError ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="text-center py-6"
-                    >
+                    <TableCell colSpan={9} className="text-center py-6">
                       <div className="flex flex-col items-center gap-2">
-                        <span className="text-red-600">{(error as any)?.message || "Failed to load history."}</span>
+                        <span className="text-red-600">
+                          {(error as any)?.message || "Failed to load history."}
+                        </span>
                         <Button size="sm" onClick={() => refetch()}>
                           Retry
                         </Button>
@@ -614,7 +656,7 @@ const History: React.FC = () => {
                         className="font-mono text-xs max-w-[220px] truncate"
                         title={tx.id}
                       >
-                        {tx.id}
+                        {tx.transaction_name}
                       </TableCell>
                       <TableCell className="capitalize">
                         {tx.transaction_type ?? "-"}
@@ -658,7 +700,7 @@ const History: React.FC = () => {
                             }
                             disabled={
                               (tx.status ?? tx.transaction_status) ===
-                              "cancelled" || cancelMutation.isPending
+                                "cancelled" || cancelMutation.isPending
                             }
                             title="Cancel transaction"
                           >
@@ -852,8 +894,8 @@ const History: React.FC = () => {
                       <dd className="ml-2 inline">
                         {selectedTx.qr_expires_at
                           ? epochToCustomLocalStringTime(
-                            selectedTx.qr_expires_at
-                          )
+                              selectedTx.qr_expires_at
+                            )
                           : "-"}
                       </dd>
                     </div>

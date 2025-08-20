@@ -52,6 +52,8 @@ import {
   getAdminTransitionStatistics,
   getAdminUnclaimedFunds,
   getAuditLogs,
+  getAdminPromoLinksActive,
+  getAdminPromoLinksUsed,
 } from "@/service/adminservices";
 import { getTodayDateRange } from "@/Common";
 import { TimeFilter } from "@/components/ui/time-filter";
@@ -196,6 +198,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   });
 
   // Commission Income (Daily): today range
+  // Promo links metrics (today)
+  const { from_date: promoFrom, to_date: promoTo } = getTodayDateRange();
+  const { data: promoLinksActive } = useQuery({
+    queryKey: ["admin-promo-links-active", promoFrom, promoTo],
+    queryFn: () =>
+      getAdminPromoLinksActive({ from_date: promoFrom, to_date: promoTo }),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+  const { data: promoLinksUsed } = useQuery({
+    queryKey: ["admin-promo-links-used", promoFrom, promoTo],
+    queryFn: () =>
+      getAdminPromoLinksUsed({ from_date: promoFrom, to_date: promoTo }),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+  const extractPromoCount = (res: any): number => {
+    if (!res) return 0;
+    const d = (res as any)?.data;
+    if (typeof d === "number") return d;
+    if (Array.isArray(d)) return d.length;
+    if (d && typeof d?.count === "number") return d.count;
+    if (typeof (res as any)?.count === "number") return (res as any).count;
+    return 0;
+  };
   const { from_date: ciFrom, to_date: ciTo } = getTodayDateRange();
   const { data: commissionIncomeResponse } = useQuery({
     queryKey: ["admin-commission-income", ciFrom, ciTo],
@@ -349,7 +376,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Responsive Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-blue-500">
-          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-blue-50/30 to-transparent">
+          <CardContent className="p-4 sm:p-12 bg-gradient-to-br from-blue-50/30 to-transparent">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
@@ -369,50 +396,72 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </CardContent>
         </Card>
 
-        <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-green-500">
-          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-green-50/30 to-transparent">
-            <div className="flex items-center justify-between">
+        <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-teal-500">
+          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-teal-50/30 to-transparent">
+            <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
-                  {t("admin.dashboard.activePromoLinks")}
+                  {t("admin.promoCodes")}
                 </p>
-                <p className="text-xl sm:text-2xl font-bold truncate text-green-700">
-                  {dashboardStats.last24Hours.activePromoLinks}
-                </p>
-                <p className="text-xs font-medium text-green-600 truncate mt-1 flex items-center">
-                  <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M7 14l5-5 5 5"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  +12% from yesterday
-                </p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                <QrCode className="h-6 w-6 text-green-600" />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                  {/* Active Promo Links */}
+                  <div className="rounded-xl p-4 bg-white/70 border shadow-sm">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {t("admin.dashboard.activePromoLinks")}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl sm:text-3xl font-bold text-teal-700">
+                        {extractPromoCount(promoLinksActive as any)}
+                      </p>
+                      <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
+                        <QrCode className="h-5 w-5 text-teal-700" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Used Promo Links */}
+                  <div className="rounded-xl p-4 bg-white/70 border shadow-sm">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {t("admin.dashboard.usedPromoCodes")}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl sm:text-3xl font-bold text-amber-700">
+                        {extractPromoCount(promoLinksUsed as any)}
+                      </p>
+                      <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                        <QrCode className="h-5 w-5 text-amber-700" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
-
         <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-purple-500">
-          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-purple-50/30 to-transparent">
-            <div className="flex items-center justify-between">
+          <CardContent className="p-4 sm:p-11 bg-gradient-to-br from-purple-50/40 to-transparent">
+            <div className="flex items-center justify-between gap-4">
+              {/* Left Side: Text Info */}
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
-                  {t("admin.dashboard.commissionIncome")} (
-                  {t("admin.dashboard.daily")})
+                  {t("admin.dashboard.commissionIncome")}{" "}
+                  <span className="text-[11px] sm:text-xs text-purple-500 font-normal">
+                    ({t("admin.dashboard.daily")})
+                  </span>
                 </p>
-                <p className="text-xl sm:text-2xl font-bold truncate text-purple-700">
+
+                <p className="text-2xl sm:text-3xl font-bold text-purple-700 truncate">
                   ${commissionIncomeDaily.toLocaleString()}
                 </p>
-                <p className="text-xs font-medium text-purple-600 truncate mt-1"></p>
+
+                <p className="text-xs sm:text-sm font-medium text-purple-600 truncate mt-1">
+                  {t("admin.dashboard.updatedToday")}
+                </p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+
+              {/* Right Side: Icon */}
+              <div className="h-12 w-12 rounded-2xl bg-purple-100 flex items-center justify-center shadow-inner">
                 <Percent className="h-6 w-6 text-purple-600" />
               </div>
             </div>
@@ -420,7 +469,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </Card>
 
         <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-blue-500">
-          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-blue-50/30 to-transparent">
+          <CardContent className="p-4 sm:p-8 bg-gradient-to-br from-blue-50/30 to-transparent">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">

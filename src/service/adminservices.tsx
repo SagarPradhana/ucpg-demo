@@ -29,6 +29,8 @@ import {
   ADMIN_COMMISSION_INCOME,
   USER_TRANSACTIONS_HISTORY,
   USER_TRANSACTIONS_STATS,
+  ADMIN_PROMO_LINKS_ACTIVE,
+  ADMIN_PROMO_LINKS_USED,
 } from "./Urls";
 
 export const getUserRole = (params?: {
@@ -67,6 +69,30 @@ export const getErrorLogs = (data: object) => {
     queryParams: data as Record<string, string | number | boolean>,
   });
   return response;
+};
+
+// Exchange settings (config) APIs
+export const getAdminExchangeConfig = () => {
+  const { ADMIN_EXCHANGE_CONFIG } = require("./Urls");
+  return httpClient(ADMIN_EXCHANGE_CONFIG.url, {
+    method: ADMIN_EXCHANGE_CONFIG.method,
+    withAuth: true,
+  });
+};
+
+export const updateAdminExchangeConfig = (data: {
+  monitoring_enabled?: boolean;
+  rate_logging_enabled?: boolean;
+  update_interval_in_mins?: number;
+  enabled_sources?: string[];
+  tracked_symbols?: string[];
+}) => {
+  const { ADMIN_EXCHANGE_CONFIG_UPDATE } = require("./Urls");
+  return httpClient(ADMIN_EXCHANGE_CONFIG_UPDATE.url, {
+    method: ADMIN_EXCHANGE_CONFIG_UPDATE.method,
+    withAuth: true,
+    data,
+  });
 };
 
 export const updateUserRoles = (data: object) => {
@@ -304,6 +330,28 @@ export const getAdminUnclaimedFunds = (data: {
     queryParams: data,
   });
   return response;
+};
+
+export const getAdminPromoLinksActive = (params: {
+  from_date: number;
+  to_date: number;
+}) => {
+  return httpClient(ADMIN_PROMO_LINKS_ACTIVE.url, {
+    method: ADMIN_PROMO_LINKS_ACTIVE.method,
+    withAuth: true,
+    queryParams: params,
+  });
+};
+
+export const getAdminPromoLinksUsed = (params: {
+  from_date: number;
+  to_date: number;
+}) => {
+  return httpClient(ADMIN_PROMO_LINKS_USED.url, {
+    method: ADMIN_PROMO_LINKS_USED.method,
+    withAuth: true,
+    queryParams: params,
+  });
 };
 
 export const updateAdminCommissionCurrency = (

@@ -139,10 +139,17 @@ const httpClient = async (
         status: response.status,
       };
       try {
-        error = await response.json();
+        const contentType = response.headers.get("content-type") || "";
+        const text = await response.text();
+        if (contentType.includes("application/json")) {
+          const parsed = text ? JSON.parse(text) : {};
+          error = { ...error, ...(parsed as any) };
+        } else {
+          error.message = text || response.statusText || error.message;
+        }
         error.status = response.status;
-      } catch {
-        error.message = "Something went wrong";
+      } catch (e) {
+        error.message = response.statusText || error.message;
         error.status = response.status;
       }
       throw error;
@@ -152,7 +159,14 @@ const httpClient = async (
       return await response.blob();
     }
 
-    return await response.json();
+    // Avoid using patched response.json(); parse from text ourselves
+    const contentType = response.headers.get("content-type") || "";
+    const text = await response.text();
+    if (contentType.includes("application/json")) {
+      return text ? JSON.parse(text) : {};
+    }
+    // Fallback: return raw text if not JSON
+    return text;
   } catch (fetchError) {
     // If it's a network error or parsing error, just throw it
     if (!(fetchError as any).status) {

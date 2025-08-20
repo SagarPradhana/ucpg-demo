@@ -3,7 +3,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 interface PermissionGuardProps {
   children: React.ReactNode;
-  
+
   // Permission checking options (use one of these)
   permission?: string; // Single permission code
   permissions?: string[]; // Multiple permissions (requires ANY)
@@ -11,50 +11,50 @@ interface PermissionGuardProps {
   section?: string; // Section access check
   sectionAction?: {
     section: string;
-    action: 'view' | 'add' | 'edit' | 'delete' | 'manage';
+    action: "view" | "add" | "edit" | "delete" | "manage";
   };
-  
+
   // Custom permission check function
   customCheck?: () => boolean;
-  
+
   // What to render when permission is denied
   fallback?: React.ReactNode;
-  
+
   // Whether to render nothing (default) or the fallback when denied
   showFallback?: boolean;
 }
 
 /**
  * Component that conditionally renders children based on user permissions
- * 
+ *
  * @example
  * // Single permission
  * <PermissionGuard permission="TRV">
  *   <TransactionsList />
  * </PermissionGuard>
- * 
+ *
  * @example
  * // Multiple permissions (any)
  * <PermissionGuard permissions={["PCA", "PCE"]}>
  *   <PromoCodeActions />
  * </PermissionGuard>
- * 
+ *
  * @example
  * // Section access
  * <PermissionGuard section="transactions">
  *   <TransactionsPage />
  * </PermissionGuard>
- * 
+ *
  * @example
  * // Section action
  * <PermissionGuard sectionAction={{ section: "promo-codes", action: "add" }}>
  *   <AddPromoCodeButton />
  * </PermissionGuard>
- * 
+ *
  * @example
  * // With fallback
- * <PermissionGuard 
- *   permission="TRM" 
+ * <PermissionGuard
+ *   permission="TRM"
  *   fallback={<div>You cannot manage transactions</div>}
  *   showFallback
  * >
@@ -73,6 +73,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   showFallback = false,
 }) => {
   const {
+    userProfile,
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
@@ -80,38 +81,47 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
     canPerformAction,
   } = usePermissions();
 
+  // Avoid initial 'no access' flicker while profile is still loading
+  if (!userProfile) {
+    return (
+      <div className="w-full py-6 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   // Determine if user has required permissions
   const hasAccess = (() => {
     // Custom check takes priority
     if (customCheck) {
       return customCheck();
     }
-    
+
     // Single permission check
     if (permission) {
       return hasPermission(permission);
     }
-    
+
     // Multiple permissions (any)
     if (permissions && permissions.length > 0) {
       return hasAnyPermission(permissions);
     }
-    
+
     // Multiple permissions (all)
     if (allPermissions && allPermissions.length > 0) {
       return hasAllPermissions(allPermissions);
     }
-    
+
     // Section access check
     if (section) {
       return canAccessSection(section);
     }
-    
+
     // Section action check
     if (sectionAction) {
       return canPerformAction(sectionAction.section, sectionAction.action);
     }
-    
+
     // Default: no access if no conditions specified
     return false;
   })();
@@ -120,11 +130,11 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   if (hasAccess) {
     return <>{children}</>;
   }
-  
+
   if (showFallback && fallback) {
     return <>{fallback}</>;
   }
-  
+
   return null;
 };
 

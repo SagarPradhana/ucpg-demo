@@ -58,6 +58,7 @@ import {
   getAdminCurrencyDistribution,
 } from "@/service/adminservices";
 import { epochToCustomLocalStringTime, getTodayDateRange } from "@/Common";
+import { jwtDecode } from "jwt-decode";
 
 // Types
 interface Transaction {
@@ -152,18 +153,32 @@ const Admin = () => {
   );
 
   // Fetch user profile from API when Admin mounts
+  // Determine effective user ID from Redux or JWT token
+  const tokenUserId = (() => {
+    const token = localStorage.getItem("sessionToken");
+    if (!token) return undefined;
+    try {
+      const decoded: any = jwtDecode<any>(token);
+      return decoded?.id || decoded?.user_id || decoded?.userId || decoded?.sub;
+    } catch {
+      return undefined;
+    }
+  })();
+  const userIdForProfile =
+    authUser?.id || singleUserDetails.userDetails?.id || tokenUserId;
+
   const {
     data: userProfileData,
     isLoading: isLoadingProfile,
     error: profileError,
     refetch: refetchProfile,
   } = useQuery({
-    queryKey: ["adminUserProfile", authUser?.id],
+    queryKey: ["adminUserProfile", userIdForProfile],
     queryFn: () => {
-      console.log("🔄 Admin: Fetching user profile for ID:", authUser?.id);
-      return getUser(authUser?.id);
+      console.log("🔄 Admin: Fetching user profile for ID:", userIdForProfile);
+      return getUser(userIdForProfile as string);
     },
-    enabled: !!authUser?.id,
+    enabled: !!userIdForProfile,
   });
 
   // Set loading state when query starts
@@ -174,20 +189,18 @@ const Admin = () => {
     }
   }, [isLoadingProfile, singleUserDetails.loading, dispatch]);
 
-  // Handle user profile data when it's fetched
+  // Handle user profile data when it's fetched and normalize
   useEffect(() => {
-    if (userProfileData && !singleUserDetails.userDetails) {
-      console.log("✅ Admin: Raw user profile data received:", userProfileData);
-      console.log("✅ Admin: User profile data type:", typeof userProfileData);
-      console.log(
-        "✅ Admin: User profile data structure:",
-        JSON.stringify(userProfileData, null, 2)
-      );
+    if (userProfileData) {
+      const normalizedUser =
+        (userProfileData as any)?.data?.user ||
+        (userProfileData as any)?.data ||
+        userProfileData;
       dispatch(
-        singleUserDetailsActions.setSingleUserDetails(userProfileData as any)
+        singleUserDetailsActions.setSingleUserDetails(normalizedUser as any)
       );
     }
-  }, [userProfileData, singleUserDetails.userDetails, dispatch]);
+  }, [userProfileData, dispatch]);
 
   // Handle profile fetch errors
   useEffect(() => {
@@ -201,122 +214,26 @@ const Admin = () => {
     }
   }, [profileError, dispatch]);
 
-  // URL-based routing - sync activeSection with URL
+  // Safety: clear loading if profile doesn't resolve in time
   useEffect(() => {
-    // Wait for user profile data to be loaded
-    if (!userProfileData) {
-      console.log("🔄 Admin: Waiting for user profile data...");
-      return;
+    if (
+      (singleUserDetails.loading || isLoadingProfile) &&
+      !userProfileData &&
+      !profileError
+    ) {
+      const timer = setTimeout(() => {
+        console.warn("⏱️ Admin: Profile load timeout, clearing loading state");
+        dispatch(singleUserDetailsActions.setLoading(false));
+      }, 12000); // 12s safeguard
+      return () => clearTimeout(timer);
     }
-
-    const path = location.pathname;
-    console.log(
-      "🔄 Admin: Processing path:",
-      path,
-      "with user data:",
-      userProfileData
-    );
-    console.log(
-      "🔍 Admin: User permissions:",
-      (userProfileData as any)?.permissions
-    );
-    console.log("🔍 Admin: User role:", (userProfileData as any)?.role);
-
-    if (path === "/admin" || path === "/admin/") {
-      // If dashboard is accessible, show it by default on first load
-      const dashboardAccessible = canAccessSection(
-        userProfileData,
-        "dashboard"
-      );
-      const accessibleSections = getAccessibleSections(userProfileData);
-      console.log(
-        "🔑 Admin: Accessible sections:",
-        accessibleSections,
-        "Dashboard:",
-        dashboardAccessible
-      );
-
-      if (dashboardAccessible) {
-        console.log("🏠 Admin: Showing dashboard by default");
-        setActiveSection("dashboard");
-      } else if (accessibleSections.length > 0) {
-        // Redirect to the first accessible NON-dashboard sidebar section
-        const firstNonDashboardFromMenu =
-          menuItems && menuItems.length > 0
-            ? menuItems.find((m) => m.id !== "dashboard")?.id
-            : undefined;
-        const firstNonDashboard =
-          firstNonDashboardFromMenu ||
-          accessibleSections.find((s) => s !== "dashboard");
-
-        if (firstNonDashboard) {
-          console.log(
-            "➡️ Admin: Redirecting to first NON-dashboard section:",
-            firstNonDashboard
-          );
-          setActiveSection(firstNonDashboard);
-          // Avoid redundant navigation if already on target
-          if (location.pathname !== `/admin/${firstNonDashboard}`) {
-            navigate(`/admin/${firstNonDashboard}`);
-          }
-        } else {
-          console.log("ℹ️ Admin: Only dashboard accessible, showing overview");
-          setActiveSection("overview");
-        }
-      } else {
-        // No accessible sections - this shouldn't happen for non-user roles
-        console.log("❌ Admin: No accessible sections found");
-        setActiveSection("no-access");
-      }
-    } else if (path.startsWith("/admin/")) {
-      const section = path.replace("/admin/", "");
-      console.log("🔍 Admin: Checking access to section:", section);
-
-      // Check if user has access to this section
-      if (canAccessSection(userProfileData, section)) {
-        console.log("✅ Admin: Access granted to section:", section);
-        setActiveSection(section);
-      } else {
-        console.log("❌ Admin: Access denied to section:", section);
-        // Redirect to first accessible section
-        const accessibleSections = getAccessibleSections(userProfileData);
-        if (accessibleSections.length > 0) {
-          console.log(
-            "🔄 Admin: Redirecting to accessible section:",
-            accessibleSections[0]
-          );
-          navigate(`/admin/${accessibleSections[0]}`);
-        } else {
-          console.log(
-            "🔄 Admin: No accessible sections, redirecting to /admin"
-          );
-          navigate("/admin");
-        }
-      }
-    }
-  }, [location.pathname, userProfileData, navigate]);
-
-  // Function to handle section navigation
-  const handleSectionChange = (sectionId: string) => {
-    setActiveSection(sectionId);
-    if (sectionId === "dashboard") {
-      navigate("/admin");
-    } else {
-      navigate(`/admin/${sectionId}`);
-    }
-  };
-
-  // Dashboard data
-  const [dashboardStats, setDashboardStats] = useState({
-    todayPayments: { count: 145, amount: 25684.5 },
-    last24Hours: {
-      activePromoLinks: 23,
-      usedPromoCodes: 87,
-      claimedFunds: 15420,
-      unclaimedFunds: 8930,
-    },
-    commissionIncome: { daily: 1284.3, weekly: 8950.75 },
-  });
+  }, [
+    singleUserDetails.loading,
+    isLoadingProfile,
+    userProfileData,
+    profileError,
+    dispatch,
+  ]);
 
   // State for create user modal
   // All available menu items
@@ -374,6 +291,127 @@ const Admin = () => {
     );
     return filteredItems;
   }, [userProfileData, allMenuItems]);
+
+  // URL-based routing - sync activeSection with URL
+  useEffect(() => {
+    // Wait for user profile data to be loaded
+    if (!userProfileData) {
+      console.log("🔄 Admin: Waiting for user profile data...");
+      return;
+    }
+
+    // Ensure permissions are available to avoid no-access flicker
+    const profile =
+      (userProfileData as any)?.data?.user ||
+      (userProfileData as any)?.data ||
+      userProfileData;
+    const isSuperAdmin = profile?.role === "super_admin";
+    const hasPermissionsArray = Array.isArray(profile?.permissions);
+    if (!isSuperAdmin && !hasPermissionsArray) {
+      console.log("⏳ Admin: Permissions not ready yet, delaying access check");
+      return;
+    }
+
+    const path = location.pathname;
+    console.log(
+      "🔄 Admin: Processing path:",
+      path,
+      "with user data:",
+      userProfileData
+    );
+
+    if (path === "/admin" || path === "/admin/") {
+      // If dashboard is accessible, show it by default on first load
+      const dashboardAccessible = canAccessSection(profile, "dashboard");
+      const accessibleSections = getAccessibleSections(profile);
+      console.log(
+        "🔑 Admin: Accessible sections:",
+        accessibleSections,
+        "Dashboard:",
+        dashboardAccessible
+      );
+
+      if (dashboardAccessible) {
+        console.log("🏠 Admin: Showing dashboard by default");
+        setActiveSection("dashboard");
+      } else if (accessibleSections.length > 0) {
+        // Redirect to the first accessible NON-dashboard sidebar section
+        const firstNonDashboardFromMenu =
+          menuItems && menuItems.length > 0
+            ? menuItems.find((m) => m.id !== "dashboard")?.id
+            : undefined;
+        const firstNonDashboard =
+          firstNonDashboardFromMenu ||
+          accessibleSections.find((s) => s !== "dashboard");
+
+        if (firstNonDashboard) {
+          console.log(
+            "➡️ Admin: Redirecting to first NON-dashboard section:",
+            firstNonDashboard
+          );
+          setActiveSection(firstNonDashboard);
+          // Avoid redundant navigation if already on target
+          if (location.pathname !== `/admin/${firstNonDashboard}`) {
+            navigate(`/admin/${firstNonDashboard}`);
+          }
+        } else {
+          console.log("ℹ️ Admin: Only dashboard accessible, showing overview");
+          setActiveSection("overview");
+        }
+      } else {
+        // No accessible sections - this shouldn't happen for non-user roles
+        console.log("❌ Admin: No accessible sections found");
+        setActiveSection("no-access");
+      }
+    } else if (path.startsWith("/admin/")) {
+      const section = path.replace("/admin/", "");
+      console.log("🔍 Admin: Checking access to section:", section);
+
+      // Check if user has access to this section
+      if (canAccessSection(profile, section)) {
+        console.log("✅ Admin: Access granted to section:", section);
+        setActiveSection(section);
+      } else {
+        console.log("❌ Admin: Access denied to section:", section);
+        // Redirect to first accessible section
+        const accessibleSections = getAccessibleSections(profile);
+        if (accessibleSections.length > 0) {
+          console.log(
+            "🔄 Admin: Redirecting to accessible section:",
+            accessibleSections[0]
+          );
+          navigate(`/admin/${accessibleSections[0]}`);
+        } else {
+          console.log(
+            "🔄 Admin: No accessible sections, redirecting to /admin"
+          );
+          navigate("/admin");
+        }
+      }
+    }
+  }, [location.pathname, userProfileData, navigate, menuItems]);
+
+  // Function to handle section navigation
+  const handleSectionChange = (sectionId: string) => {
+    setActiveSection(sectionId);
+    if (sectionId === "dashboard") {
+      navigate("/admin");
+    } else {
+      navigate(`/admin/${sectionId}`);
+    }
+  };
+
+  // Dashboard data
+  const [dashboardStats, setDashboardStats] = useState({
+    todayPayments: { count: 145, amount: 25684.5 },
+    last24Hours: {
+      activePromoLinks: 23,
+      usedPromoCodes: 87,
+      claimedFunds: 15420,
+      unclaimedFunds: 8930,
+    },
+    commissionIncome: { daily: 1284.3, weekly: 8950.75 },
+  });
 
   // Form for creating new user
 
@@ -789,23 +827,35 @@ const Admin = () => {
     }
   };
 
-  // Show loading state while user profile is being fetched
+  // Show loading state while user profile/permissions are being prepared
+  const profileForAccess =
+    (userProfileData as any)?.data?.user ||
+    (userProfileData as any)?.data ||
+    userProfileData;
+  const permissionsNotReady =
+    !profileForAccess ||
+    (!Array.isArray(profileForAccess?.permissions) &&
+      profileForAccess?.role !== "super_admin");
+  const hasProfileError = !!profileError || !!singleUserDetails.error;
+
+  // Only show spinner when actively loading and no error yet
   if (
     (singleUserDetails.loading || isLoadingProfile) &&
-    !singleUserDetails.userDetails
+    !singleUserDetails.userDetails &&
+    !hasProfileError
   ) {
     return (
       <div className="flex items-center justify-center min-h-screen px-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading admin panel...</p>
+          <p className="text-muted-foreground">Preparing admin access...</p>
         </div>
       </div>
     );
   }
 
   // Show error state if user profile failed to load
-  if (singleUserDetails.error && !singleUserDetails.userDetails) {
+  if (hasProfileError && !singleUserDetails.userDetails) {
     return (
       <div className="flex items-center justify-center min-h-screen px-4">
         <div className="text-center">

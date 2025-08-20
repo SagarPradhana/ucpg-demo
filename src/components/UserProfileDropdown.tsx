@@ -39,17 +39,21 @@ const UserProfileDropdown = ({ user }: UserProfileDropdownProps) => {
   const dispatch = useDispatch();
 
   // Get user profile from Redux store (primary source)
-  const userProfile = useSelector(
+  const rawProfile = useSelector(
     (state: RootState) => state.singleUserDetails.userDetails
   ) as any;
+  const authUser = useSelector((state: RootState) => state.auth.userDetails) as any;
 
-  // Use Redux data if available, otherwise fall back to props, then defaults
-  const userData = userProfile ||
+  // Normalize profile shape and choose best available source
+  const profileFromRedux = (rawProfile?.data ?? rawProfile) || authUser;
+
+  // Use Redux data if available, otherwise fall back to props, then sensible defaults
+  const userData = profileFromRedux ||
     user || {
-      name: "John Doe",
-      email: "john.doe@example.com",
-      avatar: "",
-    };
+    name: authUser?.name || "User",
+    email: authUser?.email || "user@example.com",
+    avatar: authUser?.avatar || "",
+  };
 
   console.log("🔍 UserProfileDropdown: User data source", {
     hasReduxData: !!userProfile,

@@ -59,7 +59,8 @@ const Profile = () => {
   ) as any;
 
   // Use singleUserDetails as primary user data, fallback to authUser for ID when needed
-  const userProfile = singleUserDetails?.userDetails?.data || authUser;
+  // Ensure a flat user object (normalized in Login/Admin)
+  const userProfile = singleUserDetails?.userDetails || authUser;
   const dispatch = useDispatch();
   const { toast } = useToast();
   const { t, setLanguageFromProfile } = useLanguage();

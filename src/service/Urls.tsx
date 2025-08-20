@@ -111,6 +111,17 @@ export const ADMIN_EXCHANGE_SETTINGS: Api = {
   method: HttpMethods.GET,
 };
 
+// Exchange configuration (monitoring, logging, intervals, sources, symbols)
+export const ADMIN_EXCHANGE_CONFIG: Api = {
+  url: `${BACKEND_KPIX}/admin/exchange/settings`,
+  method: HttpMethods.GET,
+};
+
+export const ADMIN_EXCHANGE_CONFIG_UPDATE: Api = {
+  url: `${BACKEND_KPIX}/admin/exchange/settings`,
+  method: HttpMethods.PATCH,
+};
+
 export const ADMIN_SETTINGS: Api = {
   url: `${BACKEND_KPIX}/admin/settings`,
   method: HttpMethods.GET,
@@ -158,6 +169,16 @@ export const ADMIN_COMMISSION_INCOME: Api = {
 
 export const ADMIN_CURRENCY_DISTRIBUTION: Api = {
   url: `${BACKEND_KPIX}/admin/dashboard/currency-distribution`,
+  method: HttpMethods.GET,
+};
+
+// Promo Links (Dashboard)
+export const ADMIN_PROMO_LINKS_ACTIVE: Api = {
+  url: `${BACKEND_KPIX}/admin/dashboard/promo-links/active`,
+  method: HttpMethods.GET,
+};
+export const ADMIN_PROMO_LINKS_USED: Api = {
+  url: `${BACKEND_KPIX}/admin/dashboard/promo-links/used`,
   method: HttpMethods.GET,
 };
 export const ADMIN_UNCLAIMED_FUNDS: Api = {

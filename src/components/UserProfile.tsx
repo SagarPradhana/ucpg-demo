@@ -67,7 +67,12 @@ const UserProfile = ({
   const { theme, setTheme, actualTheme } = useTheme();
   const { language, setLanguage, setLanguageFromProfile, t } = useLanguage();
 
-  const userProfile = userProfileData?.data ?? [];
+  // Prefer normalized user from Redux; fallback to provided query data
+  const reduxUser = useSelector(
+    (state: RootState) => (state as any).singleUserDetails.userDetails
+  ) as any;
+  const userProfile =
+    reduxUser || (userProfileData as any)?.data || userProfileData || null;
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -114,8 +119,8 @@ const UserProfile = ({
   });
 
   // Use Redux data if available, otherwise fall back to props or defaults
-  const displayName = userProfile?.name || userName || "User";
-  const displayEmail = userProfile?.email || userEmail || "user@example.com";
+  const displayName = userProfile?.name || userName || "";
+  const displayEmail = userProfile?.email || userEmail || "";
   const displayAvatar = userAvatar;
 
   // Initialize language from user profile metadata when available
@@ -135,9 +140,20 @@ const UserProfile = ({
   };
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
+    // Apply immediately in UI
+    setTheme(newTheme);
+    // Optimistically update Redux metadata for instant UI reflection
+    if (reduxUser) {
+      dispatch(
+        singleUserDetailsActions.setSingleUserDetails({
+          ...reduxUser,
+          metadata: { ...(reduxUser.metadata || {}), theme: newTheme },
+        } as any)
+      );
+    }
+
     // Don't update profile API on excluded pages (login, signup, forgot password)
     if (!isExcludedPage && userProfile) {
-      // Update user profile with new theme using utility function
       updateProfileMutation?.mutate({
         ...userProfile,
         metadata: {
@@ -153,9 +169,20 @@ const UserProfile = ({
   };
 
   const handleLanguageChange = (newLanguage: Language) => {
+    // Apply immediately in UI (direct set to avoid "first-call only" guard)
+    setLanguage(newLanguage);
+    // Optimistically update Redux metadata for instant UI reflection
+    if (reduxUser) {
+      dispatch(
+        singleUserDetailsActions.setSingleUserDetails({
+          ...reduxUser,
+          metadata: { ...(reduxUser.metadata || {}), language: newLanguage },
+        } as any)
+      );
+    }
+
     // Don't update profile API on excluded pages (login, signup, forgot password)
     if (!isExcludedPage && userProfile) {
-      // Update user profile with new language using utility function
       updateProfileMutation?.mutate({
         ...userProfile,
         metadata: {
@@ -255,9 +282,9 @@ const UserProfile = ({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Avatar className="h-9 w-9 cursor-pointer border-2 border-transparent hover:border-primary/20 transition-all duration-200">
-          <AvatarImage src={displayAvatar} alt={displayName} />
+          <AvatarImage src={displayAvatar} alt={displayName || ""} />
           <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-            {getUserInitials(displayName)}
+            {getUserInitials(displayName || userEmail || "U")}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>

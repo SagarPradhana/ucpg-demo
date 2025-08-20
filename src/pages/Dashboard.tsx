@@ -76,8 +76,25 @@ const Dashboard = () => {
   );
 
   // Use singleUserDetails as primary user data, fallback to authUser for ID when needed
+  // Normalize possible shapes: API might return { data: user } or just user
+  // Ensure we use a flat user object (normalized in Login/Admin)
   const userProfile = singleUserDetails.userDetails || authUser;
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
+
+  // Determine effective user ID from Redux or JWT token
+  const tokenUserId = (() => {
+    const token = localStorage.getItem("sessionToken");
+    if (!token) return undefined;
+    try {
+      const decoded: any = jwtDecode<any>(token);
+      return decoded?.id || decoded?.user_id || decoded?.userId || decoded?.sub;
+    } catch {
+      return undefined;
+    }
+  })();
+  const userIdForProfile =
+    authUser?.id || singleUserDetails.userDetails?.id || tokenUserId;
 
   // Fetch user profile from API when Dashboard mounts
   const {
@@ -86,12 +103,15 @@ const Dashboard = () => {
     error: profileError,
     refetch: refetchProfile,
   } = useQuery({
-    queryKey: ["dashboardUserProfile", authUser?.id],
+    queryKey: ["dashboardUserProfile", userIdForProfile],
     queryFn: () => {
-      console.log("🔄 Dashboard: Fetching user profile for ID:", authUser?.id);
-      return getUser(authUser?.id);
+      console.log(
+        "🔄 Dashboard: Fetching user profile for ID:",
+        userIdForProfile
+      );
+      return getUser(userIdForProfile as string);
     },
-    enabled: !!authUser?.id,
+    enabled: !!userIdForProfile,
   });
 
   // Set loading state when query starts
@@ -102,18 +122,22 @@ const Dashboard = () => {
     }
   }, [isLoadingProfile, singleUserDetails.loading, dispatch]);
 
-  // Handle user profile data when it's fetched
+  // Handle user profile data when it's fetched and normalize possible shapes
   useEffect(() => {
-    if (userProfileData && !singleUserDetails.userDetails) {
+    if (userProfileData) {
+      const normalized =
+        (userProfileData as any)?.data?.user ||
+        (userProfileData as any)?.data ||
+        userProfileData;
       console.log(
-        "✅ Dashboard: Storing user profile in Redux:",
-        userProfileData
+        "✅ Dashboard: Updating Redux with latest normalized profile:",
+        normalized
       );
       dispatch(
-        singleUserDetailsActions.setSingleUserDetails(userProfileData as any)
+        singleUserDetailsActions.setSingleUserDetails(normalized as any)
       );
     }
-  }, [userProfileData, singleUserDetails.userDetails, dispatch]);
+  }, [userProfileData, dispatch]);
 
   // Handle profile fetch errors
   useEffect(() => {
@@ -228,6 +252,67 @@ const Dashboard = () => {
     },
   });
 
+  // Unified dashboard refresh: profile, transactions, and KPIs
+  const refreshAllMutation = useMutation({
+    mutationFn: async () => {
+      // Run all refresh tasks in parallel and collect results
+      const results = await Promise.allSettled([
+        // 1) Refresh KPIs locally (no toast here to avoid duplicates)
+        (async () => {
+          const result = await mockRefreshBalance();
+          setTotalBalance(result.totalBalance);
+          setActivePayments(result.activePayments);
+          setPendingCount(result.pendingCount);
+          setBalanceChange(result.balanceChange);
+          setLastUpdated(new Date());
+          return result;
+        })(),
+        // 2) Refetch profile
+        refetchProfile(),
+        // 3) Refetch recent transactions query
+        queryClient.refetchQueries({
+          queryKey: ["dashboard-recent-transactions", authUser?.id],
+          type: "active",
+        }),
+      ]);
+
+      return results;
+    },
+    onSuccess: (results) => {
+      const total = (results as PromiseSettledResult<any>[]).length;
+      const failed = (results as PromiseSettledResult<any>[]).filter(
+        (r) => r.status === "rejected"
+      ).length;
+
+      if (failed === 0) {
+        toast({
+          title: "Dashboard refreshed",
+          description: "All data updated successfully.",
+        });
+      } else if (failed === total) {
+        toast({
+          title: "Refresh failed",
+          description: "Could not refresh dashboard data.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Partial refresh",
+          description: `${total - failed} succeeded, ${failed} failed.`,
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Unified refresh failed:", error);
+      toast({
+        title: "Refresh failed",
+        description: "Could not refresh dashboard data.",
+        variant: "destructive",
+      });
+    },
+  });
+
   useEffect(() => {
     console.log("🔐 Dashboard: Checking session token...");
     const token = localStorage.getItem("sessionToken");
@@ -319,7 +404,8 @@ const Dashboard = () => {
   // Fetch user profile from API when Dashboard mounts
 
   const handleRefresh = () => {
-    refreshBalanceMutation.mutate();
+    // Trigger unified refresh: KPIs, profile, and recent transactions
+    refreshAllMutation.mutate();
   };
 
   // Mock API for quick actions
@@ -389,7 +475,9 @@ const Dashboard = () => {
       gcTime: 60_000,
     });
 
-    const items: any[] = data ? ((data as any)?.data ?? (data as any)?.items ?? []) : [];
+    const items: any[] = data
+      ? (data as any)?.data ?? (data as any)?.items ?? []
+      : [];
 
     const statusBadgeColor = (status?: string) => {
       switch ((status || "").toLowerCase()) {
@@ -424,33 +512,58 @@ const Dashboard = () => {
           ))
         ) : isError ? (
           <div className="text-center text-sm">
-            <div className="text-red-600 mb-2">{(error as any)?.message || "Failed to load transactions"}</div>
-            <Button size="sm" onClick={() => refetch()}>Retry</Button>
+            <div className="text-red-600 mb-2">
+              {(error as any)?.message || "Failed to load transactions"}
+            </div>
+            <Button size="sm" onClick={() => refetch()}>
+              Retry
+            </Button>
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center text-muted-foreground text-sm">No recent transactions</div>
+          <div className="text-center text-muted-foreground text-sm">
+            No recent transactions
+          </div>
         ) : (
           items.map((tx: any) => (
-            <div key={tx.id} className="border rounded-lg p-4 transition-all duration-200 hover:shadow-md">
+            <div
+              key={tx.id}
+              className="border rounded-lg p-4 transition-all duration-200 hover:shadow-md"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`px-2 py-1 rounded text-xs font-medium ${statusBadgeColor(tx.status)}`}>
+                  <div
+                    className={`px-2 py-1 rounded text-xs font-medium ${statusBadgeColor(
+                      tx.status
+                    )}`}
+                  >
                     {tx.status ?? "-"}
                   </div>
                   <div className="text-sm">
                     <div className="font-medium">
-                      {tx.transaction_type ?? "-"} • {tx.original_amount ?? 0} {tx.currency ?? ""}
+                      {tx.transaction_type ?? "-"} • {tx.original_amount ?? 0}{" "}
+                      {tx.currency ?? ""}
                     </div>
                     <div className="text-muted-foreground text-xs">
-                      {tx.target_crypto_currency ?? "-"} • {tx.created_date ? epochToCustomLocalStringTime(tx.created_date) : "-"}
+                      {tx.target_crypto_currency ?? "-"} •{" "}
+                      {tx.created_date
+                        ? epochToCustomLocalStringTime(tx.created_date)
+                        : "-"}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="text-xs text-muted-foreground font-mono truncate max-w-[220px]" title={tx.id}>
+                  <div
+                    className="text-xs text-muted-foreground font-mono truncate max-w-[220px]"
+                    title={tx.id}
+                  >
                     {tx.id}
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => handleView(tx)} title="View transaction details">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleView(tx)}
+                    title="View transaction details"
+                  >
                     <Eye className="h-4 w-4" />
                   </Button>
                 </div>
@@ -464,7 +577,9 @@ const Dashboard = () => {
           <DialogContent className="max-w-3xl z-[60]">
             <DialogHeader>
               <DialogTitle>Transaction Details</DialogTitle>
-              <DialogDescription>Overview of the selected transaction</DialogDescription>
+              <DialogDescription>
+                Overview of the selected transaction
+              </DialogDescription>
             </DialogHeader>
 
             {selectedTx && (
@@ -478,7 +593,11 @@ const Dashboard = () => {
                   </div>
                   <div className="p-3 rounded-lg border bg-card">
                     <p className="text-xs text-muted-foreground">Status</p>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${statusBadgeColor(selectedTx.status)}`}>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${statusBadgeColor(
+                        selectedTx.status
+                      )}`}
+                    >
                       {selectedTx.status}
                     </span>
                   </div>
@@ -495,19 +614,29 @@ const Dashboard = () => {
                     <p className="text-sm font-medium">Identifiers</p>
                     <dl className="text-xs space-y-1 text-muted-foreground">
                       <div>
-                        <dt className="font-semibold inline text-foreground">ID:</dt>{" "}
+                        <dt className="font-semibold inline text-foreground">
+                          ID:
+                        </dt>{" "}
                         <dd className="ml-2 inline">{selectedTx.id}</dd>
                       </div>
                       {selectedTx.transaction_id && (
                         <div>
-                          <dt className="font-semibold inline text-foreground">TX ID:</dt>{" "}
-                          <dd className="ml-2 inline">{selectedTx.transaction_id}</dd>
+                          <dt className="font-semibold inline text-foreground">
+                            TX ID:
+                          </dt>{" "}
+                          <dd className="ml-2 inline">
+                            {selectedTx.transaction_id}
+                          </dd>
                         </div>
                       )}
                       {selectedTx.provider_transaction_id && (
                         <div>
-                          <dt className="font-semibold inline text-foreground">Provider TX ID:</dt>{" "}
-                          <dd className="ml-2 inline">{selectedTx.provider_transaction_id}</dd>
+                          <dt className="font-semibold inline text-foreground">
+                            Provider TX ID:
+                          </dt>{" "}
+                          <dd className="ml-2 inline">
+                            {selectedTx.provider_transaction_id}
+                          </dd>
                         </div>
                       )}
                     </dl>
@@ -517,16 +646,26 @@ const Dashboard = () => {
                     <p className="text-sm font-medium">Timing</p>
                     <dl className="text-xs space-y-1 text-muted-foreground">
                       <div>
-                        <dt className="font-semibold inline text-foreground">Created:</dt>{" "}
+                        <dt className="font-semibold inline text-foreground">
+                          Created:
+                        </dt>{" "}
                         <dd className="ml-2 inline">
-                          {selectedTx.created_date ? epochToCustomLocalStringTime(selectedTx.created_date) : "-"}
+                          {selectedTx.created_date
+                            ? epochToCustomLocalStringTime(
+                                selectedTx.created_date
+                              )
+                            : "-"}
                         </dd>
                       </div>
                       {selectedTx.updated_date && (
                         <div>
-                          <dt className="font-semibold inline text-foreground">Updated:</dt>{" "}
+                          <dt className="font-semibold inline text-foreground">
+                            Updated:
+                          </dt>{" "}
                           <dd className="ml-2 inline">
-                            {epochToCustomLocalStringTime(selectedTx.updated_date)}
+                            {epochToCustomLocalStringTime(
+                              selectedTx.updated_date
+                            )}
                           </dd>
                         </div>
                       )}
@@ -539,17 +678,29 @@ const Dashboard = () => {
                     <p className="text-sm font-medium">Amounts</p>
                     <dl className="text-xs space-y-1 text-muted-foreground">
                       <div>
-                        <dt className="font-semibold inline text-foreground">Original:</dt>{" "}
-                        <dd className="ml-2 inline">{selectedTx.original_amount} {selectedTx.currency}</dd>
+                        <dt className="font-semibold inline text-foreground">
+                          Original:
+                        </dt>{" "}
+                        <dd className="ml-2 inline">
+                          {selectedTx.original_amount} {selectedTx.currency}
+                        </dd>
                       </div>
                       <div>
-                        <dt className="font-semibold inline text-foreground">Net:</dt>{" "}
-                        <dd className="ml-2 inline">{selectedTx.net_amount ?? '-'}</dd>
+                        <dt className="font-semibold inline text-foreground">
+                          Net:
+                        </dt>{" "}
+                        <dd className="ml-2 inline">
+                          {selectedTx.net_amount ?? "-"}
+                        </dd>
                       </div>
                       {selectedTx.target_crypto_currency && (
                         <div>
-                          <dt className="font-semibold inline text-foreground">Target Crypto:</dt>{" "}
-                          <dd className="ml-2 inline">{selectedTx.target_crypto_currency}</dd>
+                          <dt className="font-semibold inline text-foreground">
+                            Target Crypto:
+                          </dt>{" "}
+                          <dd className="ml-2 inline">
+                            {selectedTx.target_crypto_currency}
+                          </dd>
                         </div>
                       )}
                     </dl>
@@ -560,14 +711,22 @@ const Dashboard = () => {
                     <dl className="text-xs space-y-1 text-muted-foreground">
                       {selectedTx.status_reason && (
                         <div>
-                          <dt className="font-semibold inline text-foreground">Reason:</dt>{" "}
-                          <dd className="ml-2 inline">{selectedTx.status_reason}</dd>
+                          <dt className="font-semibold inline text-foreground">
+                            Reason:
+                          </dt>{" "}
+                          <dd className="ml-2 inline">
+                            {selectedTx.status_reason}
+                          </dd>
                         </div>
                       )}
                       {selectedTx.cancel_reason && (
                         <div>
-                          <dt className="font-semibold inline text-foreground">Cancel Reason:</dt>{" "}
-                          <dd className="ml-2 inline">{selectedTx.cancel_reason}</dd>
+                          <dt className="font-semibold inline text-foreground">
+                            Cancel Reason:
+                          </dt>{" "}
+                          <dd className="ml-2 inline">
+                            {selectedTx.cancel_reason}
+                          </dd>
                         </div>
                       )}
                     </dl>
@@ -665,15 +824,16 @@ const Dashboard = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleRefresh}
-                disabled={refreshBalanceMutation.isPending}
+                disabled={refreshAllMutation.isPending}
                 className="flex items-center space-x-2"
               >
                 <RefreshCw
-                  className={`h-4 w-4 ${refreshBalanceMutation.isPending ? "animate-spin" : ""
-                    }`}
+                  className={`h-4 w-4 ${
+                    refreshAllMutation.isPending ? "animate-spin" : ""
+                  }`}
                 />
                 <span className="hidden sm:inline">
-                  {refreshBalanceMutation.isPending
+                  {refreshAllMutation.isPending
                     ? t("common.refreshing")
                     : t("common.refresh")}
                 </span>
@@ -741,8 +901,9 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground flex items-center space-x-1">
                 <TrendingUp className="h-3 w-3" />
                 <span
-                  className={`font-semibold ${balanceChange >= 0 ? "text-green-500" : "text-red-500"
-                    }`}
+                  className={`font-semibold ${
+                    balanceChange >= 0 ? "text-green-500" : "text-red-500"
+                  }`}
                 >
                   {balanceChange >= 0 ? "+" : ""}
                   {balanceChange}%

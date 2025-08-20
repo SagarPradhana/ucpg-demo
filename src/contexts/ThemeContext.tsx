@@ -39,10 +39,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     (state: RootState) => state.auth.isAuthenticated
   );
 
-  // Function to get theme priority: user metadata (only for authenticated) > default light
+  // Function to get theme priority: user metadata (authenticated or token) > stored > default light
   const getInitialTheme = (): Theme => {
-    // Only apply user theme preferences for authenticated users
-    if (isAuthenticated) {
+    const hasToken =
+      typeof window !== "undefined" && !!localStorage.getItem("sessionToken");
+
+    if (isAuthenticated || hasToken) {
       // Check singleUserDetails first (primary source)
       const singleUserTheme = getMetadataValue(
         singleUserDetails?.metadata,
@@ -67,11 +69,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
         return authUserTheme;
       }
 
-      // For authenticated users without theme metadata, default to light
+      // If no metadata, try stored theme
+      const storedTheme = localStorage.getItem("ucpg-theme") as Theme | null;
+      if (storedTheme && ["light", "dark", "system"].includes(storedTheme)) {
+        return storedTheme;
+      }
+
+      // Default
       return "light";
     }
 
-    // For non-authenticated users, always use light theme (ignore localStorage)
+    // For non-authenticated users without token, default to light
     return "light";
   };
 
@@ -128,29 +136,25 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     }
   }, [theme]);
 
-  // Theme logging and persistence (only for authenticated users)
+  // Theme logging and persistence (authenticated or has token)
   useEffect(() => {
-    // Log the theme source for debugging
-    if (isAuthenticated) {
-      const userTheme =
-        getMetadataValue(singleUserDetails?.metadata, "theme") ||
-        getMetadataValue(authUser?.metadata, "theme");
+    const hasToken =
+      typeof window !== "undefined" && !!localStorage.getItem("sessionToken");
+
+    const userTheme =
+      getMetadataValue(singleUserDetails?.metadata, "theme") ||
+      getMetadataValue(authUser?.metadata, "theme");
+
+    if (isAuthenticated || hasToken) {
       if (userTheme) {
         console.log(`🎨 Theme applied from user metadata: ${theme}`);
       } else {
-        console.log(
-          `🎨 Theme applied (authenticated user, no metadata): ${theme}`
-        );
+        console.log(`🎨 Theme applied (auth/token, no metadata): ${theme}`);
       }
-
-      // Only save to localStorage for authenticated users
+      // Save preference so portals reflect correct theme across routes
       localStorage.setItem("ucpg-theme", theme);
     } else {
-      console.log(
-        `🎨 Theme applied (non-authenticated, always light): ${theme}`
-      );
-      // For non-authenticated users, don't save to localStorage
-      // This ensures public pages always start with light theme
+      console.log(`🎨 Theme applied (public, default): ${theme}`);
     }
   }, [theme, isAuthenticated, authUser?.metadata, singleUserDetails?.metadata]);
 

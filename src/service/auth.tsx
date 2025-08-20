@@ -73,13 +73,10 @@ export const sendOtp = (data: { email: string }) => {
 };
 
 export const getUser = (id: string) => {
-  console.log("🔄 getUser called with ID:", id);
-  const formatedUrl = FormatUrl(GET_USER.url, id);
-  console.log("📡 Get user URL:", formatedUrl);
-
-  const response = httpClient(formatedUrl, {
+  const url = FormatUrl(GET_USER.url, id);
+  const response = httpClient(url, {
     method: GET_USER.method,
-    withAuth: true, // Explicitly ensure authentication header is included
+    withAuth: true,
   });
   return response;
 };
