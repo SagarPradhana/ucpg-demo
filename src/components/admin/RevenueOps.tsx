@@ -15,12 +15,20 @@ import {
 import CommonPagination from "@/components/ui/common-pagination";
 import { usePagination } from "@/hooks/usePagination";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DollarSign, PieChart, Activity, TrendingUp } from "lucide-react";
+import {
+  DollarSign,
+  PieChart,
+  Activity,
+  TrendingUp,
+  QrCode,
+} from "lucide-react";
 import {
   getAdminTransactions,
   getAdminCommissionIncome,
   getAdminCurrencyDistribution,
   getAdminUnclaimedFunds,
+  getAdminPromoLinksActive,
+  getAdminPromoLinksUsed,
 } from "@/service/adminservices";
 import { PermissionGuard } from "@/components/PermissionGuard";
 
@@ -76,6 +84,20 @@ const RevenueOps: React.FC = () => {
   const { data: fundsResp, isLoading: isFundsLoading } = useQuery({
     queryKey: ["revops-funds", from_date, to_date],
     queryFn: () => getAdminUnclaimedFunds({ from_date, to_date }),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+
+  const { data: promoLinksActive } = useQuery({
+    queryKey: ["revops-promo-links-active", from_date, to_date],
+    queryFn: () => getAdminPromoLinksActive({ from_date, to_date }),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+
+  const { data: promoLinksUsed } = useQuery({
+    queryKey: ["revops-promo-links-used", from_date, to_date],
+    queryFn: () => getAdminPromoLinksUsed({ from_date, to_date }),
     gcTime: 60000,
     staleTime: 60000,
   });
@@ -235,6 +257,70 @@ const RevenueOps: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Promo Codes (Active/Used) */}
+        <Card className="border-l-4 border-l-teal-500">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  Promo Codes
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                  {/* Active Promo Links */}
+                  <div className="rounded-xl p-4 bg-white/70 border shadow-sm">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      Active Promo Links
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl sm:text-3xl font-bold text-teal-700">
+                        {(() => {
+                          const d: any = promoLinksActive as any;
+                          if (!d) return 0;
+                          const v = (d as any).data;
+                          if (typeof v === "number") return v;
+                          if (Array.isArray(v)) return v.length;
+                          if (v && typeof v?.count === "number") return v.count;
+                          if (typeof (d as any)?.count === "number")
+                            return (d as any).count;
+                          return 0;
+                        })()}
+                      </p>
+                      <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
+                        <QrCode className="h-5 w-5 text-teal-700" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Used Promo Links */}
+                  <div className="rounded-xl p-4 bg-white/70 border shadow-sm">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      Used Promo Codes
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl sm:text-3xl font-bold text-amber-700">
+                        {(() => {
+                          const d: any = promoLinksUsed as any;
+                          if (!d) return 0;
+                          const v = (d as any).data;
+                          if (typeof v === "number") return v;
+                          if (Array.isArray(v)) return v.length;
+                          if (v && typeof v?.count === "number") return v.count;
+                          if (typeof (d as any)?.count === "number")
+                            return (d as any).count;
+                          return 0;
+                        })()}
+                      </p>
+                      <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                        <QrCode className="h-5 w-5 text-amber-700" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Currency Distribution */}
         <Card>
