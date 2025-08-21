@@ -37,6 +37,7 @@ import { RootState } from "./types";
 // import RouteProtectionDebug from "./components/RouteProtectionDebug";
 import { ROUTE_CONFIG } from "./config/routes";
 import { SupportChatbot } from "./components/SupportChatbot";
+import { getUser } from "./service/auth";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -135,6 +136,41 @@ const UserProfileInitializer = () => {
 
     loadUserFromToken();
   }, [dispatch, singleUserDetails.userDetails]);
+
+  // Fetch and store full user profile globally so theme from metadata applies everywhere
+  useEffect(() => {
+    const token = localStorage.getItem("sessionToken");
+    if (!token) return;
+
+    // If profile already present, skip
+    if (singleUserDetails.userDetails) return;
+
+    // Determine user id from auth user or token
+    let userId: string | undefined = authUser?.id;
+    if (!userId) {
+      try {
+        const decoded: any = jwtDecode<any>(token);
+        userId =
+          decoded?.id || decoded?.user_id || decoded?.userId || decoded?.sub;
+      } catch {
+        userId = undefined;
+      }
+    }
+
+    if (!userId) return;
+
+    (async () => {
+      try {
+        const res: any = await getUser(userId as string);
+        const normalized = res?.data?.user || res?.data || res;
+        if (normalized) {
+          dispatch(singleUserDetailsActions.setSingleUserDetails(normalized));
+        }
+      } catch (e) {
+        console.error("❌ App: Failed to fetch user profile:", e);
+      }
+    })();
+  }, [authUser?.id, dispatch, singleUserDetails.userDetails]);
 
   return null;
 };
