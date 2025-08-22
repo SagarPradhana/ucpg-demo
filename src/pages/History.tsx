@@ -28,7 +28,11 @@ import {
   getUserTransactionsStats,
 } from "@/service/adminservices";
 import { toast } from "sonner"; // still used for other toasts
-import { epochRangeForLabel } from "@/utils/timeFilters";
+import {
+  epochRangeForLabel,
+  createEpochRangeFromDates,
+  epochToDateString,
+} from "@/utils/timeFilters";
 import { epochToCustomLocalStringTime } from "@/Common";
 import {
   Search,
@@ -90,6 +94,9 @@ const History: React.FC = () => {
   const [epochRange, setEpochRange] = useState(() =>
     epochRangeForLabel("Last 30 Days")
   ); // Time labels are shown via t() in the dropdown
+  // Custom range controls
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
 
   // Debounce search input to reduce API calls
   useEffect(() => {
@@ -217,7 +224,7 @@ const History: React.FC = () => {
               <ArrowLeft className="h-4 w-4 mr-1" /> {t("nav.back")}
             </button>
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              {t("roleSelection.user.features.transactionHistory")}
+              {t("history.title")}
             </CardTitle>
           </div>
         </CardHeader>
@@ -296,7 +303,7 @@ const History: React.FC = () => {
                     <Download className="h-4 w-4" />
                   </div>
                   <span className="text-xs font-medium text-muted-foreground">
-                    Receive
+                    {t("dashboard.receive")}
                   </span>
                 </div>
                 {isStatsLoading ? (
@@ -503,7 +510,13 @@ const History: React.FC = () => {
                 value={timeLabel}
                 onValueChange={(label) => {
                   setTimeLabel(label);
-                  setEpochRange(epochRangeForLabel(label));
+                  if (label === "Custom") {
+                    // Initialize custom range pickers from current epochRange
+                    setCustomFrom(epochToDateString(epochRange.from_date));
+                    setCustomTo(epochToDateString(epochRange.to_date));
+                  } else {
+                    setEpochRange(epochRangeForLabel(label));
+                  }
                 }}
               >
                 <SelectTrigger className="h-9 text-sm">
@@ -519,6 +532,7 @@ const History: React.FC = () => {
                     { key: "Last Week", label: t("time.lastWeek") },
                     { key: "This Month", label: t("time.thisMonth") },
                     { key: "Last Month", label: t("time.lastMonth") },
+                    { key: "Custom", label: "Custom Range" },
                   ].map((opt) => (
                     <SelectItem key={opt.key} value={opt.key}>
                       {opt.label}
@@ -526,6 +540,52 @@ const History: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
+
+              {timeLabel === "Custom" && (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">From</Label>
+                    <Input
+                      type="date"
+                      className="h-9 text-sm"
+                      value={customFrom}
+                      max={epochToDateString(Math.floor(Date.now() / 1000))}
+                      onChange={(e) => setCustomFrom(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">To</Label>
+                    <Input
+                      type="date"
+                      className="h-9 text-sm"
+                      value={customTo}
+                      max={epochToDateString(Math.floor(Date.now() / 1000))}
+                      onChange={(e) => setCustomTo(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Button
+                      size="sm"
+                      className="h-9"
+                      onClick={() => {
+                        if (!customFrom || !customTo) {
+                          toast.error("Please select both dates");
+                          return;
+                        }
+                        if (customFrom > customTo) {
+                          toast.error("'From' date cannot be after 'To' date");
+                          return;
+                        }
+                        setEpochRange(
+                          createEpochRangeFromDates(customFrom, customTo)
+                        );
+                      }}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -681,10 +741,10 @@ const History: React.FC = () => {
         <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto z-[60]">
           <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
-              {t("admin.actions.view")}
+              {t("history.details.title")}
             </DialogTitle>
             <DialogDescription>
-              {t("support.chatbot.quickHelp")}
+              {t("history.details.subtitle")}
             </DialogDescription>
           </DialogHeader>
 
@@ -693,17 +753,23 @@ const History: React.FC = () => {
               {/* Top summary */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 rounded-lg border bg-card">
-                  <p className="text-xs text-muted-foreground">Amount</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("history.details.amount")}
+                  </p>
                   <p className="text-lg font-semibold truncate">
                     {selectedTx.original_amount} {selectedTx.currency}
                   </p>
                 </div>
                 <div className="p-4 rounded-lg border bg-card">
-                  <p className="text-xs text-muted-foreground">Status</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("history.details.status")}
+                  </p>
                   <Badge className="w-fit mt-1">{selectedTx.status}</Badge>
                 </div>
                 <div className="p-4 rounded-lg border bg-card">
-                  <p className="text-xs text-muted-foreground">Type</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("history.details.typeLabel")}
+                  </p>
                   <p className="text-lg font-semibold capitalize truncate">
                     {selectedTx.transaction_type || "-"}
                   </p>
@@ -712,40 +778,27 @@ const History: React.FC = () => {
 
               {/* Middle details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Identifiers */}
+                {/* Identifiers (user-safe) */}
                 <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">Identifiers</p>
+                  <p className="text-sm font-medium">
+                    {t("history.details.identifiers")}
+                  </p>
                   <dl className="text-xs space-y-1 text-muted-foreground">
                     <div>
                       <dt className="font-semibold inline text-foreground">
                         ID:
                       </dt>{" "}
+                      <dd className="ml-2 inline">
+                        {selectedTx.transaction_name || selectedTx.id}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold inline text-foreground">
+                        {t("send.transactionId") || "Transaction ID:"}
+                      </dt>{" "}
                       <dd className="ml-2 inline">{selectedTx.id}</dd>
                     </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        3rd Party TX ID:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.third_party_transaction_id || "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        User ID:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.user_id || "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        Transaction Name:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.transaction_name || "-"}
-                      </dd>
-                    </div>
+                    {/* Hide internal identifiers from user */}
                   </dl>
                 </div>
 
@@ -789,13 +842,15 @@ const History: React.FC = () => {
                   </dl>
                 </div>
 
-                {/* Payment */}
+                {/* Payment (user-safe) */}
                 <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">Payment</p>
+                  <p className="text-sm font-medium">
+                    {t("history.details.payment")}
+                  </p>
                   <dl className="text-xs space-y-1 text-muted-foreground">
                     <div>
                       <dt className="font-semibold inline text-foreground">
-                        Method:
+                        {t("history.details.method")}
                       </dt>{" "}
                       <dd className="ml-2 inline">
                         {selectedTx.payment_method || "-"}
@@ -803,15 +858,7 @@ const History: React.FC = () => {
                     </div>
                     <div>
                       <dt className="font-semibold inline text-foreground">
-                        3rd Party Site:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.third_party_site_name || "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        Target Crypto:
+                        {t("history.details.targetCrypto")}
                       </dt>{" "}
                       <dd className="ml-2 inline">
                         {selectedTx.target_crypto_currency || "-"}
@@ -820,33 +867,27 @@ const History: React.FC = () => {
                   </dl>
                 </div>
 
-                {/* QR & Links */}
+                {/* QR (user-safe; hide raw link if not needed) */}
                 <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">QR & Links</p>
+                  <p className="text-sm font-medium">
+                    {t("history.details.qrAndLinks")}
+                  </p>
                   <dl className="text-xs space-y-2 text-muted-foreground">
+                    {selectedTx.qr_expires_at && (
+                      <div>
+                        <dt className="font-semibold inline text-foreground">
+                          {t("history.details.qrExpires")}
+                        </dt>{" "}
+                        <dd className="ml-2 inline">
+                          {epochToCustomLocalStringTime(
+                            selectedTx.qr_expires_at
+                          )}
+                        </dd>
+                      </div>
+                    )}
                     <div>
                       <dt className="font-semibold inline text-foreground">
-                        Payment Link:
-                      </dt>{" "}
-                      <dd className="ml-2 inline break-all">
-                        {selectedTx.payment_link || "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        QR Expires:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.qr_expires_at
-                          ? epochToCustomLocalStringTime(
-                              selectedTx.qr_expires_at
-                            )
-                          : "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        QR Status:
+                        {t("history.details.qrStatus")}
                       </dt>{" "}
                       <dd className="ml-2 inline">
                         {selectedTx.qr_status ? "Active" : "Inactive"}
@@ -856,51 +897,22 @@ const History: React.FC = () => {
                 </div>
               </div>
 
-              {/* QR code */}
+              {/* QR code (user-safe) */}
               {selectedTx.qr_code_url && (
                 <div className="p-4 rounded-lg border bg-card">
-                  <p className="text-sm font-medium mb-3">Payment QR</p>
+                  <p className="text-sm font-medium mb-3">
+                    {t("history.details.paymentQr")}
+                  </p>
                   <div className="flex items-center gap-6 flex-wrap">
-                    <QRCodeSVG
-                      value={selectedTx.payment_link || selectedTx.qr_code_url}
-                      size={160}
-                    />
+                    <QRCodeSVG value={selectedTx.qr_code_url} size={160} />
                     <div className="text-xs text-muted-foreground space-y-1">
-                      <p>Scan to open payment page.</p>
-                      {selectedTx.payment_link && (
-                        <p className="break-all">
-                          <span className="font-semibold text-foreground">
-                            Link:
-                          </span>
-                          <span className="ml-2">
-                            {selectedTx.payment_link}
-                          </span>
-                        </p>
-                      )}
+                      <p>{t("history.details.scanToOpen")}</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Metadata & raw JSON */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">Metadata</p>
-                  <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-48">
-                    {JSON.stringify(
-                      selectedTx.transaction_metadata || {},
-                      null,
-                      2
-                    )}
-                  </pre>
-                </div>
-                <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">Raw Transaction</p>
-                  <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-48">
-                    {JSON.stringify(selectedTx, null, 2)}
-                  </pre>
-                </div>
-              </div>
+              {/* Metadata & raw JSON - removed for user view to avoid exposing sensitive/internal data */}
             </div>
           )}
         </DialogContent>

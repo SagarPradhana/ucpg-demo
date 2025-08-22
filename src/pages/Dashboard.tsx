@@ -188,11 +188,11 @@ const Dashboard = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [totalBalance, setTotalBalance] = useState(2350.0);
-  const [activePayments, setActivePayments] = useState(7);
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [activePayments, setActivePayments] = useState(0);
   const [completedPayments, setCompletedPayments] = useState(0);
-  const [pendingCount, setPendingCount] = useState(3);
-  const [balanceChange, setBalanceChange] = useState(12.5);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [balanceChange, setBalanceChange] = useState(0);
 
   // Update KPI cards when stats arrive
   useEffect(() => {
@@ -246,78 +246,18 @@ const Dashboard = () => {
     }
   }, [singleUserDetails.loading, singleUserDetails.userDetails]);
 
-  // Mock API for refreshing balance data
-  const mockRefreshBalance = (): Promise<{
-    totalBalance: number;
-    activePayments: number;
-    pendingCount: number;
-    balanceChange: number;
-  }> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const variation = (Math.random() - 0.5) * 100;
-        const newBalance = Math.max(1000, totalBalance + variation);
-        const newPayments = Math.max(
-          1,
-          activePayments + Math.floor((Math.random() - 0.5) * 3)
-        );
-        const newPending = Math.max(0, Math.floor(Math.random() * 5));
-        const newChange = ((newBalance - totalBalance) / totalBalance) * 100;
-
-        resolve({
-          totalBalance: Number(newBalance.toFixed(2)),
-          activePayments: newPayments,
-          pendingCount: newPending,
-          balanceChange: Number(newChange.toFixed(1)),
-        });
-      }, 1000);
-    });
-  };
-
-  // Refresh balance mutation
-  const refreshBalanceMutation = useMutation({
-    mutationFn: () => mockRefreshBalance(),
-    onSuccess: (result: {
-      totalBalance: number;
-      activePayments: number;
-      pendingCount: number;
-      balanceChange: number;
-    }) => {
-      setTotalBalance(result.totalBalance);
-      setActivePayments(result.activePayments);
-      setPendingCount(result.pendingCount);
-      setBalanceChange(result.balanceChange);
-      setLastUpdated(new Date());
-
-      toast({
-        title: "Data Refreshed",
-        description: "Balance and transactions updated successfully",
-      });
-    },
-    onError: (error) => {
-      console.error("Refresh failed:", error);
-      toast({
-        title: "Refresh Failed",
-        description: "Failed to refresh data. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
+  // Removed mock refresh. We use API data only via React Query (refetchStats).
 
   // Unified dashboard refresh: profile, transactions, and KPIs
   const refreshAllMutation = useMutation({
     mutationFn: async () => {
       // Run all refresh tasks in parallel and collect results
       const results = await Promise.allSettled([
-        // 1) Refresh KPIs locally (no toast here to avoid duplicates)
+        // 1) Refetch stats from API
         (async () => {
-          const result = await mockRefreshBalance();
-          setTotalBalance(result.totalBalance);
-          setActivePayments(result.activePayments);
-          setPendingCount(result.pendingCount);
-          setBalanceChange(result.balanceChange);
+          const res = await refetchStats();
           setLastUpdated(new Date());
-          return result;
+          return res;
         })(),
         // 2) Refetch profile
         refetchProfile(),
@@ -442,16 +382,14 @@ const Dashboard = () => {
     }
   }, [dispatch, navigate]); // Removed authUser from deps to prevent infinite loop
 
-  // Auto-update balance every 30 seconds
+  // Auto-update: refetch stats every 30 seconds from API
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!refreshBalanceMutation.isPending) {
-        refreshBalanceMutation.mutate();
-      }
+      refetchStats();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [refreshBalanceMutation]);
+  }, [refetchStats]);
 
   // Fetch user profile from API when Dashboard mounts
 
@@ -608,7 +546,7 @@ const Dashboard = () => {
                     className="text-xs text-muted-foreground font-mono truncate max-w-[220px]"
                     title={tx.id}
                   >
-                    {tx.id}
+                    {tx.transaction_name}
                   </div>
                   <Button
                     size="sm"
@@ -669,7 +607,9 @@ const Dashboard = () => {
                         <dt className="font-semibold inline text-foreground">
                           ID:
                         </dt>{" "}
-                        <dd className="ml-2 inline">{selectedTx.id}</dd>
+                        <dd className="ml-2 inline">
+                          {selectedTx.transaction_name}
+                        </dd>
                       </div>
                       {selectedTx.transaction_id && (
                         <div>

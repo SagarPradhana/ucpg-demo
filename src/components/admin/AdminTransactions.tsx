@@ -29,7 +29,8 @@ import {
   cancelAdminTransaction,
 } from "@/service/adminservices";
 import { TimeFilter } from "@/components/ui/time-filter";
-import { useTimeFilter } from "@/hooks/useTimeFilter";
+import { useTimeFilter, dateToEpoch } from "@/hooks/useTimeFilter";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { epochToCustomLocalStringTime } from "@/Common";
 import {
@@ -134,10 +135,28 @@ const AdminTransactions: React.FC = () => {
     pageSize: 10,
   });
 
-  // Time filter using unified hook (epoch-based)
+  // Time filter using unified hook with support for custom range
   const timeFilter = useTimeFilter({ mode: "epoch", defaultValue: "Today" });
-  const from_date = timeFilter.epochRange.from_date;
-  const to_date = timeFilter.epochRange.to_date;
+  const [relativeAnchorSec, setRelativeAnchorSec] = useState<number>(() =>
+    Math.floor(Date.now() / 1000)
+  );
+  useEffect(() => {
+    if (timeFilter.mode === "relative") {
+      setRelativeAnchorSec(Math.floor(Date.now() / 1000));
+    }
+  }, [timeFilter.mode, timeFilter.value]);
+  const from_date =
+    timeFilter.mode === "custom"
+      ? dateToEpoch(timeFilter.dateFrom!)
+      : timeFilter.mode === "relative" && timeFilter.state.relativeTimeMs
+      ? relativeAnchorSec - Math.floor(timeFilter.state.relativeTimeMs / 1000)
+      : timeFilter.epochRange.from_date;
+  const to_date =
+    timeFilter.mode === "custom"
+      ? dateToEpoch(timeFilter.dateTo!) + 86399 // include end date fully
+      : timeFilter.mode === "relative"
+      ? relativeAnchorSec
+      : timeFilter.epochRange.to_date;
 
   // Cancel modal state
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -174,9 +193,12 @@ const AdminTransactions: React.FC = () => {
   }, [
     pagination.currentPage,
     pagination.pageSize,
-    localFilters,
-    timeFilter.epochRange.from_date,
-    timeFilter.epochRange.to_date,
+    localFilters.status,
+    localFilters.currency,
+    localFilters.search,
+    from_date,
+    to_date,
+    timeFilter.mode,
   ]);
 
   const {
@@ -237,6 +259,10 @@ const AdminTransactions: React.FC = () => {
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             {t("admin.transactions.filters")}
           </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Filter by text, status, currency and time. Use Custom to choose a
+            specific date range.
+          </p>
         </CardHeader>
 
         <CardContent className="space-y-5">
@@ -344,17 +370,58 @@ const AdminTransactions: React.FC = () => {
           {/* Time Filter Section */}
           <div className="border-t pt-4 space-y-3">
             <Label className="text-sm font-medium">Time Range</Label>
-            <TimeFilter
-              mode="epoch"
-              value={timeFilter.value}
-              onChange={timeFilter.handleEpochChange}
-              epochRange={timeFilter.epochRange}
-              onEpochRangeChange={() => {}}
-              label="Time Range"
-              placeholder="Select time range"
-              variant="compact"
-              showIcon={true}
-            />
+            <Tabs
+              value={timeFilter.mode}
+              onValueChange={(m) => timeFilter.switchMode(m as any)}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="epoch">Quick</TabsTrigger>
+                <TabsTrigger value="relative">Relative</TabsTrigger>
+                <TabsTrigger value="custom">Custom</TabsTrigger>
+              </TabsList>
+              <TabsContent value="epoch" className="pt-3">
+                <TimeFilter
+                  mode="epoch"
+                  value={timeFilter.value}
+                  onChange={timeFilter.handleEpochChange}
+                  epochRange={timeFilter.epochRange}
+                  onEpochRangeChange={() => {}}
+                  label="Quick ranges"
+                  placeholder="Select time range"
+                  variant="compact"
+                  showIcon={true}
+                />
+              </TabsContent>
+              <TabsContent value="relative" className="pt-3">
+                <TimeFilter
+                  mode="relative"
+                  value={timeFilter.value}
+                  onChange={timeFilter.handleRelativeChange}
+                  label="Relative window"
+                  placeholder="Select window"
+                  variant="compact"
+                  showIcon={true}
+                />
+              </TabsContent>
+              <TabsContent value="custom" className="pt-3">
+                <TimeFilter
+                  mode="custom"
+                  dateFrom={timeFilter.dateFrom}
+                  dateTo={timeFilter.dateTo}
+                  onDateFromChange={timeFilter.handleDateFromChange}
+                  onDateToChange={timeFilter.handleDateToChange}
+                  label="Custom range"
+                  variant="compact"
+                  showIcon={true}
+                />
+                {!timeFilter.isValidRange && (
+                  <div className="text-xs text-destructive mt-2">
+                    End date must be after start date.
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </CardContent>
       </Card>
@@ -362,8 +429,23 @@ const AdminTransactions: React.FC = () => {
       {/* Transactions Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t("dashboard.transactions")}</CardTitle>
+          <CardTitle className="text-base font-semibold">
+            {t("dashboard.transactions")}
+          </CardTitle>
           <div className="flex items-center gap-3">
+            {/* Refresh */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => {
+                // Force refetch by invalidating cache for current params
+                const key = ["admin-transactions", params] as const;
+                queryClient.invalidateQueries({ queryKey: key });
+              }}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
             {/* Page size selector */}
             <div className="flex items-center gap-2 text-sm">
               <Label className="text-sm">{t("common.perPage")}</Label>
@@ -371,7 +453,7 @@ const AdminTransactions: React.FC = () => {
                 value={String(pagination.pageSize)}
                 onValueChange={(v) => pagination.setPageSize(Number(v))}
               >
-                <SelectTrigger className="h-9 w-[90px]">
+                <SelectTrigger className="h-8 w-[90px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

@@ -86,6 +86,16 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 import { epochToCustomLocalStringTime } from "@/Common";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AdminUser {
   id: string;
@@ -167,6 +177,13 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewUser, setViewUser] = useState<AdminUser | null>(null);
 
+  // Confirmation dialogs state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<null | {
+    type: "toggleActive" | "delete";
+    user: AdminUser;
+  }>(null);
+
   const createUserForm = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
@@ -191,6 +208,25 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
     .toLowerCase()
     .replace(/\s+/g, "_")
     .replace(/-/g, "_");
+
+  // Self-protection helpers: prevent deactivating/deleting self
+  const currentUserId =
+    (currentUserData as any)?.id ||
+    (currentUserData as any)?.user_id ||
+    (currentUserData as any)?.userId ||
+    (currentUserData as any)?.sub ||
+    null;
+  const currentUserEmail = String(
+    (currentUserData as any)?.email || ""
+  ).toLowerCase();
+  const isSelfUser = (u: AdminUser): boolean => {
+    const uId = (u as any)?.id;
+    const uEmail = String((u as any)?.email || "").toLowerCase();
+    return (
+      (!!currentUserId && uId === currentUserId) ||
+      (!!currentUserEmail && !!uEmail && uEmail === currentUserEmail)
+    );
+  };
 
   // Compute allowed assignable roles for the current admin
   const allowedRoles: Array<{
@@ -929,13 +965,22 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                             <Button
                               size="sm"
                               variant="ghost"
+                              disabled={isSelfUser(user)}
                               onClick={() => {
-                                updateUserActiveStatus({
-                                  payLoad: {
-                                    is_active: !user?.isActive,
-                                  },
-                                  userId: user?.id,
+                                if (isSelfUser(user)) {
+                                  toast({
+                                    title: "Action not allowed",
+                                    description:
+                                      "You cannot deactivate your own account.",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                setConfirmAction({
+                                  type: "toggleActive",
+                                  user,
                                 });
+                                setConfirmOpen(true);
                               }}
                               title={
                                 user.isActive ? "Set inactive" : "Set active"
@@ -969,13 +1014,19 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
                               size="sm"
                               variant="ghost"
                               title="Delete user"
+                              disabled={isSelfUser(user)}
                               onClick={() => {
-                                updateUserActiveStatus({
-                                  payLoad: {
-                                    is_deleted: !user?.isDeleted,
-                                  },
-                                  userId: user?.id,
-                                });
+                                if (isSelfUser(user)) {
+                                  toast({
+                                    title: "Action not allowed",
+                                    description:
+                                      "You cannot delete your own account.",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                setConfirmAction({ type: "delete", user });
+                                setConfirmOpen(true);
                               }}
                             >
                               {user?.isDeleted ? (
@@ -1004,6 +1055,54 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
           />
         </CardContent>
       </Card>
+
+      {/* Confirm modal for Toggle Active/Delete */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction?.type === "delete"
+                ? "Delete admin user?"
+                : confirmAction?.user?.isActive
+                ? "Set user inactive?"
+                : "Set user active?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === "delete"
+                ? "This will mark the user as deleted. You can restore later."
+                : confirmAction?.user?.isActive
+                ? "The user will no longer be able to access the admin panel."
+                : "The user will be able to access the admin panel based on their role."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!confirmAction) return;
+                const u = confirmAction.user;
+                if (confirmAction.type === "toggleActive") {
+                  updateUserActiveStatus({
+                    payLoad: { is_active: !u.isActive },
+                    userId: u.id,
+                  });
+                } else {
+                  updateUserActiveStatus({
+                    payLoad: { is_deleted: !u.isDeleted },
+                    userId: u.id,
+                  });
+                }
+                setConfirmOpen(false);
+                setConfirmAction(null);
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

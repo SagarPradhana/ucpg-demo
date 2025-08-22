@@ -55,9 +55,11 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
       subtitle: t("roleSelection.admin.subtitle"),
       description: t("roleSelection.admin.description"),
       icon: Crown,
-      color: "bg-gradient-to-br from-orange-50 to-red-50 border-orange-200",
-      iconColor: "text-orange-600",
-      badgeColor: "bg-orange-100 text-orange-800",
+      color:
+        "bg-gradient-to-br from-orange-50 to-red-50 border-orange-200 dark:from-orange-950/30 dark:to-red-950/20 dark:border-orange-800",
+      iconColor: "text-orange-600 dark:text-orange-400",
+      badgeColor:
+        "bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300",
       route: "/admin",
       features: [
         t("roleSelection.admin.features.userManagement"),
@@ -73,9 +75,11 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
       subtitle: t("roleSelection.user.subtitle"),
       description: t("roleSelection.user.description"),
       icon: UserIcon,
-      color: "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200",
-      iconColor: "text-blue-600",
-      badgeColor: "bg-blue-100 text-blue-800",
+      color:
+        "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 dark:from-indigo-950/30 dark:to-slate-950/20 dark:border-indigo-800",
+      iconColor: "text-blue-600 dark:text-indigo-300",
+      badgeColor:
+        "bg-blue-100 text-blue-800 dark:bg-indigo-950/40 dark:text-indigo-300",
       route: "/dashboard",
       features: [
         t("roleSelection.user.features.sendPayments"),
@@ -145,9 +149,9 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
         hideCloseButton={true}
         preventOutsideClose={true}
       >
-        <DialogHeader className="text-center space-y-3 sticky top-0 z-10 bg-gradient-to-b from-background/80 to-background/60 backdrop-blur rounded-t-2xl pb-4">
+        <DialogHeader className="text-center space-y-3 sticky top-0 z-10 bg-gradient-to-b from-background/80 to-background/60 dark:from-muted/30 dark:to-background/40 backdrop-blur rounded-t-2xl pb-4">
           <div className="flex items-center justify-center gap-3">
-            <div className="bg-primary/10 p-2 rounded-lg">
+            <div className="bg-primary/10 dark:bg-primary/20 p-2 rounded-lg">
               <Coins className="h-6 w-6 text-primary" />
             </div>
             <DialogTitle className="text-3xl font-extrabold tracking-tight">
@@ -159,7 +163,7 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
           </DialogDescription>
 
           {userInfo && (
-            <div className="bg-muted/50 rounded-lg p-3 text-sm flex items-center gap-3 justify-center">
+            <div className="bg-muted/50 dark:bg-muted/30 rounded-lg p-3 text-sm flex items-center gap-3 justify-center">
               <Avatar className="h-9 w-9">
                 <AvatarFallback className="text-xs font-medium">
                   {initials}
@@ -197,11 +201,11 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
                   onClick={() => handleRoleSelect(role.id)}
                   onKeyDown={(e) => onCardKeyDown(e, role.id)}
                 >
-                  <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-white/0 via-white/20 to-white/0" />
+                  <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-white/0 via-white/20 to-white/0 dark:from-white/0 dark:via-white/5 dark:to-white/0" />
                   <CardHeader className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div
-                        className={`p-3 rounded-lg bg-white/80 ${role.iconColor}`}
+                        className={`p-3 rounded-lg bg-white/80 dark:bg-white/10 ${role.iconColor}`}
                       >
                         <Icon className="h-6 w-6" />
                       </div>
@@ -209,7 +213,10 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
                       {isSelected ? (
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <Badge variant="default" className="text-xs">
+                          <Badge
+                            variant="default"
+                            className="text-xs dark:bg-primary/20 dark:text-primary"
+                          >
                             {t("roleSelection.selected")}
                           </Badge>
                         </div>
@@ -219,7 +226,9 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
                     </div>
 
                     <div className="space-y-1">
-                      <CardTitle className="text-lg">{role.title}</CardTitle>
+                      <CardTitle className="text-lg dark:text-foreground">
+                        {role.title}
+                      </CardTitle>
                       <CardDescription className="text-sm font-medium">
                         {role.subtitle}
                       </CardDescription>
@@ -227,7 +236,7 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
                   </CardHeader>
 
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <p className="text-sm text-muted-foreground dark:text-muted-foreground/90 leading-relaxed">
                       {role.description}
                     </p>
 
@@ -238,7 +247,7 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
                       >
                         {t("roleSelection.keyFeatures")}
                       </Badge>
-                      <ul className="text-xs space-y-1 text-muted-foreground">
+                      <ul className="text-xs space-y-1 text-muted-foreground dark:text-muted-foreground/80">
                         {role.features.map((feature, index) => (
                           <li key={index} className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 bg-current rounded-full opacity-60" />
@@ -258,7 +267,7 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
             <Button
               variant="outline"
               onClick={handleCancel}
-              className="flex-1 sm:flex-none"
+              className="flex-1 sm:flex-none dark:border-muted/40 dark:hover:bg-muted/20"
               disabled={isProcessing}
             >
               {t("roleSelection.cancel")}
@@ -282,14 +291,14 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
                         }`
                       : t("roleSelection.proceed")}
                   </span>
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 dark:text-foreground" />
                 </div>
               )}
             </Button>
           </div>
 
           {/* Security Notice */}
-          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+          <div className="bg-muted/50 dark:bg-muted/30 rounded-lg p-4 space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Shield className="h-4 w-4 text-primary" />
               <span>{t("roleSelection.securityNotice")}</span>

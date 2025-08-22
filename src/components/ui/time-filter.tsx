@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar } from "lucide-react";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -10,8 +10,19 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as DatePicker } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { epochRangeForLabel, timeFilterLabels, type TimeFilterLabel, type EpochRange } from "@/utils/timeFilters";
+import {
+  epochRangeForLabel,
+  timeFilterLabels,
+  type TimeFilterLabel,
+  type EpochRange,
+} from "@/utils/timeFilters";
 
 // Time filter types
 export type TimeFilterMode = "epoch" | "relative" | "custom";
@@ -24,7 +35,7 @@ export interface RelativeTimeOption {
 export interface TimeFilterProps {
   // Mode configuration
   mode?: TimeFilterMode;
-  
+
   // Common props
   value?: string;
   onChange?: (value: string) => void;
@@ -32,21 +43,21 @@ export interface TimeFilterProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
-  
+
   // Epoch mode specific props
   epochRange?: EpochRange;
   onEpochRangeChange?: (range: EpochRange) => void;
   showEpochDebug?: boolean;
-  
+
   // Custom date range props
   dateFrom?: string;
   dateTo?: string;
   onDateFromChange?: (date: string) => void;
   onDateToChange?: (date: string) => void;
-  
+
   // Relative mode specific props
   relativeOptions?: RelativeTimeOption[];
-  
+
   // Layout props
   showIcon?: boolean;
   variant?: "default" | "compact" | "inline";
@@ -111,10 +122,15 @@ const TimeFilter: React.FC<TimeFilterProps> = ({
 
   // Render epoch mode
   const renderEpochMode = () => (
-    <div className={cn("space-y-2", orientation === "horizontal" && "flex items-end gap-4 space-y-0")}>
+    <div
+      className={cn(
+        "space-y-2",
+        orientation === "horizontal" && "flex items-end gap-4 space-y-0"
+      )}
+    >
       <div className="flex-1">
         <Label className="mb-1 block text-sm font-medium">
-          {showIcon && <Calendar className="h-4 w-4 inline mr-1" />}
+          {showIcon && <CalendarIcon className="h-4 w-4 inline mr-1" />}
           {label}
         </Label>
         <Select
@@ -122,7 +138,9 @@ const TimeFilter: React.FC<TimeFilterProps> = ({
           onValueChange={handleEpochChange}
           disabled={disabled}
         >
-          <SelectTrigger className={cn("w-full", variant === "compact" && "h-8")}>
+          <SelectTrigger
+            className={cn("w-full", variant === "compact" && "h-8")}
+          >
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>
@@ -144,10 +162,15 @@ const TimeFilter: React.FC<TimeFilterProps> = ({
 
   // Render relative mode
   const renderRelativeMode = () => (
-    <div className={cn("space-y-2", orientation === "horizontal" && "flex items-end gap-4 space-y-0")}>
+    <div
+      className={cn(
+        "space-y-2",
+        orientation === "horizontal" && "flex items-end gap-4 space-y-0"
+      )}
+    >
       <div className="flex-1">
         <Label className="mb-1 block text-sm font-medium">
-          {showIcon && <Calendar className="h-4 w-4 inline mr-1" />}
+          {showIcon && <CalendarIcon className="h-4 w-4 inline mr-1" />}
           {label}
         </Label>
         <Select
@@ -155,7 +178,9 @@ const TimeFilter: React.FC<TimeFilterProps> = ({
           onValueChange={handleRelativeChange}
           disabled={disabled}
         >
-          <SelectTrigger className={cn("w-full", variant === "compact" && "h-8")}>
+          <SelectTrigger
+            className={cn("w-full", variant === "compact" && "h-8")}
+          >
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>
@@ -172,31 +197,62 @@ const TimeFilter: React.FC<TimeFilterProps> = ({
 
   // Render custom date range mode
   const renderCustomMode = () => (
-    <div className={cn("space-y-2", orientation === "horizontal" && "flex items-end gap-4 space-y-0")}>
+    <div
+      className={cn(
+        "space-y-2",
+        orientation === "horizontal" && "flex items-end gap-4 space-y-0"
+      )}
+    >
       <div className="flex-1">
         <Label className="mb-1 block text-sm font-medium">
-          {showIcon && <Calendar className="h-4 w-4 inline mr-1" />}
-          Date From
+          {showIcon && <CalendarIcon className="h-4 w-4 inline mr-1" />}
+          Custom Range
         </Label>
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => onDateFromChange?.(e.target.value)}
-          disabled={disabled}
-          className={variant === "compact" ? "h-8" : ""}
-        />
-      </div>
-      <div className="flex-1">
-        <Label className="mb-1 block text-sm font-medium">
-          Date To
-        </Label>
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(e) => onDateToChange?.(e.target.value)}
-          disabled={disabled}
-          className={variant === "compact" ? "h-8" : ""}
-        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                variant === "compact" && "h-8",
+                !dateFrom && !dateTo && "text-muted-foreground"
+              )}
+              disabled={disabled}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateFrom && dateTo ? (
+                <span>
+                  {dateFrom} – {dateTo}
+                </span>
+              ) : (
+                <span>Select date range</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <DatePicker
+              mode="range"
+              selected={
+                {
+                  from: dateFrom ? new Date(dateFrom) : undefined,
+                  to: dateTo ? new Date(dateTo) : undefined,
+                } as any
+              }
+              onSelect={(range: any) => {
+                const from = range?.from
+                  ? range.from.toISOString().split("T")[0]
+                  : "";
+                const to = range?.to
+                  ? range.to.toISOString().split("T")[0]
+                  : from;
+                if (from) onDateFromChange?.(from);
+                if (to) onDateToChange?.(to);
+              }}
+              numberOfMonths={2}
+              disabled={disabled}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   );
@@ -215,11 +271,7 @@ const TimeFilter: React.FC<TimeFilterProps> = ({
     }
   };
 
-  return (
-    <div className={cn("time-filter", className)}>
-      {renderContent()}
-    </div>
-  );
+  return <div className={cn("time-filter", className)}>{renderContent()}</div>;
 };
 
 TimeFilter.displayName = "TimeFilter";

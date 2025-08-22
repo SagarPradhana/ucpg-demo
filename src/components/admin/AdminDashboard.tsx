@@ -54,6 +54,7 @@ import {
   getAuditLogs,
   getAdminPromoLinksActive,
   getAdminPromoLinksUsed,
+  getAdminTransactions,
 } from "@/service/adminservices";
 import { getTodayDateRange } from "@/Common";
 import { TimeFilter } from "@/components/ui/time-filter";
@@ -114,7 +115,8 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
   dashboardStats,
-  transactions,
+  // NOTE: We will ignore the incoming transactions prop and use API data instead
+  transactions: _ignoredTransactions,
   transactionChartData,
   currencyDistribution,
   currencyData,
@@ -142,22 +144,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     initialPage: 1,
     pageSize: 5, // Smaller page size for dashboard
   });
+
+  // Fetch recent transactions from admin API (dashboard view)
+  const { data: adminTxResponse, isLoading: isLoadingAdminTx } = useQuery({
+    queryKey: [
+      "admin-dashboard-transactions",
+      transactionsPagination.currentPage,
+      transactionsPagination.pageSize,
+    ],
+    queryFn: () =>
+      getAdminTransactions({
+        page: transactionsPagination.currentPage,
+        limit: transactionsPagination.pageSize,
+        order_by: "created_date",
+        order_direction: "desc",
+      } as any),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
+
+  const adminTransactions: any[] = adminTxResponse
+    ? (adminTxResponse as any)?.data ?? (adminTxResponse as any)?.items ?? []
+    : [];
+  const adminTxTotal: number = adminTxResponse
+    ? (adminTxResponse as any)?.total_count ??
+      (adminTxResponse as any)?.total ??
+      adminTransactions.length
+    : 0;
   const [userFilter, setUserFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
 
-  // Update pagination when data changes
+  // Update pagination when data changes (use API totals)
   React.useEffect(() => {
-    transactionsPagination.setTotalItems(transactions.length);
-  }, [transactions.length, transactionsPagination]);
+    transactionsPagination.setTotalItems(adminTxTotal);
+  }, [adminTxTotal, transactionsPagination]);
 
-  // Helper functions for paginated data
-  const getPaginatedTransactions = () => {
-    const startIndex =
-      (transactionsPagination.currentPage - 1) *
-      transactionsPagination.pageSize;
-    const endIndex = startIndex + transactionsPagination.pageSize;
-    return transactions.slice(startIndex, endIndex);
-  };
+  // Admin transactions rendered are already paginated by API
+  const getPaginatedTransactions = () => adminTransactions;
 
   const getPaginatedAuditLogs = () => {
     // Server returns paginated results; no client-side slicing required
@@ -376,28 +399,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Responsive Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-blue-500">
-          <CardContent className="p-4 sm:p-12 bg-gradient-to-br from-blue-50/30 to-transparent">
+          <CardContent className="p-4 sm:p-12 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-900/20 dark:to-transparent">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
                   {t("admin.dashboard.todayPayments")}
                 </p>
-                <p className="text-xl sm:text-2xl font-bold truncate text-blue-700">
+                <p className="text-xl sm:text-2xl font-bold truncate text-blue-700 dark:text-blue-300">
                   {dashboardStats.todayPayments.count}
                 </p>
-                <p className="text-xs font-medium text-blue-600/80 truncate mt-1">
+                <p className="text-xs font-medium text-blue-600/80 truncate mt-1 dark:text-blue-400/80">
                   ${dashboardStats.todayPayments.amount.toLocaleString()}
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-blue-600" />
+              <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-300" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-teal-500">
-          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-teal-50/30 to-transparent">
+          <CardContent className="p-4 sm:p-6 bg-gradient-to-br from-teal-50/30 to-transparent dark:from-teal-900/20 dark:to-transparent">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
@@ -406,7 +429,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
                   {/* Active Promo Links */}
-                  <div className="rounded-xl p-4 bg-white/70 border shadow-sm">
+                  <div className="rounded-xl p-4 bg-white/70 dark:bg-white/[0.04] border shadow-sm">
                     <div className="text-xs text-muted-foreground mb-1">
                       {t("admin.dashboard.activePromoLinks")}
                     </div>
@@ -421,7 +444,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
 
                   {/* Used Promo Links */}
-                  <div className="rounded-xl p-4 bg-white/70 border shadow-sm">
+                  <div className="rounded-xl p-4 bg-white/70 dark:bg-white/[0.04] border shadow-sm">
                     <div className="text-xs text-muted-foreground mb-1">
                       {t("admin.dashboard.usedPromoCodes")}
                     </div>
@@ -440,7 +463,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </CardContent>
         </Card>
         <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-purple-500">
-          <CardContent className="p-4 sm:p-11 bg-gradient-to-br from-purple-50/40 to-transparent">
+          <CardContent className="p-4 sm:p-11 bg-gradient-to-br from-purple-50/40 to-transparent dark:from-purple-900/20 dark:to-transparent">
             <div className="flex items-center justify-between gap-4">
               {/* Left Side: Text Info */}
               <div className="min-w-0 flex-1">
@@ -451,25 +474,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </span>
                 </p>
 
-                <p className="text-2xl sm:text-3xl font-bold text-purple-700 truncate">
+                <p className="text-2xl sm:text-3xl font-bold text-purple-700 dark:text-purple-300 truncate">
                   ${commissionIncomeDaily.toLocaleString()}
                 </p>
 
-                <p className="text-xs sm:text-sm font-medium text-purple-600 truncate mt-1">
+                <p className="text-xs sm:text-sm font-medium text-purple-600 dark:text-purple-400 truncate mt-1">
                   {t("admin.dashboard.updatedToday")}
                 </p>
               </div>
 
               {/* Right Side: Icon */}
-              <div className="h-12 w-12 rounded-2xl bg-purple-100 flex items-center justify-center shadow-inner">
-                <Percent className="h-6 w-6 text-purple-600" />
+              <div className="h-12 w-12 rounded-2xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shadow-inner">
+                <Percent className="h-6 w-6 text-purple-600 dark:text-purple-300" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-blue-500">
-          <CardContent className="p-4 sm:p-8 bg-gradient-to-br from-blue-50/30 to-transparent">
+          <CardContent className="p-4 sm:p-8 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-900/20 dark:to-transparent">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">
@@ -477,10 +500,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </p>
                 <div className="flex justify-between mb-4">
                   <div>
-                    <p className="text-sm font-medium text-green-700">
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
                       Claimed:
                     </p>
-                    <p className="text-xl font-bold text-green-700">
+                    <p className="text-xl font-bold text-green-700 dark:text-green-300">
                       $
                       {(
                         ((unclaimedFundsResponse as any)?.data?.claimed
@@ -489,10 +512,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-orange-700">
+                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
                       Unclaimed:
                     </p>
-                    <p className="text-xl font-bold text-orange-700">
+                    <p className="text-xl font-bold text-orange-700 dark:text-orange-300">
                       $
                       {(
                         ((unclaimedFundsResponse as any)?.data?.unclaimed
@@ -844,38 +867,64 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getPaginatedTransactions().map((tx) => (
-                    <TableRow key={tx.id}>
-                      <TableCell className="font-medium whitespace-nowrap">
-                        {tx.id}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {new Date(tx.date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {tx.amount} {tx.currency}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusBadge(tx.status) as any}>
-                          {tx.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        ${tx.commission.toFixed(2)}
+                  {isLoadingAdminTx ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center text-sm text-muted-foreground py-6"
+                      >
+                        Loading...
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : getPaginatedTransactions().length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center text-sm text-muted-foreground py-6"
+                      >
+                        No data available
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    getPaginatedTransactions().map((tx: any) => (
+                      <TableRow key={tx.id}>
+                        <TableCell className="font-medium whitespace-nowrap">
+                          {tx.transaction_name || tx.id}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {tx.created_date
+                            ? new Date(
+                                tx.created_date * 1000
+                              ).toLocaleDateString()
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {tx.original_amount ?? tx.amount} {tx.currency}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusBadge(tx.status) as any}>
+                            {tx.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {typeof tx.commission_amount === "number"
+                            ? `$${tx.commission_amount.toFixed(2)}`
+                            : "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
           </div>
 
-          {/* Transactions Pagination */}
-          {transactions.length > 0 && (
+          {/* Transactions Pagination (API-driven) */}
+          {adminTxTotal > 0 && (
             <CommonPagination
               currentPage={transactionsPagination.currentPage}
               totalPages={transactionsPagination.totalPages}
-              totalItems={transactions.length}
+              totalItems={adminTxTotal}
               pageSize={transactionsPagination.pageSize}
               onPageChange={transactionsPagination.setCurrentPage}
             />
