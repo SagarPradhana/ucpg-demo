@@ -252,7 +252,7 @@ const Admin = () => {
     { id: "settings", label: t("admin.settings"), icon: Settings },
     { id: "error-logs", label: t("admin.errorLogs"), icon: AlertTriangle },
     { id: "reports", label: t("admin.reports"), icon: Download },
-    { id: "revenue-ops", label: "Revenue Operations", icon: TrendingUp },
+    { id: "revenue-ops", label: t("admin.revenueOps"), icon: TrendingUp },
   ];
 
   // Filter menu items based on user permissions
@@ -712,9 +712,11 @@ const Admin = () => {
       return (
         <div className="flex flex-col items-center justify-center h-64 text-center">
           <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            {t("admin.accessDenied")}
+          </h3>
           <p className="text-muted-foreground">
-            You don't have permission to access this section.
+            {t("admin.noPermissionForSection")}
           </p>
         </div>
       );
@@ -956,11 +958,10 @@ const Admin = () => {
                         </h1>
                         <p className="text-xs sm:text-sm text-muted-foreground truncate hidden sm:block">
                           {activeSection
-                            ? `Manage your ${activeSection.replace(
-                                "-",
-                                " "
-                              )} settings`
-                            : "Determining accessible sections..."}
+                            ? t("admin.manageSection", {
+                                section: activeSection.replace("-", " "),
+                              })
+                            : t("admin.determiningAccess")}{" "}
                         </p>
                       </div>
                     </div>
@@ -986,11 +987,10 @@ const Admin = () => {
                           <div className="flex flex-col items-center justify-center h-64 text-center">
                             <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
                             <h3 className="text-lg font-semibold mb-2">
-                              No Access
+                              {t("admin.noAccess")}
                             </h3>
                             <p className="text-muted-foreground">
-                              You don't have permission to access any admin
-                              sections. Please contact your administrator.
+                              {t("admin.noAccessDesc")}
                             </p>
                           </div>
                         ) : (

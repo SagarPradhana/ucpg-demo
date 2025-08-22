@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Search, Eye, X, Loader2, RefreshCw, Edit } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import CommonPagination from "@/components/ui/common-pagination";
@@ -59,6 +60,7 @@ interface TransactionFilters {
 }
 
 const AdminTransactions: React.FC = () => {
+  const { t } = useLanguage();
   // Helper function for status badges (moved from props)
   const getStatusBadge = (
     status: string
@@ -233,7 +235,7 @@ const AdminTransactions: React.FC = () => {
       <Card className="shadow-sm border border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            Transaction Filters
+            {t("admin.transactions.filters")}
           </CardTitle>
         </CardHeader>
 
@@ -242,11 +244,13 @@ const AdminTransactions: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Search */}
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Search</Label>
+              <Label className="text-sm font-medium">
+                {t("admin.dashboard.search")}
+              </Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Transaction ID..."
+                  placeholder={t("admin.transactions.search")}
                   className="pl-8 h-9 text-sm"
                   value={localFilters.search}
                   onChange={(e) =>
@@ -261,7 +265,9 @@ const AdminTransactions: React.FC = () => {
 
             {/* Status */}
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Status</Label>
+              <Label className="text-sm font-medium">
+                {t("admin.transactions.status")}
+              </Label>
               <Select
                 value={localFilters.status}
                 onValueChange={(value) =>
@@ -272,7 +278,9 @@ const AdminTransactions: React.FC = () => {
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="all">
+                    {t("admin.transactions.allStatus")}
+                  </SelectItem>
                   <SelectItem value="sent">Sent</SelectItem>
                   <SelectItem value="received">Received</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
@@ -283,7 +291,9 @@ const AdminTransactions: React.FC = () => {
 
             {/* Currency */}
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Currency</Label>
+              <Label className="text-sm font-medium">
+                {t("admin.transactions.currency")}
+              </Label>
               <Select
                 value={localFilters.currency}
                 onValueChange={(value) =>
@@ -297,7 +307,9 @@ const AdminTransactions: React.FC = () => {
                   <SelectValue placeholder="All currencies" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All currencies</SelectItem>
+                  <SelectItem value="all">
+                    {t("admin.transactions.allCurrencies")}
+                  </SelectItem>
                   <SelectItem value="BTC">Bitcoin</SelectItem>
                   <SelectItem value="ETH">Ethereum</SelectItem>
                   <SelectItem value="USDT">USDT</SelectItem>
@@ -350,11 +362,11 @@ const AdminTransactions: React.FC = () => {
       {/* Transactions Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>All Transactions</CardTitle>
+          <CardTitle>{t("dashboard.transactions")}</CardTitle>
           <div className="flex items-center gap-3">
             {/* Page size selector */}
             <div className="flex items-center gap-2 text-sm">
-              <Label className="text-sm">Per page</Label>
+              <Label className="text-sm">{t("common.perPage")}</Label>
               <Select
                 value={String(pagination.pageSize)}
                 onValueChange={(v) => pagination.setPageSize(Number(v))}

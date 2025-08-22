@@ -68,7 +68,7 @@ export const tr = {
   "home.hero.startTrading": "Ticarete Başla",
   "home.hero.learnMore": "Daha Fazla Öğren",
   "home.hero.getStarted": "Başla",
-  
+
   "home.features.title": "Neden CryptoFlow'yu Seçmelisiniz?",
   "home.features.subtitle": "Yenilikçi kripto geçidimizle küresel ödemelerin geleceğini deneyimleyin",
   "home.features.globalAccess": "Küresel Erişim",
@@ -77,7 +77,7 @@ export const tr = {
   "home.features.anonymousSecureDesc": "Şifrelenmiş işlemler ve anonim kripto makbuzlarla tam gizlilik",
   "home.features.instantProcessing": "Anında İşleme",
   "home.features.instantProcessingDesc": "Gerçek zamanlı para birimi dönüştürme ile yıldırım hızında işlemler",
-  
+
   "home.howItWorks.title": "Nasıl Çalışır",
   "home.howItWorks.subtitle": "Sadece 3 adımda basit, güvenli ve anonim",
   "home.howItWorks.step1.title": "Para Birimini Seç",
@@ -86,11 +86,11 @@ export const tr = {
   "home.howItWorks.step2.desc": "Tercih ettiğiniz yerel ödeme yöntemini kullanarak ödemeyi tamamlayın",
   "home.howItWorks.step3.title": "Kripto Al",
   "home.howItWorks.step3.desc": "Anonim kripto parayı anında cüzdanınızda alın",
-  
+
   "home.cta.title": "Başlamaya Hazır mısınız?",
   "home.cta.subtitle": "Kripto ödeme ihtiyaçları için CryptoFlow'ya güvenen binlerce kullanıcıya katılın",
   "home.cta.startJourney": "Yolculuğunuzu Başlatın",
-  
+
   "home.footer.copyright": "© 2024 Evrensel Kripto Ödeme Geçidi. Tüm hakları saklıdır.",
   "home.features.global": "Küresel Erişim",
   "home.features.anonymous": "Anonim",
@@ -103,6 +103,7 @@ export const tr = {
   "dashboard.totalBalance": "Toplam Bakiye",
   "dashboard.fromLastMonth": "geçen aydan itibaren",
   "dashboard.activePayments": "Aktif Ödemeler",
+  "dashboard.completedPayments": "Tamamlanan Ödemeler",
   "dashboard.pendingConfirmations": "onay bekliyor",
   "dashboard.countriesServed": "Hizmet Verilen Ülkeler",
   "dashboard.globalCoverage": "Küresel kapsama",
@@ -145,7 +146,7 @@ export const tr = {
   "send.enterValidAmount": "Lütfen geçerli bir miktar girin",
   "send.error": "Hata",
 
-  // Receive Page  
+  // Receive Page
   "receive.title": "Ödeme Al",
   "receive.subtitle": "Kripto para almak için ödeme bağlantıları oluşturun",
   "receive.generatePaymentLink": "Ödeme Bağlantısı Oluştur",
@@ -180,6 +181,7 @@ export const tr = {
   "common.refreshing": "Yenileniyor...",
   "common.refreshSuccess": "Kontrol paneli verileri başarıyla yenilendi",
   "common.lastUpdated": "Son güncelleme",
+  "common.perPage": "Sayfa başına",
 
   // Transaction Status
   "transaction.completed": "Tamamlandı",
@@ -202,6 +204,8 @@ export const tr = {
   // Messages
   "message.addressCopied": "Adres kopyalandı",
   "message.addressCopiedDesc": "Cüzdan adresi panoya kopyalandı",
+  "transaction.cancelled": "İptal edildi",
+  "common.all": "Tümü",
   "message.linkCopied": "Bağlantı Kopyalandı",
   "message.linkCopiedDesc": "Tek kullanımlık ödeme bağlantısı panoya kopyalandı",
   "message.paymentCompleted": "Ödeme Tamamlandı",
@@ -263,7 +267,7 @@ export const tr = {
   "profile.userInfoFromAPI": "API'den güncel kullanıcı bilgileri",
   "profile.loadingUserData": "Kullanıcı verileri yükleniyor...",
   "profile.errorLoadingUserData": "Kullanıcı verileri yüklenirken hata",
- 
+
   "profile.updateFailed": "Güncelleme Başarısız",
   "profile.updateFailedDesc": "Profiliniz güncellenemedi. Lütfen tekrar deneyin.",
   "profile.preferences": "Tercihler",
@@ -294,7 +298,7 @@ export const tr = {
   // Support Categories
   "support.category.dashboard": "Kontrol Paneli",
   "support.category.sending": "Ödeme Gönderme",
-  "support.category.receiving": "Ödeme Alma", 
+  "support.category.receiving": "Ödeme Alma",
   "support.category.services": "Hizmetler",
   "support.category.profile": "Profil ve Ayarlar",
   "support.category.general": "Genel Yardım",
@@ -313,7 +317,7 @@ export const tr = {
   "roleSelection.admin.title": "Yönetici",
   "roleSelection.admin.subtitle": "Tam sistem erişimi ve yönetimi",
   "roleSelection.admin.description": "Admin paneline erişim, kullanıcı yönetimi, sistem ayarları ve platform analitiği",
-  "roleSelection.user.title": "Kullanıcı Paneli", 
+  "roleSelection.user.title": "Kullanıcı Paneli",
   "roleSelection.user.subtitle": "Kişisel kripto ödeme yönetimi",
   "roleSelection.user.description": "Kişisel panelinize erişim, ödeme gönderme/alma ve kripto işlemlerinizi yönetme",
   "roleSelection.selected": "Seçildi",
@@ -325,7 +329,7 @@ export const tr = {
   "roleSelection.securityText": "Oturumunuz uçtan uca şifreleme ile korunmaktadır. Admin erişimi ek güvenlik izleme ve denetim günlüğü içerir. Profil ayarlarınızdan istediğiniz zaman roller arasında geçiş yapabilirsiniz.",
   "roleSelection.admin.features": {
     "userManagement": "Kullanıcı Yönetimi",
-    "systemAnalytics": "Sistem Analitiği", 
+    "systemAnalytics": "Sistem Analitiği",
     "platformSettings": "Platform Ayarları",
     "securityControls": "Güvenlik Kontrolleri",
     "transactionMonitoring": "İşlem İzleme"
@@ -333,7 +337,7 @@ export const tr = {
   "roleSelection.user.features": {
     "sendPayments": "Ödeme Gönderme",
     "receivePayments": "Ödeme Alma",
-    "transactionHistory": "İşlem Geçmişi", 
+    "transactionHistory": "İşlem Geçmişi",
     "walletManagement": "Cüzdan Yönetimi",
     "anonymousTransactions": "Anonim İşlemler"
   },
@@ -375,7 +379,7 @@ export const tr = {
   "receive.linkBlocked": "Bu ödeme bağlantısı artık engellendi ve tekrar kullanılamaz.",
   "receive.anonymityDisclaimer": "Anonim ödemeler almak için güvenli bir bağlantı veya QR kodu oluşturun. Tüm transferler anonim olarak işlenir ve bağlantılar tek kullanımlıktır.",
   "receive.requestPayment": "Ödeme Talep Et",
-  
+
   "receive.amountToReceive": "Alınacak Tutar",
 
   // Services Section
@@ -423,34 +427,34 @@ export const tr = {
   "language.turkish": "Türkçe",
 
   // Dashboard
- 
+
   "dashboard.subtitle": "Güvenli, Özel, Anonim",
- 
+
   "dashboard.sendPayment": "Ödeme Gönder",
   "dashboard.requestPayment": "Ödeme Talep Et",
   "dashboard.servicesOpened": "Servisler sayfası başarıyla açıldı",
- 
+
   "dashboard.viewAllTransactions": "Tüm İşlemleri Görüntüle",
- 
+
   // Send Page
-  
+
   "send.convertTo": "Kripto Para Birimine Dönüştür",
   "send.refreshRate": "Kuru Yenile",
   "send.rate": "Kur",
- 
+
   "send.processingDescription": "{{amount}} {{currency}} tutarındaki {{method}} ödemeniz işleniyor...",
   "send.completed": "Ödeme Başarıyla Tamamlandı!",
- 
+
   "send.singleUseQR": "Tek Kullanımlık QR Kod",
   "send.linkWarning": "⚠️ Bu bağlantı sadece bir kez kullanılabilir ve 24 saat sonra sona erer",
   "send.qrWarning": "Ödeme erişimi için bu QR kodu tarayın. İlk kullanımdan sonra geçersiz hale gelecektir.",
-  
-  
+
+
 
   // Receive Page
- 
-  
- 
+
+
+
   "receive.deliveryMethod": "Teslimat Yöntemi",
   "receive.cryptoWallet": "Kripto Cüzdan",
   "receive.bankCard": "Banka Kartı",
@@ -462,18 +466,18 @@ export const tr = {
   "receive.bankCardHelper": "Fonlar dönüştürülüp banka kartınıza transfer edilecek",
   "receive.generateLink": "Alma Bağlantısı Oluştur",
   "receive.waitingForPayment": "Ödeme Bekleniyor...",
-  
+
   "receive.linkShareWarning": "⚠️ Ödeme almak için bu bağlantıyı paylaşın. Sadece tek kullanımlık, 24 saat sonra sona erer.",
   "receive.qrShareWarning": "Kolay ödeme erişimi için bu QR kodu paylaşın. İlk kullanımdan sonra geçersiz hale gelir.",
   "receive.generateNewLink": "Yeni Bağlantı Oluştur",
   "receive.receiveSummary": "Alma Özeti",
   "receive.destination": "Hedef",
   "receive.notSet": "Ayarlanmadı",
-  
+
   "receive.processingDescription": "Ödemeniz anonim olarak işleniyor",
- 
+
   "receive.fundsDelivered": "Fonlar anonim olarak teslim edildi",
-  
+
 
   // Payment Methods
   "payment.card": "Banka Kartı",
@@ -483,7 +487,7 @@ export const tr = {
   "payment.google": "Google Pay",
 
   // Currencies
- 
+
 
   // Security & Disclaimers
   "security.title": "Güvenlik Bildirimi",
@@ -497,7 +501,7 @@ export const tr = {
   "message.enterValidAmount": "Lütfen geçerli bir miktar girin.",
   "message.enterWalletAddress": "Lütfen cüzdan adresinizi girin.",
   "message.enterBankCard": "Lütfen banka kartı numaranızı girin.",
- 
+
   "message.linkCopiedDescription": "Tek kullanımlık ödeme bağlantısı panoya kopyalandı.",
   "message.receiveLinkCopied": "Ödeme alma bağlantısı panoya kopyalandı.",
   "message.transactionIdCopied": "İşlem ID'si Kopyalandı",
@@ -507,24 +511,24 @@ export const tr = {
   "message.paymentReceivedDescription": "Fonlar anonim olarak teslim edildi. İşlem ID'si: {{transactionId}}",
 
   // Common
- 
+
   "common.continue": "Devam Et",
- 
+
 
   "common.retry": "Tekrar Dene",
 
   "common.anonymous": "Anonim",
   "common.singleUse": "Tek kullanım",
   "common.expires24h": "24 saat sonra sona erer",
-  
+
   // Quick Actions
-  
+
   "dashboard.quickActionsDescription": "Yaygın ödeme işlemlerini gerçekleştirin",
   "dashboard.generateQR": "QR Kod Oluştur",
   "dashboard.qrGenerated": "QR kod oluşturuldu ve adres kopyalandı",
   "dashboard.sendPageOpened": "Ödeme gönderme sayfası açıldı",
   "dashboard.receivePageOpened": "Ödeme talep etme sayfası açıldı",
-  
+
   // Transaction Details
   "transaction.from": "Gönderen",
   "transaction.to": "Alan",
@@ -765,4 +769,60 @@ export const tr = {
   "admin.status.noData": "Veri bulunmuyor",
   "admin.status.confirmDelete": "Bu öğeyi silmek istediğinizden emin misiniz?",
   "admin.status.unsavedChanges": "Kaydedilmemiş değişiklikleriniz var. Çıkmak istediğinizden emin misiniz?",
+  "history.title": "İşlem Geçmişi",
+  "history.filters.searchPlaceholder": "İşlem ID'si veya Adı...",
+  "history.filters.status": "Durum",
+  "history.filters.type": "Tür",
+  "history.filters.currency": "Para Birimi",
+  "history.filters.targetCrypto": "Hedef Kripto",
+  "history.filters.time": "Zaman",
+  "history.table.id": "ID",
+  "history.table.type": "Tür",
+  "history.table.status": "Durum",
+  "history.table.original": "Orijinal",
+  "admin.revenueOps": "Gelir Operasyonları",
+  "admin.accessDenied": "Erişim Reddedildi",
+  "admin.noPermissionForSection": "Bu bölüme erişim izniniz yok.",
+  "admin.noAccess": "Erişim Yok",
+  "admin.noAccessDesc": "Herhangi bir admin bölümüne erişim izniniz yok. Lütfen yöneticinizle iletişime geçin.",
+  "admin.manageSection": "{{section}} ayarlarını yönetin",
+  "admin.determiningAccess": "Erişilebilir bölümler belirleniyor...",
+
+  "history.table.net": "Net",
+  "history.table.currency": "Para Birimi",
+  "history.table.targetCrypto": "Hedef Kripto",
+  "history.table.created": "Oluşturulma",
+  "history.table.actions": "İşlemler",
+  "history.empty": "İşlem bulunamadı.",
+  "history.details.title": "İşlem Detayları",
+  "history.details.subtitle": "Seçilen işlemin kapsamlı görünümü",
+  "history.details.amount": "Tutar",
+  "history.details.status": "Durum",
+  "history.details.typeLabel": "Tür",
+  "history.details.identifiers": "Tanımlayıcılar",
+  "history.details.original": "Orijinal:",
+  "history.details.netAmount": "Net Tutar:",
+  "history.details.commission": "Komisyon:",
+  "history.details.received": "Alınan:",
+  "history.details.payment": "Ödeme",
+  "history.details.method": "Yöntem:",
+  "history.details.thirdPartySite": "3. Taraf Site:",
+  "history.details.targetCrypto": "Hedef Kripto:",
+  "history.details.qrAndLinks": "QR ve Bağlantılar",
+  "history.details.paymentLink": "Ödeme Bağlantısı:",
+  "history.details.qrExpires": "QR Bitiş:",
+  "history.details.qrStatus": "QR Durumu:",
+  "history.details.paymentQr": "Ödeme QR",
+  "history.details.scanToOpen": "Ödeme sayfasını açmak için tarayın.",
+  "history.details.link": "Bağlantı:",
+
+  "time.today": "Bugün",
+  "time.yesterday": "Dün",
+  "time.last7": "Son 7 Gün",
+  "time.last30": "Son 30 Gün",
+  "time.thisWeek": "Bu Hafta",
+  "time.lastWeek": "Geçen Hafta",
+  "time.thisMonth": "Bu Ay",
+  "time.lastMonth": "Geçen Ay",
+  "time.selectRange": "Zaman aralığı seçin",
 };

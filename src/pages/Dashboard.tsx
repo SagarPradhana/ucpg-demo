@@ -52,7 +52,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { loginActions } from "@/store/loginReducer";
 import { singleUserDetailsActions } from "@/store/singleUserDetailsReducer";
 import { getUser } from "@/service/auth";
-import { getUserTransactionsHistory } from "@/service/adminservices";
+import {
+  getUserTransactionsHistory,
+  getUserTransactionsStats,
+} from "@/service/adminservices";
 import { epochToCustomLocalStringTime } from "@/Common";
 import {
   Dialog,
@@ -114,6 +117,38 @@ const Dashboard = () => {
     enabled: !!userIdForProfile,
   });
 
+  // Today's date range (epoch seconds)
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  const fromEpoch = Math.floor(startOfToday.getTime() / 1000);
+  const toEpoch = Math.floor(endOfToday.getTime() / 1000);
+
+  // Fetch user transactions stats for today
+  const {
+    data: statsData,
+    isLoading: isLoadingStats,
+    error: statsError,
+    refetch: refetchStats,
+  } = useQuery({
+    queryKey: ["user-transactions-stats", userIdForProfile, fromEpoch, toEpoch],
+    queryFn: () =>
+      getUserTransactionsStats({
+        user_id: userIdForProfile as string,
+        from_date: fromEpoch,
+        to_date: toEpoch,
+      }) as Promise<any>,
+    enabled: !!userIdForProfile,
+    staleTime: 60_000,
+  });
+
+  // Derived helpers
+  const derivedStats = (statsData as any)?.data?.derived;
+  const sendStats = (statsData as any)?.data?.send;
+  const receiveStats = (statsData as any)?.data?.receive;
+  const pendingTotal = (sendStats?.pending ?? 0) + (receiveStats?.pending ?? 0);
+
   // Set loading state when query starts
   useEffect(() => {
     if (isLoadingProfile && !singleUserDetails.loading) {
@@ -155,8 +190,25 @@ const Dashboard = () => {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [totalBalance, setTotalBalance] = useState(2350.0);
   const [activePayments, setActivePayments] = useState(7);
+  const [completedPayments, setCompletedPayments] = useState(0);
   const [pendingCount, setPendingCount] = useState(3);
   const [balanceChange, setBalanceChange] = useState(12.5);
+
+  // Update KPI cards when stats arrive
+  useEffect(() => {
+    if (derivedStats) {
+      if (typeof derivedStats.total_balance === "number") {
+        setTotalBalance(Number(derivedStats.total_balance));
+      }
+      if (typeof derivedStats.active_payments === "number") {
+        setActivePayments(Number(derivedStats.active_payments));
+      }
+      if (typeof derivedStats.completed_payments === "number") {
+        setCompletedPayments(Number(derivedStats.completed_payments));
+      }
+      setPendingCount(Number(pendingTotal || 0));
+    }
+  }, [derivedStats, pendingTotal]);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [expandedTransaction, setExpandedTransaction] = useState<number | null>(
     null
@@ -890,6 +942,11 @@ const Dashboard = () => {
               <CardTitle className="text-base font-bold text-green-700 dark:text-green-400">
                 {t("dashboard.totalBalance")}
               </CardTitle>
+              {isLoadingStats && (
+                <span className="text-xs text-muted-foreground">
+                  (loading...)
+                </span>
+              )}
               <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-full">
                 <Wallet className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
@@ -936,24 +993,20 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Countries Served Card */}
+          {/* Completed Payments Card (replaces Countries Served) */}
           <Card className="animate-fade-in border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <CardTitle className="text-base font-bold text-purple-700 dark:text-purple-400">
-                {t("dashboard.countriesServed")}
+                {t("dashboard.completedPayments")}
               </CardTitle>
               <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded-full">
-                <Globe className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <CheckCircle className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="text-3xl font-extrabold text-purple-600 dark:text-purple-400">
-                24
+                {completedPayments}
               </div>
-              <p className="text-sm text-muted-foreground flex items-center space-x-1">
-                <CheckCircle className="h-3 w-3" />
-                <span>{t("dashboard.globalCoverage")}</span>
-              </p>
             </CardContent>
           </Card>
         </div>

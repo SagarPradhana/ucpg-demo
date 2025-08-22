@@ -92,19 +92,19 @@ interface AdminUser {
   name: string;
   email: string;
   role:
-  | "super-admin"
-  | "transaction-admin"
-  | "provider-admin"
-  | "statistics-admin";
+    | "super-admin"
+    | "transaction-admin"
+    | "provider-admin"
+    | "statistics-admin";
   lastLogin: string;
   isActive: boolean;
   permissions: string[];
   isDeleted: boolean;
 }
 
-interface AdminUserRolesProps { }
+interface AdminUserRolesProps {}
 
-const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
+const AdminUserRoles: React.FC<AdminUserRolesProps> = ({}) => {
   const { t } = useLanguage();
   const createUserSchema = z.object({
     fullName: z.string().min(2, "Full name must be at least 2 characters"),
@@ -160,6 +160,8 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
   const [isEdit, setIsEdit] = useState<boolean>(false);
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  // Track which user is being edited to preserve their existing disallowed permissions
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
 
   // View user modal state
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -179,7 +181,9 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
   const currentUser = useSelector(
     (state: RootState) => state.singleUserDetails.userDetails
   ) as any;
-  const authUser = useSelector((state: RootState) => state.auth.userDetails) as any;
+  const authUser = useSelector(
+    (state: RootState) => state.auth.userDetails
+  ) as any;
   // Support both raw user object and API-wrapped { data: {...} }, with auth fallback
   const currentUserData =
     (currentUser && (currentUser.data || currentUser)) || authUser || null;
@@ -349,6 +353,7 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
       setIsCreateUserModalOpen(false);
       setIsEdit(false);
       setSelectedPermissions([]);
+      setEditingUser(null);
       refetch();
     },
     onError: (error: any) => {
@@ -413,11 +418,39 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
       role: selectedRole,
     };
 
+    // Safeguard: limit what non-super-admins can change
+    const isSuper = currentRole === "super_admin";
+    const currentAdminPerms = ((currentUserData as any)?.permissions ??
+      []) as string[];
+
+    let finalPermissions: string[] = selectedPermissions ?? [];
+    if (isEdit && editingUser) {
+      const targetExistingPerms = editingUser.permissions ?? [];
+      const disallowedForCurrentAdmin = targetExistingPerms.filter(
+        (p) => !currentAdminPerms.includes(p)
+      );
+
+      if (!isSuper) {
+        const allowedSelected = (selectedPermissions ?? []).filter((p) =>
+          currentAdminPerms.includes(p)
+        );
+        // Preserve target user's disallowed perms and allow only allowedSelected additions
+        finalPermissions = Array.from(
+          new Set([...allowedSelected, ...disallowedForCurrentAdmin])
+        );
+      }
+    } else if (!isSuper) {
+      // Creation path: ensure we only assign permissions we have
+      finalPermissions = (finalPermissions || []).filter((p) =>
+        currentAdminPerms.includes(p)
+      );
+    }
+
     const editPayload = {
       name: createUserForm.getValues()?.fullName,
       user_email: createUserForm.getValues()?.email,
       role: createUserForm.getValues()?.role,
-      permissions: selectedPermissions ?? [],
+      permissions: finalPermissions,
     };
 
     createUserMutation.mutate(isEdit ? editPayload : addpayload);
@@ -581,8 +614,22 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
                                             <h4 className="font-medium text-sm">
                                               {category}
                                             </h4>
-                                            {permissions?.map(
-                                              (permission: any) => (
+                                            {permissions
+                                              // UI-level filter: show only permissions current user has unless super admin
+                                              .filter((permission: any) => {
+                                                const isSuper =
+                                                  currentRole === "super_admin";
+                                                const currentUserPerms =
+                                                  (currentUserData as any)
+                                                    ?.permissions ?? [];
+                                                return (
+                                                  isSuper ||
+                                                  currentUserPerms.includes(
+                                                    permission.code
+                                                  )
+                                                );
+                                              })
+                                              .map((permission: any) => (
                                                 <div
                                                   key={permission.code}
                                                   className="flex items-center space-x-2"
@@ -597,19 +644,19 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
                                                     ) =>
                                                       checked
                                                         ? setSelectedPermissions(
-                                                          (prev) => [
-                                                            ...prev,
-                                                            permission.code,
-                                                          ]
-                                                        )
+                                                            (prev) => [
+                                                              ...prev,
+                                                              permission.code,
+                                                            ]
+                                                          )
                                                         : setSelectedPermissions(
-                                                          (prev) =>
-                                                            prev.filter(
-                                                              (p) =>
-                                                                p !==
-                                                                permission.code
-                                                            )
-                                                        )
+                                                            (prev) =>
+                                                              prev.filter(
+                                                                (p) =>
+                                                                  p !==
+                                                                  permission.code
+                                                              )
+                                                          )
                                                     }
                                                   />
                                                   <Label
@@ -619,8 +666,7 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
                                                     {permission.label}
                                                   </Label>
                                                 </div>
-                                              )
-                                            )}
+                                              ))}
                                           </div>
                                         )
                                       )}
@@ -663,8 +709,8 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
                           ? "Updating..."
                           : "Creating..."
                         : isEdit
-                          ? "Update User"
-                          : "Create User"}
+                        ? "Update User"
+                        : "Create User"}
                     </Button>
                   </div>
                 </DialogContent>
@@ -677,13 +723,19 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
                     <DialogHeader>
                       <DialogTitle className="text-2xl flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarFallback>{viewUser?.name?.[0] || "U"}</AvatarFallback>
+                          <AvatarFallback>
+                            {viewUser?.name?.[0] || "U"}
+                          </AvatarFallback>
                         </Avatar>
                         <span>{viewUser?.name}</span>
                       </DialogTitle>
                       <DialogDescription className="flex items-center gap-2">
-                        <Badge variant="outline">{prettyRole(viewUser?.role)}</Badge>
-                        <span className="text-xs text-muted-foreground">{viewUser?.email}</span>
+                        <Badge variant="outline">
+                          {prettyRole(viewUser?.role)}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {viewUser?.email}
+                        </span>
                       </DialogDescription>
                     </DialogHeader>
                   </div>
@@ -697,14 +749,22 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
                       <div>
                         <p className="text-xs text-muted-foreground">Status</p>
                         <p>
-                          <Badge variant={viewUser?.isActive ? "default" : "secondary"}>
+                          <Badge
+                            variant={
+                              viewUser?.isActive ? "default" : "secondary"
+                            }
+                          >
                             {viewUser?.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Last Login</p>
-                        <p className="font-medium">{viewUser?.lastLogin || "-"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Last Login
+                        </p>
+                        <p className="font-medium">
+                          {viewUser?.lastLogin || "-"}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Deleted</p>
@@ -720,21 +780,31 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
 
                     <div>
                       <p className="text-sm font-semibold mb-2">Permissions</p>
-                      {viewUser?.permissions && viewUser.permissions.length > 0 ? (
+                      {viewUser?.permissions &&
+                      viewUser.permissions.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           {viewUser.permissions.map((perm) => (
-                            <Badge key={perm} variant="secondary" className="text-xs">
+                            <Badge
+                              key={perm}
+                              variant="secondary"
+                              className="text-xs"
+                            >
                               {perm}
                             </Badge>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">No permissions assigned</p>
+                        <p className="text-sm text-muted-foreground">
+                          No permissions assigned
+                        </p>
                       )}
                     </div>
 
                     <div className="flex justify-end gap-2 border-t pt-4">
-                      <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsViewModalOpen(false)}
+                      >
                         Close
                       </Button>
                     </div>
@@ -834,6 +904,7 @@ const AdminUserRoles: React.FC<AdminUserRolesProps> = ({ }) => {
                               variant="ghost"
                               onClick={() => {
                                 setIsEdit(true);
+                                setEditingUser(user);
                                 createUserForm.reset({
                                   fullName: user.name,
                                   email: user.email,

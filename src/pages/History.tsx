@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/types";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -26,16 +26,14 @@ import { usePagination } from "@/hooks/usePagination";
 import {
   getUserTransactionsHistory,
   getUserTransactionsStats,
-  cancelAdminTransaction,
 } from "@/service/adminservices";
-import { toast } from "sonner";
+import { toast } from "sonner"; // still used for other toasts
 import { epochRangeForLabel } from "@/utils/timeFilters";
 import { epochToCustomLocalStringTime } from "@/Common";
 import {
   Search,
   ArrowLeft,
   Eye,
-  X,
   Send,
   Download,
   Activity,
@@ -53,19 +51,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Textarea } from "@/components/ui/textarea";
+
 import { QRCodeSVG } from "qrcode.react";
 
+import { useLanguage } from "@/contexts/LanguageContext";
 const statusBadgeColor = (status?: string) => {
   switch ((status || "").toLowerCase()) {
     case "sent":
@@ -85,6 +74,7 @@ const statusBadgeColor = (status?: string) => {
 
 const History: React.FC = () => {
   const authUser = useSelector((state: RootState) => state.auth.userDetails);
+  const { t } = useLanguage();
 
   // Pagination
   const pagination = usePagination({ initialPage: 1, pageSize: 10 });
@@ -99,7 +89,7 @@ const History: React.FC = () => {
   const [timeLabel, setTimeLabel] = useState<string>("Last 30 Days");
   const [epochRange, setEpochRange] = useState(() =>
     epochRangeForLabel("Last 30 Days")
-  );
+  ); // Time labels are shown via t() in the dropdown
 
   // Debounce search input to reduce API calls
   useEffect(() => {
@@ -144,7 +134,7 @@ const History: React.FC = () => {
         return await getUserTransactionsHistory(params as any);
       } catch (err: any) {
         // Surface a friendly toast but still let react-query manage the error state
-        toast.error(err?.message || "Failed to load history");
+        toast.error(err?.message || t("admin.status.failed"));
         throw err;
       }
     },
@@ -170,7 +160,7 @@ const History: React.FC = () => {
           to_date: epochRange.to_date,
         });
       } catch (err: any) {
-        toast.error(err?.message || "Failed to load stats");
+        toast.error(err?.message || t("admin.status.failed"));
         throw err;
       }
     },
@@ -189,60 +179,13 @@ const History: React.FC = () => {
       items.length
     : 0;
 
-  // State for details and cancel actions
+  // State for details modal
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
-
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
-  const [selectedTransactionId, setSelectedTransactionId] =
-    useState<string>("");
-
-  // Query client
-  const queryClient = useQueryClient();
-
-  // Cancel transaction mutation (reusing admin endpoint for now)
-  const cancelMutation = useMutation({
-    mutationFn: ({
-      transactionId,
-      reason,
-    }: {
-      transactionId: string;
-      reason: string;
-    }) => cancelAdminTransaction(transactionId, { reason }),
-    onSuccess: () => {
-      toast.success("Transaction cancelled successfully");
-      queryClient.invalidateQueries({
-        queryKey: ["user-transactions-history"],
-      });
-      setCancelModalOpen(false);
-      setSelectedTransactionId("");
-      setCancelReason("");
-    },
-    onError: (error: any) => {
-      toast.error(error?.message || "Failed to cancel transaction");
-    },
-  });
 
   const handleView = (tx: any) => {
     setSelectedTx(tx);
     setDetailsOpen(true);
-  };
-
-  const handleTransactionCancel = (transactionId: string) => {
-    setSelectedTransactionId(transactionId);
-    setCancelModalOpen(true);
-  };
-
-  const handleCancelConfirm = () => {
-    if (!selectedTransactionId || !cancelReason.trim()) {
-      toast.error("Please provide a reason for cancellation");
-      return;
-    }
-    cancelMutation.mutate({
-      transactionId: selectedTransactionId,
-      reason: cancelReason.trim(),
-    });
   };
 
   useEffect(() => {
@@ -271,10 +214,10 @@ const History: React.FC = () => {
               className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
               onClick={() => history.back()}
             >
-              <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              <ArrowLeft className="h-4 w-4 mr-1" /> {t("nav.back")}
             </button>
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              Transaction History
+              {t("roleSelection.user.features.transactionHistory")}
             </CardTitle>
           </div>
         </CardHeader>
@@ -292,7 +235,7 @@ const History: React.FC = () => {
                     <Send className="h-4 w-4" />
                   </div>
                   <span className="text-xs font-medium text-muted-foreground">
-                    Send
+                    {t("dashboard.send")}
                   </span>
                 </div>
                 {isStatsLoading ? (
@@ -301,7 +244,7 @@ const History: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-md border p-3 bg-background">
                       <div className="text-[11px] text-muted-foreground">
-                        Total
+                        {t("admin.reports.totalRecords")}
                       </div>
                       <div className="text-base font-semibold">
                         {(statsData as any)?.data?.send?.total ?? 0}
@@ -309,7 +252,7 @@ const History: React.FC = () => {
                     </div>
                     <div className="rounded-md border p-3 bg-background">
                       <div className="text-[11px] text-muted-foreground">
-                        Pending
+                        {t("transaction.pending")}
                       </div>
                       <div className="text-base font-semibold flex items-center gap-1">
                         <Clock className="h-4 w-4 text-amber-500" />
@@ -320,7 +263,7 @@ const History: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-[11px] text-muted-foreground">
-                            Sent
+                            {t("transaction.sent")}
                           </div>
                           <div className="text-base font-semibold flex items-center gap-1">
                             <CheckCircle className="h-4 w-4 text-green-500" />
@@ -329,7 +272,7 @@ const History: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <div className="text-[11px] text-muted-foreground">
-                            Amount
+                            {t("admin.dashboard.paymentsAmount")}
                           </div>
                           <div className="text-base font-semibold">
                             {(statsData as any)?.data?.send?.amount_total ?? 0}
@@ -362,7 +305,7 @@ const History: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-md border p-3 bg-background">
                       <div className="text-[11px] text-muted-foreground">
-                        Total
+                        {t("admin.reports.totalRecords")}
                       </div>
                       <div className="text-base font-semibold">
                         {(statsData as any)?.data?.receive?.total ?? 0}
@@ -370,7 +313,7 @@ const History: React.FC = () => {
                     </div>
                     <div className="rounded-md border p-3 bg-background">
                       <div className="text-[11px] text-muted-foreground">
-                        Pending
+                        {t("transaction.pending")}
                       </div>
                       <div className="text-base font-semibold flex items-center gap-1">
                         <Clock className="h-4 w-4 text-amber-500" />
@@ -379,7 +322,7 @@ const History: React.FC = () => {
                     </div>
                     <div className="rounded-md border p-3 bg-background">
                       <div className="text-[11px] text-muted-foreground">
-                        Cancelled
+                        {t("transaction.failed")}
                       </div>
                       <div className="text-base font-semibold flex items-center gap-1">
                         <XCircle className="h-4 w-4 text-red-500" />
@@ -388,7 +331,7 @@ const History: React.FC = () => {
                     </div>
                     <div className="rounded-md border p-3 bg-background">
                       <div className="text-[11px] text-muted-foreground">
-                        Amount
+                        {t("admin.dashboard.paymentsAmount")}
                       </div>
                       <div className="text-base font-semibold">
                         {(statsData as any)?.data?.receive?.amount_total ?? 0}
@@ -410,7 +353,7 @@ const History: React.FC = () => {
                     <Activity className="h-4 w-4" />
                   </div>
                   <span className="text-xs font-medium text-muted-foreground">
-                    Summary
+                    {t("dashboard.overview")}
                   </span>
                 </div>
                 {isStatsLoading ? (
@@ -420,7 +363,7 @@ const History: React.FC = () => {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-md border p-3 bg-background">
                         <div className="text-[11px] text-muted-foreground">
-                          Active
+                          {t("admin.transactions.active")}
                         </div>
                         <div className="text-base font-semibold">
                           {(statsData as any)?.data?.derived?.active_payments ??
@@ -429,7 +372,7 @@ const History: React.FC = () => {
                       </div>
                       <div className="rounded-md border p-3 bg-background">
                         <div className="text-[11px] text-muted-foreground">
-                          Completed
+                          {t("transaction.completed")}
                         </div>
                         <div className="text-base font-semibold">
                           {(statsData as any)?.data?.derived
@@ -459,11 +402,13 @@ const History: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Search</Label>
+              <Label className="text-sm font-medium">
+                {t("admin.dashboard.search")}
+              </Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Transaction ID or Name..."
+                  placeholder={t("admin.transactions.search")}
                   className="pl-8 h-9 text-sm"
                   value={rawSearch}
                   onChange={(e) => setRawSearch(e.target.value)}
@@ -472,46 +417,58 @@ const History: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Status</Label>
+              <Label className="text-sm font-medium">
+                {t("admin.transactions.status")}
+              </Label>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="All" />
+                  <SelectValue placeholder={t("common.all")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="sent">Sent</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="all">{t("common.all")}</SelectItem>
+                  <SelectItem value="sent">{t("transaction.sent")}</SelectItem>
+                  <SelectItem value="pending">
+                    {t("transaction.pending")}
+                  </SelectItem>
+                  <SelectItem value="cancelled">
+                    {t("transaction.cancelled")}
+                  </SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Type</Label>
+              <Label className="text-sm font-medium">
+                {t("admin.providers.type")}
+              </Label>
               <Select
                 value={transactionType}
                 onValueChange={setTransactionType}
               >
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="All" />
+                  <SelectValue placeholder={t("common.all")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="send">Send</SelectItem>
-                  <SelectItem value="receive">Receive</SelectItem>
+                  <SelectItem value="all">{t("common.all")}</SelectItem>
+                  <SelectItem value="send">{t("dashboard.send")}</SelectItem>
+                  <SelectItem value="receive">
+                    {t("dashboard.receive")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Currency</Label>
+              <Label className="text-sm font-medium">
+                {t("receive.currency")}
+              </Label>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="All" />
+                  <SelectValue placeholder={t("common.all")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="all">{t("common.all")}</SelectItem>
                   <SelectItem value="USD">USD</SelectItem>
                   <SelectItem value="EUR">EUR</SelectItem>
                   <SelectItem value="BTC">BTC</SelectItem>
@@ -522,7 +479,9 @@ const History: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Target Crypto</Label>
+              <Label className="text-sm font-medium">
+                {t("admin.reports.providerPerformance")}
+              </Label>
               <Select value={targetCrypto} onValueChange={setTargetCrypto}>
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="All" />
@@ -537,7 +496,9 @@ const History: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Time</Label>
+              <Label className="text-sm font-medium">
+                {t("history.filters.time")}
+              </Label>
               <Select
                 value={timeLabel}
                 onValueChange={(label) => {
@@ -546,21 +507,21 @@ const History: React.FC = () => {
                 }}
               >
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Select time range" />
+                  <SelectValue placeholder={t("time.selectRange")} />
                 </SelectTrigger>
                 <SelectContent>
                   {[
-                    "Today",
-                    "Yesterday",
-                    "Last 7 Days",
-                    "Last 30 Days",
-                    "This Week",
-                    "Last Week",
-                    "This Month",
-                    "Last Month",
-                  ].map((l) => (
-                    <SelectItem key={l} value={l}>
-                      {l}
+                    { key: "Today", label: t("time.today") },
+                    { key: "Yesterday", label: t("time.yesterday") },
+                    { key: "Last 7 Days", label: t("time.last7") },
+                    { key: "Last 30 Days", label: t("time.last30") },
+                    { key: "This Week", label: t("time.thisWeek") },
+                    { key: "Last Week", label: t("time.lastWeek") },
+                    { key: "This Month", label: t("time.thisMonth") },
+                    { key: "Last Month", label: t("time.lastMonth") },
+                  ].map((opt) => (
+                    <SelectItem key={opt.key} value={opt.key}>
+                      {opt.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -572,10 +533,10 @@ const History: React.FC = () => {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>All Transactions</CardTitle>
+          <CardTitle>{t("dashboard.transactions")}</CardTitle>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-sm">
-              <Label className="text-sm">Per page</Label>
+              <Label className="text-sm">{t("common.perPage")}</Label>
               <Select
                 value={String(pagination.pageSize)}
                 onValueChange={(v) => pagination.setPageSize(Number(v))}
@@ -632,10 +593,10 @@ const History: React.FC = () => {
                     <TableCell colSpan={9} className="text-center py-6">
                       <div className="flex flex-col items-center gap-2">
                         <span className="text-red-600">
-                          {(error as any)?.message || "Failed to load history."}
+                          {(error as any)?.message || t("admin.status.failed")}
                         </span>
                         <Button size="sm" onClick={() => refetch()}>
-                          Retry
+                          {t("common.refresh")}
                         </Button>
                       </div>
                     </TableCell>
@@ -685,26 +646,10 @@ const History: React.FC = () => {
                           <Button
                             size="sm"
                             variant="ghost"
-                            title="View transaction details"
+                            title={t("admin.actions.view")}
                             onClick={() => handleView(tx)}
                           >
                             <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              handleTransactionCancel(
-                                tx.id ?? tx.transaction_id
-                              )
-                            }
-                            disabled={
-                              (tx.status ?? tx.transaction_status) ===
-                                "cancelled" || cancelMutation.isPending
-                            }
-                            title="Cancel transaction"
-                          >
-                            <X className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -736,10 +681,10 @@ const History: React.FC = () => {
         <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto z-[60]">
           <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
-              Transaction Details
+              {t("admin.actions.view")}
             </DialogTitle>
             <DialogDescription>
-              Comprehensive view of the selected transaction
+              {t("support.chatbot.quickHelp")}
             </DialogDescription>
           </DialogHeader>
 
@@ -835,7 +780,7 @@ const History: React.FC = () => {
                     </div>
                     <div>
                       <dt className="font-semibold inline text-foreground">
-                        Received:
+                        {t("dashboard.receive")}d:
                       </dt>{" "}
                       <dd className="ml-2 inline">
                         {selectedTx.received_amount ?? "-"}
@@ -960,50 +905,6 @@ const History: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Cancel Transaction Confirmation Modal */}
-      <AlertDialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Transaction</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to cancel this transaction? This action
-              cannot be undone. Please provide a reason for cancellation.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <Label htmlFor="cancel-reason" className="text-sm font-medium">
-              Reason for cancellation *
-            </Label>
-            <Textarea
-              id="cancel-reason"
-              placeholder="Enter the reason for cancelling this transaction..."
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              className="mt-2"
-              rows={3}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setCancelModalOpen(false);
-                setCancelReason("");
-                setSelectedTransactionId("");
-              }}
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancelConfirm}
-              disabled={!cancelReason.trim() || cancelMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {cancelMutation.isPending ? "Cancelling..." : "Apply"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

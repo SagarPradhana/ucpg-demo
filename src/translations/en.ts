@@ -68,7 +68,7 @@ export const en = {
   "home.hero.startTrading": "Start Trading",
   "home.hero.learnMore": "Learn More",
   "home.hero.getStarted": "Get Started",
-  
+
   "home.features.title": "Why Choose CryptoFlow?",
   "home.features.subtitle": "Experience the future of global payments with our innovative crypto gateway",
   "home.features.globalAccess": "Global Access",
@@ -77,7 +77,7 @@ export const en = {
   "home.features.anonymousSecureDesc": "Complete privacy with encrypted transactions and anonymous crypto receipts",
   "home.features.instantProcessing": "Instant Processing",
   "home.features.instantProcessingDesc": "Lightning-fast transactions with real-time currency conversion",
-  
+
   "home.howItWorks.title": "How It Works",
   "home.howItWorks.subtitle": "Simple, secure, and anonymous in just 3 steps",
   "home.howItWorks.step1.title": "Choose Currency",
@@ -86,11 +86,11 @@ export const en = {
   "home.howItWorks.step2.desc": "Complete the payment using your preferred local payment method",
   "home.howItWorks.step3.title": "Receive Crypto",
   "home.howItWorks.step3.desc": "Get anonymous cryptocurrency instantly in your wallet",
-  
+
   "home.cta.title": "Ready to Get Started?",
   "home.cta.subtitle": "Join thousands of users who trust CryptoFlow for their crypto payment needs",
   "home.cta.startJourney": "Start Your Journey",
-  
+
   "home.footer.copyright": "© 2024 Universal Crypto Payment Gateway. All rights reserved.",
   "home.features.global": "Global Access",
   "home.features.anonymous": "Anonymous",
@@ -103,6 +103,7 @@ export const en = {
   "dashboard.totalBalance": "Total Balance",
   "dashboard.fromLastMonth": "from last month",
   "dashboard.activePayments": "Active Payments",
+  "dashboard.completedPayments": "Completed Payments",
   "dashboard.pendingConfirmations": "pending confirmations",
   "dashboard.countriesServed": "Countries Served",
   "dashboard.globalCoverage": "Global coverage",
@@ -197,10 +198,10 @@ export const en = {
   "send.exchangeRateDisplay": "1 {{localCurrency}} = {{rate}} {{cryptoCurrency}}",
   "send.bankCard": "Bank Card",
   "send.paymentCreated": "Payment Created",
- 
+
   "send.transactionMonitoring": "Transaction Monitoring",
   "send.transactionCompleted": "Transaction Completed Successfully",
-  
+
   "send.monitoringTransaction": "Monitoring transaction status...",
   "send.networkFeeLabel": "Network Fee",
   "send.serviceFeeLabel": "Service Fee",
@@ -212,7 +213,7 @@ export const en = {
   "send.conversionStarted": "Crypto conversion started",
   "send.fundsSent": "Funds sent to your wallet",
 
-  // Receive Page  
+  // Receive Page
   "receive.title": "Receive Payment",
   "receive.subtitle": "Generate payment links to receive cryptocurrency",
   "receive.generatePaymentLink": "Generate Payment Link",
@@ -244,6 +245,7 @@ export const en = {
   "common.previous": "Previous",
   "common.submit": "Submit",
   "common.refresh": "Refresh",
+  "common.perPage": "Per page",
   "common.refreshing": "Refreshing...",
   "common.refreshSuccess": "Dashboard data refreshed successfully",
   "common.lastUpdated": "Last updated",
@@ -255,6 +257,8 @@ export const en = {
   "transaction.processing": "Processing",
   "transaction.sent": "Sent",
   "transaction.received": "Received",
+  "transaction.cancelled": "Cancelled",
+  "common.all": "All",
 
   // Currencies
   "currency.usd": "US Dollar",
@@ -361,7 +365,7 @@ export const en = {
   // Support Categories
   "support.category.dashboard": "Dashboard",
   "support.category.sending": "Sending Payments",
-  "support.category.receiving": "Receiving Payments", 
+  "support.category.receiving": "Receiving Payments",
   "support.category.services": "Services",
   "support.category.profile": "Profile & Settings",
   "support.category.general": "General Help",
@@ -380,7 +384,7 @@ export const en = {
   "roleSelection.admin.title": "Administrator",
   "roleSelection.admin.subtitle": "Full system access and management",
   "roleSelection.admin.description": "Access admin dashboard, manage users, system settings, and platform analytics",
-  "roleSelection.user.title": "User Dashboard", 
+  "roleSelection.user.title": "User Dashboard",
   "roleSelection.user.subtitle": "Personal crypto payment management",
   "roleSelection.user.description": "Access your personal dashboard, send/receive payments, and manage your crypto transactions",
   "roleSelection.selected": "Selected",
@@ -392,7 +396,7 @@ export const en = {
   "roleSelection.securityText": "Your session is secured with end-to-end encryption. Admin access includes additional security monitoring and audit logging. You can switch between roles anytime from your profile settings.",
   "roleSelection.admin.features": {
     "userManagement": "User Management",
-    "systemAnalytics": "System Analytics", 
+    "systemAnalytics": "System Analytics",
     "platformSettings": "Platform Settings",
     "securityControls": "Security Controls",
     "transactionMonitoring": "Transaction Monitoring"
@@ -400,7 +404,7 @@ export const en = {
   "roleSelection.user.features": {
     "sendPayments": "Send Payments",
     "receivePayments": "Receive Payments",
-    "transactionHistory": "Transaction History", 
+    "transactionHistory": "Transaction History",
     "walletManagement": "Wallet Management",
     "anonymousTransactions": "Anonymous Transactions"
   },
@@ -410,7 +414,7 @@ export const en = {
   "notFound.returnHome": "Return to Home",
 
   // Send Page - Additional keys
- 
+
   "send.paymentSummary": "Payment Summary",
   "send.convertsTo": "Converts to",
   "send.transactionIdCopied": "Transaction ID Copied",
@@ -488,23 +492,70 @@ export const en = {
   "dashboard.sendPayment": "Send Payment",
   "dashboard.requestPayment": "Recieved Payment",
   "dashboard.viewAllTransactions": "View All Transactions",
+  "history.title": "Transaction History",
+  "history.filters.searchPlaceholder": "Transaction ID or Name...",
+  "history.filters.status": "Status",
+  "history.filters.type": "Type",
+  "history.filters.currency": "Currency",
+  "history.filters.targetCrypto": "Target Crypto",
+  "history.filters.time": "Time",
+  "history.table.id": "ID",
+  "history.table.type": "Type",
+  "history.table.status": "Status",
+  "history.table.original": "Original",
+  "history.table.net": "Net",
+  "history.table.currency": "Currency",
+  "history.table.targetCrypto": "Target Crypto",
+  "history.table.created": "Created",
+  "history.table.actions": "Actions",
+  "history.empty": "No transactions found.",
+  "history.details.title": "Transaction Details",
+  "history.details.subtitle": "Comprehensive view of the selected transaction",
+  "history.details.amount": "Amount",
+  "history.details.status": "Status",
+  "history.details.typeLabel": "Type",
+  "history.details.identifiers": "Identifiers",
+  "history.details.original": "Original:",
+  "history.details.netAmount": "Net Amount:",
+  "history.details.commission": "Commission:",
+  "history.details.received": "Received:",
+  "history.details.payment": "Payment",
+  "history.details.method": "Method:",
+  "history.details.thirdPartySite": "3rd Party Site:",
+  "history.details.targetCrypto": "Target Crypto:",
+  "history.details.qrAndLinks": "QR & Links",
+  "history.details.paymentLink": "Payment Link:",
+  "history.details.qrExpires": "QR Expires:",
+  "history.details.qrStatus": "QR Status:",
+  "history.details.paymentQr": "Payment QR",
+  "history.details.scanToOpen": "Scan to open payment page.",
+  "history.details.link": "Link:",
+  "time.today": "Today",
+  "time.yesterday": "Yesterday",
+  "time.last7": "Last 7 Days",
+  "time.last30": "Last 30 Days",
+  "time.thisWeek": "This Week",
+  "time.lastWeek": "Last Week",
+  "time.thisMonth": "This Month",
+  "time.lastMonth": "Last Month",
+  "time.selectRange": "Select time range",
   "dashboard.servicesOpened": "Services page opened successfully",
 
   // Send Page
-  
-  
+
+
   "send.rate": "Rate",
- 
+
   "send.processingDescription": "Processing your {{method}} payment of {{amount}} {{currency}}...",
   "send.completed": "Payment Completed Successfully!",
-  
+
   "send.singleUseQR": "Single-Use QR Code",
   "send.linkWarning": "⚠️ This link can only be used once and expires in 24 hours",
   "send.qrWarning": "Scan this QR code to access the payment. It will become invalid after first use.",
-  
+
 
   // Receive Page
- 
+
   "receive.deliveryMethod": "Delivery Method",
   "receive.cryptoWallet": "Crypto Wallet",
   "receive.bankCard": "Bank Card",
@@ -516,8 +567,8 @@ export const en = {
   "receive.bankCardHelper": "Funds will be converted and transferred to your bank card",
   "receive.generateLink": "Generate Receive Link",
   "receive.waitingForPayment": "Waiting for Payment...",
- 
-  
+
+
   "receive.linkShareWarning": "⚠️ Share this link to receive payment. Single-use only, expires in 24 hours.",
   "receive.qrShareWarning": "Share this QR code for easy payment access. It becomes invalid after first use.",
   "receive.generateNewLink": "Generate New Link",
@@ -549,7 +600,7 @@ export const en = {
   "message.enterValidAmount": "Please enter a valid amount.",
   "message.enterWalletAddress": "Please enter your wallet address.",
   "message.enterBankCard": "Please enter your bank card number.",
-  
+
   "message.linkCopiedDescription": "Single-use payment link copied to clipboard.",
   "message.receiveLinkCopied": "Receive payment link copied to clipboard.",
   "message.transactionIdCopied": "Transaction ID Copied",
@@ -559,24 +610,24 @@ export const en = {
   "message.paymentReceivedDescription": "Funds have been delivered anonymously. Transaction ID: {{transactionId}}",
 
   // Common
-  
+
   "common.continue": "Continue",
- 
-  
+
+
   "common.retry": "Retry",
- 
+
   "common.anonymous": "Anonymous",
   "common.singleUse": "Single-use",
   "common.expires24h": "Expires in 24 hours",
-  
+
   // Quick Actions
-  
+
   "dashboard.quickActionsDescription": "Perform common payment operations",
   "dashboard.generateQR": "Generate QR Code",
   "dashboard.qrGenerated": "QR code generated and address copied",
   "dashboard.sendPageOpened": "Send payment page opened",
   "dashboard.receivePageOpened": "Request payment page opened",
-  
+
   // Transaction Details
   "transaction.from": "From",
   "transaction.to": "To",
@@ -605,9 +656,9 @@ export const en = {
   "send.paymentRequired": "Payment Required",
   "send.paymentConfirmed": "Payment Confirmed",
   "send.conversionInProgress": "Conversion in Progress",
- 
+
   "send.securityNotice": "Security Notice",
- 
+
   "send.clickToViewDetails": "Click below to view payment details",
   "send.monitoringPaymentStatus": "Monitoring payment status...",
   "send.processingConversion": "Processing crypto conversion...",
@@ -634,6 +685,14 @@ export const en = {
   "admin.settings": "Settings",
   "admin.errorLogs": "Error Logs",
   "admin.reports": "Reports & Export",
+  "admin.revenueOps": "Revenue Operations",
+  "admin.accessDenied": "Access Denied",
+  "admin.noPermissionForSection": "You don't have permission to access this section.",
+  "admin.noAccess": "No Access",
+  "admin.noAccessDesc": "You don't have permission to access any admin sections. Please contact your administrator.",
+  "admin.manageSection": "Manage your {{section}} settings",
+  "admin.determiningAccess": "Determining accessible sections...",
+
 
   // Admin Dashboard
   "admin.dashboard.todayPayments": "Today's Payments",

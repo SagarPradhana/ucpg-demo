@@ -68,7 +68,7 @@ export const ru = {
   "home.hero.startTrading": "Начать торговлю",
   "home.hero.learnMore": "Подробнее",
   "home.hero.getStarted": "Начать",
-  
+
   "home.features.title": "Почему выбирают CryptoFlow?",
   "home.features.subtitle": "Ощутите будущее глобальных платежей с нашим инновационным криптошлюзом",
   "home.features.globalAccess": "Глобальный доступ",
@@ -77,7 +77,7 @@ export const ru = {
   "home.features.anonymousSecureDesc": "Полная конфиденциальность с зашифрованными транзакциями и анонимными криптопоступлениями",
   "home.features.instantProcessing": "Мгновенная обработка",
   "home.features.instantProcessingDesc": "Молниеносные транзакции с конвертацией валют в реальном времени",
-  
+
   "home.howItWorks.title": "Как это работает",
   "home.howItWorks.subtitle": "Просто, безопасно и анонимно всего за 3 шага",
   "home.howItWorks.step1.title": "Выберите валюту",
@@ -86,11 +86,11 @@ export const ru = {
   "home.howItWorks.step2.desc": "Завершите платеж, используя предпочитаемый местный способ оплаты",
   "home.howItWorks.step3.title": "Получите криптовалюту",
   "home.howItWorks.step3.desc": "Получите анонимную криптовалюту мгновенно в ваш кошелек",
-  
+
   "home.cta.title": "Готовы начать?",
   "home.cta.subtitle": "Присоединяйтесь к тысячам пользователей, которые доверяют CryptoFlow для своих криптоплатежных потребностей",
   "home.cta.startJourney": "Начните свое путешествие",
-  
+
   "home.footer.copyright": "© 2024 Универсальный Криптоплатежный Шлюз. Все права защищены.",
   "home.features.global": "Глобальный доступ",
   "home.features.anonymous": "Анонимно",
@@ -103,6 +103,7 @@ export const ru = {
   "dashboard.totalBalance": "Общий баланс",
   "dashboard.fromLastMonth": "с прошлого месяца",
   "dashboard.activePayments": "Активные платежи",
+  "dashboard.completedPayments": "Завершенные платежи",
   "dashboard.pendingConfirmations": "ожидают подтверждения",
   "dashboard.countriesServed": "Обслуживаемые страны",
   "dashboard.globalCoverage": "Глобальное покрытие",
@@ -145,7 +146,7 @@ export const ru = {
   "send.enterValidAmount": "Пожалуйста, введите корректную сумму",
   "send.error": "Ошибка",
 
-  // Receive Page  
+  // Receive Page
   "receive.title": "Получить платеж",
   "receive.subtitle": "Генерируйте ссылки на платеж для получения криптовалюты",
   "receive.generatePaymentLink": "Сгенерировать ссылку на платеж",
@@ -181,10 +182,13 @@ export const ru = {
   "common.refreshSuccess": "Данные панели управления успешно обновлены",
   "common.lastUpdated": "Последнее обновление",
 
+  "common.perPage": "На странице",
   // Transaction Status
   "transaction.completed": "Завершена",
   "transaction.pending": "В ожидании",
   "transaction.failed": "Неудачна",
+  "transaction.cancelled": "Отменена",
+  "common.all": "Все",
   "transaction.processing": "Обрабатывается",
   "transaction.sent": "Отправлена",
   "transaction.received": "Получена",
@@ -294,7 +298,7 @@ export const ru = {
   // Support Categories
   "support.category.dashboard": "Панель управления",
   "support.category.sending": "Отправка платежей",
-  "support.category.receiving": "Получение платежей", 
+  "support.category.receiving": "Получение платежей",
   "support.category.services": "Сервисы",
   "support.category.profile": "Профиль и настройки",
   "support.category.general": "Общая помощь",
@@ -313,7 +317,7 @@ export const ru = {
   "roleSelection.admin.title": "Администратор",
   "roleSelection.admin.subtitle": "Полный доступ к системе и управление",
   "roleSelection.admin.description": "Доступ к панели администратора, управление пользователями, системные настройки и аналитика платформы",
-  "roleSelection.user.title": "Пользовательская панель", 
+  "roleSelection.user.title": "Пользовательская панель",
   "roleSelection.user.subtitle": "Управление личными криптоплатежами",
   "roleSelection.user.description": "Доступ к личной панели, отправка/получение платежей и управление криптотранзакциями",
   "roleSelection.selected": "Выбрано",
@@ -325,7 +329,7 @@ export const ru = {
   "roleSelection.securityText": "Ваша сессия защищена сквозным шифрованием. Доступ администратора включает дополнительный мониторинг безопасности и журналирование аудита. Вы можете переключаться между ролями в любое время из настроек профиля.",
   "roleSelection.admin.features": {
     "userManagement": "Управление пользователями",
-    "systemAnalytics": "Системная аналитика", 
+    "systemAnalytics": "Системная аналитика",
     "platformSettings": "Настройки платформы",
     "securityControls": "Контроль безопасности",
     "transactionMonitoring": "Мониторинг транзакций"
@@ -333,7 +337,7 @@ export const ru = {
   "roleSelection.user.features": {
     "sendPayments": "Отправка платежей",
     "receivePayments": "Получение платежей",
-    "transactionHistory": "История транзакций", 
+    "transactionHistory": "История транзакций",
     "walletManagement": "Управление кошельком",
     "anonymousTransactions": "Анонимные транзакции"
   },
@@ -375,7 +379,7 @@ export const ru = {
   "receive.linkBlocked": "Эта ссылка для платежа заблокирована и не может быть использована снова.",
   "receive.anonymityDisclaimer": "Создайте безопасную ссылку или QR-код для получения анонимных платежей. Все переводы обрабатываются анонимно, а ссылки одноразовые.",
   "receive.requestPayment": "Запросить платёж",
-  
+
   "receive.amountToReceive": "Сумма к получению",
 
   // Services Section
@@ -423,34 +427,34 @@ export const ru = {
   "language.turkish": "Türkçe",
 
   // Dashboard
- 
+
   "dashboard.subtitle": "Безопасно, Конфиденциально, Анонимно",
- 
+
   "dashboard.sendPayment": "Отправить платеж",
   "dashboard.requestPayment": "Запросить платеж",
   "dashboard.servicesOpened": "Страница сервисов успешно открыта",
-  
+
   "dashboard.viewAllTransactions": "Посмотреть все транзакции",
- 
+
 
   // Send Page
- 
+
   "send.convertTo": "Конвертировать в криптовалюту",
   "send.refreshRate": "Обновить курс",
   "send.rate": "Курс",
-  
+
   "send.processingDescription": "Обрабатываем ваш {{method}} платеж на сумму {{amount}} {{currency}}...",
   "send.completed": "Платеж успешно завершен!",
-  
+
   "send.singleUseQR": "Одноразовый QR-код",
   "send.linkWarning": "⚠️ Эта ссылка может быть использована только один раз и истекает через 24 часа",
   "send.qrWarning": "Отсканируйте этот QR-код для доступа к платежу. Он станет недействительным после первого использования.",
- 
+
   // Receive Page
-  
- 
-  
-  
+
+
+
+
   "receive.deliveryMethod": "Способ доставки",
   "receive.cryptoWallet": "Криптокошелек",
   "receive.bankCard": "Банковская карта",
@@ -462,19 +466,19 @@ export const ru = {
   "receive.bankCardHelper": "Средства будут конвертированы и переведены на вашу банковскую карту",
   "receive.generateLink": "Создать ссылку для получения",
   "receive.waitingForPayment": "Ожидание платежа...",
- 
-  
+
+
   "receive.linkShareWarning": "⚠️ Поделитесь этой ссылкой для получения платежа. Только одноразовое использование, истекает через 24 часа.",
   "receive.qrShareWarning": "Поделитесь этим QR-кодом для легкого доступа к платежу. Он становится недействительным после первого использования.",
   "receive.generateNewLink": "Создать новую ссылку",
   "receive.receiveSummary": "Сводка получения",
   "receive.destination": "Назначение",
   "receive.notSet": "Не задано",
- 
+
   "receive.processingDescription": "Ваш платеж обрабатывается анонимно",
-  
+
   "receive.fundsDelivered": "Средства доставлены анонимно",
-  
+
 
   // Payment Methods
   "payment.card": "Банковская карта",
@@ -498,7 +502,7 @@ export const ru = {
   "message.enterValidAmount": "Пожалуйста, введите действительную сумму.",
   "message.enterWalletAddress": "Пожалуйста, введите адрес вашего кошелька.",
   "message.enterBankCard": "Пожалуйста, введите номер вашей банковской карты.",
-  
+
   "message.linkCopiedDescription": "Одноразовая ссылка на платеж скопирована в буфер обмена.",
   "message.receiveLinkCopied": "Ссылка для получения платежа скопирована в буфер обмена.",
   "message.transactionIdCopied": "ID транзакции скопирован",
@@ -510,21 +514,21 @@ export const ru = {
   // Common
 
   "common.continue": "Продолжить",
- 
+
   "common.retry": "Повторить",
-  
+
   "common.anonymous": "Анонимно",
   "common.singleUse": "Одноразовое использование",
   "common.expires24h": "Истекает через 24 часа",
-  
+
   // Quick Actions
- 
+
   "dashboard.quickActionsDescription": "Выполнение основных платежных операций",
   "dashboard.generateQR": "Сгенерировать QR-код",
   "dashboard.qrGenerated": "QR-код сгенерирован и адрес скопирован",
   "dashboard.sendPageOpened": "Страница отправки платежа открыта",
   "dashboard.receivePageOpened": "Страница запроса платежа открыта",
-  
+
   // Transaction Details
   "transaction.from": "От",
   "transaction.to": "Кому",
@@ -816,4 +820,61 @@ export const ru = {
   "admin.status.noData": "Нет доступных данных",
   "admin.status.confirmDelete": "Вы уверены, что хотите удалить этот элемент?",
   "admin.status.unsavedChanges": "У вас есть несохраненные изменения. Вы уверены, что хотите уйти?",
+
+  "history.title": "История транзакций",
+  "history.filters.searchPlaceholder": "ID транзакции или имя...",
+  "history.filters.status": "Статус",
+  "history.filters.type": "Тип",
+  "history.filters.currency": "Валюта",
+  "history.filters.targetCrypto": "Целевая криптовалюта",
+  "history.filters.time": "Время",
+  "history.table.id": "ID",
+  "history.table.type": "Тип",
+  "history.table.status": "Статус",
+  "admin.revenueOps": "Операции по доходам",
+  "admin.accessDenied": "Доступ запрещен",
+  "admin.noPermissionForSection": "У вас нет прав для доступа к этому разделу.",
+  "admin.noAccess": "Нет доступа",
+  "admin.noAccessDesc": "У вас нет прав доступа ни к одному из разделов админ-панели. Обратитесь к администратору.",
+  "admin.manageSection": "Управляйте настройками раздела {{section}}",
+  "admin.determiningAccess": "Определение доступных разделов...",
+
+  "history.table.original": "Оригинал",
+  "history.table.net": "Чистая сумма",
+  "history.table.currency": "Валюта",
+  "history.table.targetCrypto": "Целевая криптовалюта",
+  "history.table.created": "Создано",
+  "history.table.actions": "Действия",
+  "history.empty": "Транзакции не найдены.",
+  "history.details.title": "Детали транзакции",
+  "history.details.subtitle": "Подробный обзор выбранной транзакции",
+  "history.details.amount": "Сумма",
+  "history.details.status": "Статус",
+  "history.details.typeLabel": "Тип",
+  "history.details.identifiers": "Идентификаторы",
+  "history.details.original": "Оригинал:",
+  "history.details.netAmount": "Чистая сумма:",
+  "history.details.commission": "Комиссия:",
+  "history.details.received": "Получено:",
+  "history.details.payment": "Платеж",
+  "history.details.method": "Метод:",
+  "history.details.thirdPartySite": "Сторонний сайт:",
+  "history.details.targetCrypto": "Целевая криптовалюта:",
+  "history.details.qrAndLinks": "QR и ссылки",
+  "history.details.paymentLink": "Платежная ссылка:",
+  "history.details.qrExpires": "Срок действия QR:",
+  "history.details.qrStatus": "Статус QR:",
+  "history.details.paymentQr": "Платежный QR",
+  "history.details.scanToOpen": "Сканируйте, чтобы открыть платежную страницу.",
+  "history.details.link": "Ссылка:",
+
+  "time.today": "Сегодня",
+  "time.yesterday": "Вчера",
+  "time.last7": "Последние 7 дней",
+  "time.last30": "Последние 30 дней",
+  "time.thisWeek": "Эта неделя",
+  "time.lastWeek": "Прошлая неделя",
+  "time.thisMonth": "Этот месяц",
+  "time.lastMonth": "Прошлый месяц",
+  "time.selectRange": "Выберите период",
 };

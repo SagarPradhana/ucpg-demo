@@ -17,7 +17,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DollarSign,
-  PieChart,
+  PieChart as PieChartIcon,
   Activity,
   TrendingUp,
   QrCode,
@@ -31,6 +31,14 @@ import {
   getAdminPromoLinksUsed,
 } from "@/service/adminservices";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 // RevenueOps dashboard: time-filtered view of dashboard metrics excluding audit logs
 const RevenueOps: React.FC = () => {
@@ -145,10 +153,57 @@ const RevenueOps: React.FC = () => {
       0
   );
 
+  // Map API response (by_currency/by_crypto) to a flat list for display
   const distItems: Array<{ name: string; value: number; color?: string }> =
-    Array.isArray((currencyDistributionResp as any)?.data)
-      ? (currencyDistributionResp as any).data
-      : [];
+    (() => {
+      const resp = currencyDistributionResp as any;
+      const data = resp?.data;
+      if (!data) return [];
+
+      // Prefer by_currency; fallback to by_crypto
+      const byCurrency = Array.isArray(data.by_currency)
+        ? data.by_currency
+        : [];
+      const byCrypto = Array.isArray(data.by_crypto) ? data.by_crypto : [];
+
+      const items = (byCurrency.length > 0 ? byCurrency : byCrypto).map(
+        (it: any, index: number) => ({
+          name: it.currency ?? it.crypto,
+          value:
+            typeof it.total_amount === "number"
+              ? it.total_amount
+              : it.count ?? 0,
+          color: getCurrencyColor(it.currency ?? it.crypto, index),
+        })
+      );
+
+      return items;
+    })();
+
+  // Color mapping similar to Admin page (use function declaration for hoisting)
+  function getCurrencyColor(currency: string, index: number): string {
+    const colorMap: Record<string, string> = {
+      BTC: "#F7931A",
+      ETH: "#627EEA",
+      USDT: "#26A17B",
+      USD: "#4CAF50",
+      EUR: "#2196F3",
+      GBP: "#9C27B0",
+    };
+    const fallbackColors = [
+      "#8884d8",
+      "#83a6ed",
+      "#8dd1e1",
+      "#82ca9d",
+      "#a4de6c",
+      "#d0ed57",
+      "#ffc658",
+      "#ff8042",
+      "#ff6361",
+      "#bc5090",
+    ];
+    return colorMap[currency] || fallbackColors[index % fallbackColors.length];
+  }
 
   const claimed = safeNumber(
     (fundsResp as any)?.data?.claimed ?? (fundsResp as any)?.claimed ?? 0
@@ -277,12 +332,41 @@ const RevenueOps: React.FC = () => {
                         {(() => {
                           const d: any = promoLinksActive as any;
                           if (!d) return 0;
-                          const v = (d as any).data;
-                          if (typeof v === "number") return v;
+                          const num = (x: any) => {
+                            if (typeof x === "number") return x;
+                            if (typeof x === "string") {
+                              const n = parseInt(x, 10);
+                              return Number.isNaN(n) ? 0 : n;
+                            }
+                            return 0;
+                          };
+                          const v: any = (d as any)?.data ?? d;
+                          if (typeof v === "number" || typeof v === "string")
+                            return num(v);
                           if (Array.isArray(v)) return v.length;
-                          if (v && typeof v?.count === "number") return v.count;
-                          if (typeof (d as any)?.count === "number")
-                            return (d as any).count;
+                          if (
+                            v &&
+                            (typeof v?.count === "number" ||
+                              typeof v?.count === "string")
+                          )
+                            return num(v.count);
+                          if (
+                            v &&
+                            (typeof v?.active === "number" ||
+                              typeof v?.active === "string")
+                          )
+                            return num(v.active);
+                          if (
+                            v &&
+                            (typeof v?.active_links === "number" ||
+                              typeof v?.active_links === "string")
+                          )
+                            return num(v.active_links);
+                          if (
+                            typeof (d as any)?.count === "number" ||
+                            typeof (d as any)?.count === "string"
+                          )
+                            return num((d as any).count);
                           return 0;
                         })()}
                       </p>
@@ -295,19 +379,48 @@ const RevenueOps: React.FC = () => {
                   {/* Used Promo Links */}
                   <div className="rounded-xl p-4 bg-white/70 border shadow-sm">
                     <div className="text-xs text-muted-foreground mb-1">
-                      Used Promo Codes
+                      Used Promo Links
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-2xl sm:text-3xl font-bold text-amber-700">
                         {(() => {
                           const d: any = promoLinksUsed as any;
                           if (!d) return 0;
-                          const v = (d as any).data;
-                          if (typeof v === "number") return v;
+                          const num = (x: any) => {
+                            if (typeof x === "number") return x;
+                            if (typeof x === "string") {
+                              const n = parseInt(x, 10);
+                              return Number.isNaN(n) ? 0 : n;
+                            }
+                            return 0;
+                          };
+                          const v: any = (d as any)?.data ?? d;
+                          if (typeof v === "number" || typeof v === "string")
+                            return num(v);
                           if (Array.isArray(v)) return v.length;
-                          if (v && typeof v?.count === "number") return v.count;
-                          if (typeof (d as any)?.count === "number")
-                            return (d as any).count;
+                          if (
+                            v &&
+                            (typeof v?.count === "number" ||
+                              typeof v?.count === "string")
+                          )
+                            return num(v.count);
+                          if (
+                            v &&
+                            (typeof v?.used === "number" ||
+                              typeof v?.used === "string")
+                          )
+                            return num(v.used);
+                          if (
+                            v &&
+                            (typeof v?.used_links === "number" ||
+                              typeof v?.used_links === "string")
+                          )
+                            return num(v.used_links);
+                          if (
+                            typeof (d as any)?.count === "number" ||
+                            typeof (d as any)?.count === "string"
+                          )
+                            return num((d as any).count);
                           return 0;
                         })()}
                       </p>
@@ -326,23 +439,73 @@ const RevenueOps: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5" /> Currency Distribution
+              <PieChartIcon className="h-5 w-5" /> Currency Distribution
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isDistLoading ? (
-              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-64 w-full" />
             ) : distItems.length === 0 ? (
               <div className="text-sm text-muted-foreground">
                 No data for selected range.
               </div>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {distItems.map((d, i) => (
-                  <Badge key={`${d.name}-${i}`} variant="outline">
-                    {d.name}: {d.value}
-                  </Badge>
-                ))}
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={distItems}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius="70%"
+                      innerRadius="45%"
+                      dataKey="value"
+                      paddingAngle={3}
+                      cornerRadius={6}
+                      animationBegin={0}
+                      animationDuration={1200}
+                      animationEasing="ease-out"
+                    >
+                      {distItems.map((entry, index) => (
+                        <Cell
+                          key={`dist-cell-${index}`}
+                          fill={
+                            entry.color || getCurrencyColor(entry.name, index)
+                          }
+                          stroke="#fff"
+                          strokeWidth={2}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [
+                        String(value),
+                        name as string,
+                      ]}
+                      contentStyle={{
+                        borderRadius: "8px",
+                        backgroundColor: "rgba(255, 255, 255, 0.98)",
+                        boxShadow:
+                          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                        border: "none",
+                        padding: "8px 12px",
+                        fontSize: "13px",
+                      }}
+                    />
+                    <Legend
+                      layout="horizontal"
+                      verticalAlign="bottom"
+                      align="center"
+                      iconSize={12}
+                      iconType="circle"
+                      wrapperStyle={{
+                        fontSize: "12px",
+                        paddingTop: "15px",
+                        fontWeight: 500,
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             )}
           </CardContent>
