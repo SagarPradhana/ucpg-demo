@@ -20,7 +20,7 @@ import {
   PieChart as PieChartIcon,
   Activity,
   TrendingUp,
-  QrCode,
+  AlertCircle,
 } from "lucide-react";
 import {
   getAdminTransactions,
@@ -39,21 +39,22 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { EnhancedKPICard } from "./revenue-ops/EnhancedKPICard";
+import { PromoMetrics } from "./revenue-ops/PromoMetrics";
 
-// RevenueOps dashboard: time-filtered view of dashboard metrics excluding audit logs
+// RevenueOps dashboard: Enhanced UI with improved data visualization and user experience
 const RevenueOps: React.FC = () => {
-  // Use the same epoch-based presets as Reports (e.g., Today, Last 7 Days)
   const timeFilter = useTimeFilter({ mode: "epoch", defaultValue: "Today" });
-
-  // Compute epoch seconds for API from selected preset label
   const from_date = timeFilter.epochRange.from_date;
   const to_date = timeFilter.epochRange.to_date;
-
-  // Pagination for transactions list
   const txPagination = usePagination({ initialPage: 1, pageSize: 10 });
 
   // Queries
-  const { data: txResp, isLoading: isTxLoading } = useQuery({
+  const {
+    data: txResp,
+    isLoading: isTxLoading,
+    refetch: refetchTx,
+  } = useQuery({
     queryKey: [
       "revops-transactions",
       from_date,
@@ -72,45 +73,54 @@ const RevenueOps: React.FC = () => {
     staleTime: 60000,
   });
 
-  const { data: commissionIncomeResp, isLoading: isCommissionLoading } =
-    useQuery({
-      queryKey: ["revops-commission-income", from_date, to_date],
-      queryFn: () => getAdminCommissionIncome({ from_date, to_date }),
-      gcTime: 60000,
-      staleTime: 60000,
-    });
+  const {
+    data: commissionIncomeResp,
+    isLoading: isCommissionLoading,
+    refetch: refetchCommission,
+  } = useQuery({
+    queryKey: ["revops-commission-income", from_date, to_date],
+    queryFn: () => getAdminCommissionIncome({ from_date, to_date }),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
 
-  const { data: currencyDistributionResp, isLoading: isDistLoading } = useQuery(
-    {
-      queryKey: ["revops-currency-distribution", from_date, to_date],
-      queryFn: () => getAdminCurrencyDistribution({ from_date, to_date }),
-      gcTime: 60000,
-      staleTime: 60000,
-    }
-  );
+  const {
+    data: currencyDistributionResp,
+    isLoading: isDistLoading,
+    refetch: refetchDistribution,
+  } = useQuery({
+    queryKey: ["revops-currency-distribution", from_date, to_date],
+    queryFn: () => getAdminCurrencyDistribution({ from_date, to_date }),
+    gcTime: 60000,
+    staleTime: 60000,
+  });
 
-  const { data: fundsResp, isLoading: isFundsLoading } = useQuery({
+  const {
+    data: fundsResp,
+    isLoading: isFundsLoading,
+    refetch: refetchFunds,
+  } = useQuery({
     queryKey: ["revops-funds", from_date, to_date],
     queryFn: () => getAdminUnclaimedFunds({ from_date, to_date }),
     gcTime: 60000,
     staleTime: 60000,
   });
 
-  const { data: promoLinksActive } = useQuery({
+  const { data: promoLinksActive, refetch: refetchPromoActive } = useQuery({
     queryKey: ["revops-promo-links-active", from_date, to_date],
     queryFn: () => getAdminPromoLinksActive({ from_date, to_date }),
     gcTime: 60000,
     staleTime: 60000,
   });
 
-  const { data: promoLinksUsed } = useQuery({
+  const { data: promoLinksUsed, refetch: refetchPromoUsed } = useQuery({
     queryKey: ["revops-promo-links-used", from_date, to_date],
     queryFn: () => getAdminPromoLinksUsed({ from_date, to_date }),
     gcTime: 60000,
     staleTime: 60000,
   });
 
-  // Derive totals and lists
+  // Data processing
   const txItems: any[] = Array.isArray((txResp as any)?.data)
     ? (txResp as any).data
     : Array.isArray(txResp)
@@ -124,7 +134,6 @@ const RevenueOps: React.FC = () => {
     }
   }, [txTotal, txPagination]);
 
-  // Helper function to safely extract numeric values
   const safeNumber = (value: any): number => {
     if (typeof value === "number") return value;
     if (typeof value === "string") {
@@ -134,33 +143,26 @@ const RevenueOps: React.FC = () => {
     return 0;
   };
 
-  // Debug logging to understand API response structure
-  React.useEffect(() => {
-    if (commissionIncomeResp) {
-      console.log("Commission Income Response:", commissionIncomeResp);
-    }
-    if (fundsResp) {
-      console.log("Funds Response:", fundsResp);
-    }
-    if (currencyDistributionResp) {
-      console.log("Currency Distribution Response:", currencyDistributionResp);
-    }
-  }, [commissionIncomeResp, fundsResp, currencyDistributionResp]);
-
   const commissionTotal = safeNumber(
     (commissionIncomeResp as any)?.data?.total ??
       (commissionIncomeResp as any)?.total ??
       0
   );
 
-  // Map API response (by_currency/by_crypto) to a flat list for display
+  const claimed = safeNumber(
+    (fundsResp as any)?.data?.claimed ?? (fundsResp as any)?.claimed ?? 0
+  );
+  const unclaimed = safeNumber(
+    (fundsResp as any)?.data?.unclaimed ?? (fundsResp as any)?.unclaimed ?? 0
+  );
+
+  // Currency distribution processing
   const distItems: Array<{ name: string; value: number; color?: string }> =
     (() => {
       const resp = currencyDistributionResp as any;
       const data = resp?.data;
       if (!data) return [];
 
-      // Prefer by_currency; fallback to by_crypto
       const byCurrency = Array.isArray(data.by_currency)
         ? data.by_currency
         : [];
@@ -180,7 +182,6 @@ const RevenueOps: React.FC = () => {
       return items;
     })();
 
-  // Color mapping similar to Admin page (use function declaration for hoisting)
   function getCurrencyColor(currency: string, index: number): string {
     const colorMap: Record<string, string> = {
       BTC: "#F7931A",
@@ -205,327 +206,381 @@ const RevenueOps: React.FC = () => {
     return colorMap[currency] || fallbackColors[index % fallbackColors.length];
   }
 
-  const claimed = safeNumber(
-    (fundsResp as any)?.data?.claimed ?? (fundsResp as any)?.claimed ?? 0
-  );
-  const unclaimed = safeNumber(
-    (fundsResp as any)?.data?.unclaimed ?? (fundsResp as any)?.unclaimed ?? 0
-  );
+  // Helper function to get transaction type badge variant
+  const getTransactionTypeBadgeVariant = (type: string) => {
+    switch (type?.toLowerCase()) {
+      case "deposit":
+        return "default";
+      case "withdrawal":
+        return "secondary";
+      case "transfer":
+        return "outline";
+      case "commission":
+        return "default";
+      default:
+        return "outline";
+    }
+  };
+
+  // Helper function to get payment method badge variant
+  const getPaymentMethodBadgeVariant = (method: string) => {
+    switch (method?.toLowerCase()) {
+      case "crypto":
+      case "bitcoin":
+      case "ethereum":
+        return "default";
+      case "bank_transfer":
+      case "wire":
+        return "secondary";
+      case "card":
+      case "credit_card":
+      case "debit_card":
+        return "outline";
+      default:
+        return "outline";
+    }
+  };
 
   return (
     <PermissionGuard
       section="revenue-ops"
       fallback={
-        <div className="text-sm text-muted-foreground">Access denied</div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-3">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+            <div className="text-lg font-medium text-muted-foreground">
+              Access Denied
+            </div>
+            <div className="text-sm text-muted-foreground">
+              You don't have permission to view revenue operations.
+            </div>
+          </div>
+        </div>
       }
       showFallback
     >
-      <div className="space-y-6">
-        {/* Header + Time Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h2 className="text-xl font-semibold">Revenue Operations</h2>
-          <div className="w-full sm:w-auto">
-            <TimeFilter
-              mode="epoch"
-              value={timeFilter.value}
-              onChange={timeFilter.handleEpochChange}
-              epochRange={timeFilter.epochRange}
-              onEpochRangeChange={() => {
-                /* epochRange is derived from label via hook */
-              }}
-              label="Time Range"
-              placeholder="Select time range"
-              variant="compact"
-              showIcon={true}
-            />
+      <div className="space-y-8 p-1">
+        {/* Enhanced Header */}
+        <div className="space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                Revenue Operations
+              </h1>
+              <p className="text-muted-foreground">
+                Monitor and analyze your revenue metrics, transactions, and
+                promotional campaigns
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <TimeFilter
+                mode="epoch"
+                value={timeFilter.value}
+                onChange={timeFilter.handleEpochChange}
+                epochRange={timeFilter.epochRange}
+                onEpochRangeChange={() => {}}
+                label="Time Range"
+                placeholder="Select time range"
+                variant="compact"
+                showIcon={true}
+              />
+            </div>
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-l-4 border-l-blue-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Total Transactions
-                  </p>
-                  <p className="text-2xl font-bold">{txTotal}</p>
-                </div>
-                <Activity className="h-8 w-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Enhanced KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+          <EnhancedKPICard
+            title="Total Transactions"
+            value={txTotal}
+            icon={Activity}
+            color="blue"
+            isLoading={isTxLoading}
+            subtitle="All time transactions"
+          />
 
-          <Card className="border-l-4 border-l-green-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Commission Income
-                  </p>
-                  <p className="text-2xl font-bold">
-                    $
-                    {typeof commissionTotal === "number"
-                      ? commissionTotal.toLocaleString()
-                      : commissionTotal}
-                  </p>
-                </div>
-                <DollarSign className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
+          <EnhancedKPICard
+            title="Commission Income"
+            value={`$${
+              typeof commissionTotal === "number"
+                ? commissionTotal.toLocaleString()
+                : commissionTotal
+            }`}
+            icon={DollarSign}
+            color="green"
+            isLoading={isCommissionLoading}
+            subtitle="Total earnings"
+          />
 
-          <Card className="border-l-4 border-l-purple-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Claimed Funds</p>
-                  <p className="text-2xl font-bold">
-                    $
-                    {typeof claimed === "number"
-                      ? claimed.toLocaleString()
-                      : claimed}
-                  </p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
+          <EnhancedKPICard
+            title="Claimed Funds"
+            value={`$${
+              typeof claimed === "number" ? claimed.toLocaleString() : claimed
+            }`}
+            icon={TrendingUp}
+            color="purple"
+            isLoading={isFundsLoading}
+            subtitle="Successfully processed"
+          />
 
-          <Card className="border-l-4 border-l-orange-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Unclaimed Funds
-                  </p>
-                  <p className="text-2xl font-bold">
-                    $
-                    {typeof unclaimed === "number"
-                      ? unclaimed.toLocaleString()
-                      : unclaimed}
-                  </p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
+          <EnhancedKPICard
+            title="Unclaimed Funds"
+            value={`$${
+              typeof unclaimed === "number"
+                ? unclaimed.toLocaleString()
+                : unclaimed
+            }`}
+            icon={TrendingUp}
+            color="orange"
+            isLoading={isFundsLoading}
+            subtitle="Pending claims"
+          />
         </div>
 
-        {/* Promo Codes (Active/Used) */}
-        <Card className="border-l-4 border-l-teal-500">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  Promo Codes
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-                  {/* Active Promo Links */}
-                  <div className="rounded-xl p-4 bg-white/70 border shadow-sm">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      Active Promo Links
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-2xl sm:text-3xl font-bold text-teal-700">
-                        {(() => {
-                          const d: any = promoLinksActive as any;
-                          if (!d) return 0;
-                          const num = (x: any) => {
-                            if (typeof x === "number") return x;
-                            if (typeof x === "string") {
-                              const n = parseInt(x, 10);
-                              return Number.isNaN(n) ? 0 : n;
-                            }
-                            return 0;
-                          };
-                          const v: any = (d as any)?.data ?? d;
-                          if (typeof v === "number" || typeof v === "string")
-                            return num(v);
-                          if (Array.isArray(v)) return v.length;
-                          if (
-                            v &&
-                            (typeof v?.count === "number" ||
-                              typeof v?.count === "string")
-                          )
-                            return num(v.count);
-                          if (
-                            v &&
-                            (typeof v?.active === "number" ||
-                              typeof v?.active === "string")
-                          )
-                            return num(v.active);
-                          if (
-                            v &&
-                            (typeof v?.active_links === "number" ||
-                              typeof v?.active_links === "string")
-                          )
-                            return num(v.active_links);
-                          if (
-                            typeof (d as any)?.count === "number" ||
-                            typeof (d as any)?.count === "string"
-                          )
-                            return num((d as any).count);
-                          return 0;
-                        })()}
-                      </p>
-                      <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
-                        <QrCode className="h-5 w-5 text-teal-700" />
+        {/* Enhanced Promo Metrics */}
+        <PromoMetrics
+          activeLinks={promoLinksActive}
+          usedLinks={promoLinksUsed}
+          isLoading={false}
+        />
+
+        {/* Charts and Tables Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Currency Distribution - Takes 2 columns on xl screens */}
+          <div className="xl:col-span-2">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <PieChartIcon className="h-5 w-5 text-indigo-600" />
+                  Currency Distribution
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isDistLoading ? (
+                  <Skeleton className="h-80 w-full" />
+                ) : distItems.length === 0 ? (
+                  <div className="flex items-center justify-center h-80 text-center">
+                    <div className="space-y-3">
+                      <PieChartIcon className="h-12 w-12 text-muted-foreground mx-auto" />
+                      <div className="text-sm text-muted-foreground">
+                        No data available for the selected time range
                       </div>
                     </div>
                   </div>
+                ) : (
+                  <div className="h-80 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={distItems}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius="75%"
+                          innerRadius="45%"
+                          dataKey="value"
+                          paddingAngle={2}
+                          cornerRadius={8}
+                          animationBegin={0}
+                          animationDuration={1000}
+                          animationEasing="ease-out"
+                        >
+                          {distItems.map((entry, index) => (
+                            <Cell
+                              key={`dist-cell-${index}`}
+                              fill={
+                                entry.color ||
+                                getCurrencyColor(entry.name, index)
+                              }
+                              stroke="#fff"
+                              strokeWidth={3}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value, name) => [
+                            typeof value === "number"
+                              ? value.toLocaleString()
+                              : String(value),
+                            name as string,
+                          ]}
+                          contentStyle={{
+                            borderRadius: "12px",
+                            backgroundColor: "rgba(255, 255, 255, 0.98)",
+                            boxShadow:
+                              "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                            border: "none",
+                            padding: "12px 16px",
+                            fontSize: "14px",
+                          }}
+                        />
+                        <Legend
+                          layout="horizontal"
+                          verticalAlign="bottom"
+                          align="center"
+                          iconSize={14}
+                          iconType="circle"
+                          wrapperStyle={{
+                            fontSize: "13px",
+                            paddingTop: "20px",
+                            fontWeight: 500,
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-                  {/* Used Promo Links */}
-                  <div className="rounded-xl p-4 bg-white/70 border shadow-sm">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      Used Promo Links
+          {/* Summary Stats - Takes 1 column */}
+          <div className="space-y-6">
+            {/* Commission Income Detail */}
+            <Card className="border-l-4 border-l-green-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-green-600" />
+                  Commission Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isCommissionLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-8 w-32" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="text-3xl font-bold text-green-700">
+                      $
+                      {typeof commissionTotal === "number"
+                        ? commissionTotal.toLocaleString()
+                        : commissionTotal}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-2xl sm:text-3xl font-bold text-amber-700">
-                        {(() => {
-                          const d: any = promoLinksUsed as any;
-                          if (!d) return 0;
-                          const num = (x: any) => {
-                            if (typeof x === "number") return x;
-                            if (typeof x === "string") {
-                              const n = parseInt(x, 10);
-                              return Number.isNaN(n) ? 0 : n;
-                            }
-                            return 0;
-                          };
-                          const v: any = (d as any)?.data ?? d;
-                          if (typeof v === "number" || typeof v === "string")
-                            return num(v);
-                          if (Array.isArray(v)) return v.length;
-                          if (
-                            v &&
-                            (typeof v?.count === "number" ||
-                              typeof v?.count === "string")
-                          )
-                            return num(v.count);
-                          if (
-                            v &&
-                            (typeof v?.used === "number" ||
-                              typeof v?.used === "string")
-                          )
-                            return num(v.used);
-                          if (
-                            v &&
-                            (typeof v?.used_links === "number" ||
-                              typeof v?.used_links === "string")
-                          )
-                            return num(v.used_links);
-                          if (
-                            typeof (d as any)?.count === "number" ||
-                            typeof (d as any)?.count === "string"
-                          )
-                            return num((d as any).count);
-                          return 0;
-                        })()}
-                      </p>
-                      <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                        <QrCode className="h-5 w-5 text-amber-700" />
+                    <div className="text-sm text-muted-foreground">
+                      Total commission earned in selected period
+                    </div>
+                    <div className="pt-2 border-t">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Average per day:
+                        </span>
+                        <span className="font-medium">
+                          ${Math.round(commissionTotal / 7).toLocaleString()}
+                        </span>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Currency Distribution */}
-        <Card>
+            {/* Funds Breakdown */}
+            <Card className="border-l-4 border-l-purple-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-purple-600" />
+                  Funds Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isFundsLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-6 w-full" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div>
+                        <div className="text-sm font-medium text-green-800">
+                          Claimed
+                        </div>
+                        <div className="text-xs text-green-600">
+                          Successfully processed
+                        </div>
+                      </div>
+                      <div className="text-xl font-bold text-green-700">
+                        $
+                        {typeof claimed === "number"
+                          ? claimed.toLocaleString()
+                          : claimed}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <div>
+                        <div className="text-sm font-medium text-orange-800">
+                          Unclaimed
+                        </div>
+                        <div className="text-xs text-orange-600">
+                          Pending processing
+                        </div>
+                      </div>
+                      <div className="text-xl font-bold text-orange-700">
+                        $
+                        {typeof unclaimed === "number"
+                          ? unclaimed.toLocaleString()
+                          : unclaimed}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Total funds:
+                        </span>
+                        <span className="font-medium">
+                          ${(claimed + unclaimed).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm mt-1">
+                        <span className="text-muted-foreground">
+                          Claim rate:
+                        </span>
+                        <span className="font-medium">
+                          {claimed + unclaimed > 0
+                            ? `${(
+                                (claimed / (claimed + unclaimed)) *
+                                100
+                              ).toFixed(1)}%`
+                            : "0%"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Enhanced Transactions Table */}
+        <Card className="border-l-4 border-l-blue-500">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PieChartIcon className="h-5 w-5" /> Currency Distribution
+              <Activity className="h-5 w-5 text-blue-600" />
+              Recent Transactions
             </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isDistLoading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : distItems.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                No data for selected range.
-              </div>
-            ) : (
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={distItems}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius="70%"
-                      innerRadius="45%"
-                      dataKey="value"
-                      paddingAngle={3}
-                      cornerRadius={6}
-                      animationBegin={0}
-                      animationDuration={1200}
-                      animationEasing="ease-out"
-                    >
-                      {distItems.map((entry, index) => (
-                        <Cell
-                          key={`dist-cell-${index}`}
-                          fill={
-                            entry.color || getCurrencyColor(entry.name, index)
-                          }
-                          stroke="#fff"
-                          strokeWidth={2}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [
-                        String(value),
-                        name as string,
-                      ]}
-                      contentStyle={{
-                        borderRadius: "8px",
-                        backgroundColor: "rgba(255, 255, 255, 0.98)",
-                        boxShadow:
-                          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-                        border: "none",
-                        padding: "8px 12px",
-                        fontSize: "13px",
-                      }}
-                    />
-                    <Legend
-                      layout="horizontal"
-                      verticalAlign="bottom"
-                      align="center"
-                      iconSize={12}
-                      iconType="circle"
-                      wrapperStyle={{
-                        fontSize: "12px",
-                        paddingTop: "15px",
-                        fontWeight: 500,
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Transactions Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Transactions</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Currency</TableHead>
-                    <TableHead>Status</TableHead>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">
+                      Transaction ID
+                    </TableHead>
+                    <TableHead className="font-semibold">Date & Time</TableHead>
+                    <TableHead className="font-semibold">Amount</TableHead>
+                    <TableHead className="font-semibold">Currency</TableHead>
+                    <TableHead className="font-semibold">
+                      Transaction Type
+                    </TableHead>
+                    <TableHead className="font-semibold">
+                      Payment Method
+                    </TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -533,35 +588,122 @@ const RevenueOps: React.FC = () => {
                     Array.from({ length: txPagination.pageSize }).map(
                       (_, idx) => (
                         <TableRow key={`tx-skel-${idx}`}>
-                          <TableCell colSpan={5}>
-                            <Skeleton className="h-6 w-full" />
+                          <TableCell>
+                            <Skeleton className="h-4 w-24" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-32" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-20" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-16" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-6 w-20" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-6 w-20" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-6 w-20" />
                           </TableCell>
                         </TableRow>
                       )
                     )
                   ) : txItems.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="text-center text-sm text-muted-foreground py-6"
-                      >
-                        No data available.
+                      <TableCell colSpan={7} className="text-center py-12">
+                        <div className="space-y-3">
+                          <Activity className="h-12 w-12 text-muted-foreground mx-auto" />
+                          <div className="text-lg font-medium text-muted-foreground">
+                            No transactions found
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            No transactions available for the selected time
+                            range
+                          </div>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    txItems.map((tx: any) => (
-                      <TableRow key={tx?.id}>
-                        <TableCell className="font-mono text-xs">
-                          {tx?.id}
+                    txItems.map((tx: any, index: number) => (
+                      <TableRow
+                        key={tx?.id || `tx-${index}`}
+                        className="hover:bg-muted/30 transition-colors"
+                      >
+                        <TableCell className="font-mono text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            {tx?.transaction_name || tx?.id || "N/A"}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          <div className="space-y-1">
+                            <div className="font-medium">
+                              {tx?.created_date
+                                ? new Date(
+                                    tx.created_date * 1000
+                                  ).toLocaleDateString()
+                                : "N/A"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {tx?.created_date
+                                ? new Date(
+                                    tx.created_date * 1000
+                                  ).toLocaleTimeString()
+                                : "N/A"}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          {tx?.net_amount || tx?.amount || "N/A"}
                         </TableCell>
                         <TableCell>
-                          {new Date(
-                            (tx?.created_date ?? 0) * 1000
-                          ).toLocaleString()}
+                          <Badge variant="outline" className="font-medium">
+                            {tx?.currency || "N/A"}
+                          </Badge>
                         </TableCell>
-                        <TableCell>{tx?.amount}</TableCell>
-                        <TableCell>{tx?.currency}</TableCell>
-                        <TableCell>{tx?.transaction_status}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={getTransactionTypeBadgeVariant(
+                              tx?.transaction_type || tx?.type
+                            )}
+                            className="capitalize font-medium"
+                          >
+                            {tx?.transaction_type || tx?.type || "N/A"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={getPaymentMethodBadgeVariant(
+                              tx?.payment_method || tx?.method
+                            )}
+                            className="capitalize font-medium"
+                          >
+                            {tx?.payment_method || tx?.method || "N/A"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              tx?.transaction_status === "completed" ||
+                              tx?.status === "completed"
+                                ? "default"
+                                : tx?.transaction_status === "pending" ||
+                                  tx?.status === "pending"
+                                ? "secondary"
+                                : tx?.transaction_status === "failed" ||
+                                  tx?.status === "failed"
+                                ? "destructive"
+                                : "outline"
+                            }
+                            className="capitalize"
+                          >
+                            {tx?.transaction_status || tx?.status || "Unknown"}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -570,70 +712,26 @@ const RevenueOps: React.FC = () => {
             </div>
 
             {txTotal > 0 && (
-              <CommonPagination
-                currentPage={txPagination.currentPage}
-                totalPages={txPagination.totalPages}
-                totalItems={txTotal}
-                pageSize={txPagination.pageSize}
-                onPageChange={txPagination.setCurrentPage}
-              />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Commission Income */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Commission Income</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isCommissionLoading ? (
-              <Skeleton className="h-6 w-48" />
-            ) : (
-              <div className="text-lg font-semibold">
-                $
-                {typeof commissionTotal === "number"
-                  ? commissionTotal.toLocaleString()
-                  : commissionTotal}
+              <div className="mt-6 flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Showing{" "}
+                  {(txPagination.currentPage - 1) * txPagination.pageSize + 1}{" "}
+                  to{" "}
+                  {Math.min(
+                    txPagination.currentPage * txPagination.pageSize,
+                    txTotal
+                  )}{" "}
+                  of {txTotal} transactions
+                </div>
+                <CommonPagination
+                  currentPage={txPagination.currentPage}
+                  totalPages={txPagination.totalPages}
+                  totalItems={txTotal}
+                  pageSize={txPagination.pageSize}
+                  onPageChange={txPagination.setCurrentPage}
+                />
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Claimed / Unclaimed Funds */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Funds</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <div className="text-sm text-muted-foreground mb-1">Claimed</div>
-              {isFundsLoading ? (
-                <Skeleton className="h-6 w-48" />
-              ) : (
-                <div className="text-lg font-semibold">
-                  $
-                  {typeof claimed === "number"
-                    ? claimed.toLocaleString()
-                    : claimed}
-                </div>
-              )}
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground mb-1">
-                Unclaimed
-              </div>
-              {isFundsLoading ? (
-                <Skeleton className="h-6 w-48" />
-              ) : (
-                <div className="text-lg font-semibold">
-                  $
-                  {typeof unclaimed === "number"
-                    ? unclaimed.toLocaleString()
-                    : unclaimed}
-                </div>
-              )}
-            </div>
           </CardContent>
         </Card>
       </div>

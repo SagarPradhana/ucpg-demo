@@ -22,7 +22,7 @@ import {
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Search, Eye, X, Loader2, RefreshCw, Edit } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import CommonPagination from "@/components/ui/common-pagination";
+import EnhancedAuditLogsPagination from "@/components/ui/enhanced-audit-logs-pagination";
 import { usePagination } from "@/hooks/usePagination";
 import {
   getAdminTransactions,
@@ -53,6 +53,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { Copy, ExternalLink } from "lucide-react";
 
 interface TransactionFilters {
   status: string;
@@ -62,6 +64,7 @@ interface TransactionFilters {
 
 const AdminTransactions: React.FC = () => {
   const { t } = useLanguage();
+
   // Helper function for status badges (moved from props)
   const getStatusBadge = (
     status: string
@@ -123,12 +126,14 @@ const AdminTransactions: React.FC = () => {
       reason: cancelReason.trim(),
     });
   };
+
   // Local state for filters (replacing legacy props)
   const [localFilters, setLocalFilters] = useState<TransactionFilters>({
     status: "all",
     currency: "all",
     search: "",
   });
+
   // Pagination hook
   const pagination = usePagination({
     initialPage: 1,
@@ -140,17 +145,20 @@ const AdminTransactions: React.FC = () => {
   const [relativeAnchorSec, setRelativeAnchorSec] = useState<number>(() =>
     Math.floor(Date.now() / 1000)
   );
+
   useEffect(() => {
     if (timeFilter.mode === "relative") {
       setRelativeAnchorSec(Math.floor(Date.now() / 1000));
     }
   }, [timeFilter.mode, timeFilter.value]);
+
   const from_date =
     timeFilter.mode === "custom"
       ? dateToEpoch(timeFilter.dateFrom!)
       : timeFilter.mode === "relative" && timeFilter.state.relativeTimeMs
       ? relativeAnchorSec - Math.floor(timeFilter.state.relativeTimeMs / 1000)
       : timeFilter.epochRange.from_date;
+
   const to_date =
     timeFilter.mode === "custom"
       ? dateToEpoch(timeFilter.dateTo!) + 86399 // include end date fully
@@ -225,6 +233,8 @@ const AdminTransactions: React.FC = () => {
       serverItems.length
     : 0;
 
+  console.log("totalCount", totalCount);
+
   // Update pagination when data changes and reset on filter/time change
   useEffect(() => {
     pagination.setTotalItems(totalCount);
@@ -241,6 +251,7 @@ const AdminTransactions: React.FC = () => {
     to_date,
     pagination,
   ]);
+
   // State for details modal
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
@@ -323,10 +334,7 @@ const AdminTransactions: React.FC = () => {
               <Select
                 value={localFilters.currency}
                 onValueChange={(value) =>
-                  setLocalFilters((prev) => ({
-                    ...prev,
-                    currency: value,
-                  }))
+                  setLocalFilters((prev) => ({ ...prev, currency: value }))
                 }
               >
                 <SelectTrigger className="h-9 text-sm">
@@ -649,9 +657,9 @@ const AdminTransactions: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
+      {/* Enhanced Pagination */}
       {totalCount > 0 && (
-        <CommonPagination
+        <EnhancedAuditLogsPagination
           currentPage={pagination.currentPage}
           totalPages={pagination.totalPages}
           totalItems={totalCount}
@@ -661,233 +669,376 @@ const AdminTransactions: React.FC = () => {
         />
       )}
 
-      {/* Details Modal */}
+      {/* Details Modal - Enhanced Design */}
       <Dialog open={detailsOpen} onOpenChange={(o) => setDetailsOpen(o)}>
-        <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto z-[60]">
-          <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b">
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="max-w-5xl h-[90vh] overflow-hidden z-[60]">
+          <DialogHeader className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 pb-4 border-b border-border/50">
+            <DialogTitle className="flex items-center gap-3 text-xl font-semibold">
+              <div className="w-2 h-8 bg-primary rounded-full"></div>
               Transaction Details
             </DialogTitle>
-            <DialogDescription>
-              Comprehensive view of the selected transaction
+            <DialogDescription className="text-muted-foreground">
+              Comprehensive view of the selected transaction with all relevant
+              information
             </DialogDescription>
           </DialogHeader>
 
-          {selectedTx && (
-            <div className="space-y-6">
-              {/* --- Top summary --- */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg border bg-card">
-                  <p className="text-xs text-muted-foreground">Amount</p>
-                  <p className="text-lg font-semibold truncate">
-                    {selectedTx.original_amount} {selectedTx.currency}
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg border bg-card">
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  <Badge className="w-fit mt-1">{selectedTx.status}</Badge>
-                </div>
-                <div className="p-4 rounded-lg border bg-card">
-                  <p className="text-xs text-muted-foreground">Type</p>
-                  <p className="text-lg font-semibold capitalize truncate">
-                    {selectedTx.transaction_type || "-"}
-                  </p>
-                </div>
-              </div>
-
-              {/* --- Middle details --- */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Identifiers */}
-                <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">Identifiers</p>
-                  <dl className="text-xs space-y-1 text-muted-foreground">
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        ID:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">{selectedTx.id}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        3rd Party TX ID:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.third_party_transaction_id || "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        User ID:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.user_id || "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        Transaction Name:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.transaction_name || "-"}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-
-                {/* Amounts */}
-                <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">Amounts</p>
-                  <dl className="text-xs space-y-1 text-muted-foreground">
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        Original:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
+          <div className="overflow-y-auto flex-1 px-1">
+            {selectedTx && (
+              <div className="space-y-8 py-6">
+                {/* Enhanced Top Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="group relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6 shadow-sm hover:shadow-md transition-all duration-200">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-full -translate-y-10 translate-x-10"></div>
+                    <div className="relative">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                        Transaction Amount
+                      </p>
+                      <p className="text-2xl font-bold text-foreground truncate">
                         {selectedTx.original_amount} {selectedTx.currency}
-                      </dd>
+                      </p>
                     </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        Net Amount:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.net_amount ?? "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        Commission:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.commission_amount ?? "-"} (
-                        {selectedTx.commission_rate ?? "-"}%)
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        Received:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.received_amount ?? "-"}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
+                  </div>
 
-                {/* Payment */}
-                <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">Payment</p>
-                  <dl className="text-xs space-y-1 text-muted-foreground">
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        Method:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.payment_method || "-"}
-                      </dd>
+                  <div className="group relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6 shadow-sm hover:shadow-md transition-all duration-200">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-secondary/10 rounded-full -translate-y-10 translate-x-10"></div>
+                    <div className="relative">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                        Current Status
+                      </p>
+                      <Badge
+                        variant={getStatusBadge(selectedTx.status)}
+                        className="text-sm px-3 py-1 font-medium"
+                      >
+                        {selectedTx.status}
+                      </Badge>
                     </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        3rd Party Site:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.third_party_site_name || "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        Target Crypto:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.target_crypto_currency || "-"}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
+                  </div>
 
-                {/* QR & Links */}
-                <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">QR & Links</p>
-                  <dl className="text-xs space-y-2 text-muted-foreground">
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        Payment Link:
-                      </dt>{" "}
-                      <dd className="ml-2 inline break-all">
-                        {selectedTx.payment_link || "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        QR Expires:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.qr_expires_at
-                          ? epochToCustomLocalStringTime(
-                              selectedTx.qr_expires_at
-                            )
-                          : "-"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold inline text-foreground">
-                        QR Status:
-                      </dt>{" "}
-                      <dd className="ml-2 inline">
-                        {selectedTx.qr_status ? "Active" : "Inactive"}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-              </div>
-
-              {/* QR code */}
-              {selectedTx.qr_code_url && (
-                <div className="p-4 rounded-lg border bg-card">
-                  <p className="text-sm font-medium mb-3">Payment QR</p>
-                  <div className="flex items-center gap-6 flex-wrap">
-                    <QRCodeSVG
-                      value={selectedTx.payment_link || selectedTx.qr_code_url}
-                      size={160}
-                    />
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <p>Scan to open payment page.</p>
-                      {selectedTx.payment_link && (
-                        <p className="break-all">
-                          <span className="font-semibold text-foreground">
-                            Link:
-                          </span>
-                          <span className="ml-2">
-                            {selectedTx.payment_link}
-                          </span>
-                        </p>
-                      )}
+                  <div className="group relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6 shadow-sm hover:shadow-md transition-all duration-200">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-accent/10 rounded-full -translate-y-10 translate-x-10"></div>
+                    <div className="relative">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                        Transaction Type
+                      </p>
+                      <p className="text-2xl font-bold text-foreground capitalize truncate">
+                        {selectedTx.transaction_type || "Standard"}
+                      </p>
                     </div>
                   </div>
                 </div>
-              )}
 
-              {/* Metadata & raw JSON */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">Metadata</p>
-                  <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-48">
-                    {JSON.stringify(
-                      selectedTx.transaction_metadata || {},
-                      null,
-                      2
-                    )}
-                  </pre>
+                {/* Enhanced Detail Sections */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Identifiers Section */}
+                  <div className="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
+                    <div className="p-6 border-b border-border/30">
+                      <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                        Identifiers
+                      </h3>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      {[
+                        { label: "Transaction ID", value: selectedTx.id },
+                        {
+                          label: "3rd Party TX ID",
+                          value: selectedTx.third_party_transaction_id,
+                        },
+                        { label: "User ID", value: selectedTx.user_id },
+                        {
+                          label: "Transaction Name",
+                          value: selectedTx.transaction_name,
+                        },
+                      ].map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between items-start py-2 border-b border-border/20 last:border-b-0"
+                        >
+                          <dt className="text-sm font-medium text-muted-foreground min-w-0 flex-1">
+                            {item.label}
+                          </dt>
+                          <dd className="text-sm text-foreground font-mono ml-4 text-right break-all">
+                            {item.value || "-"}
+                          </dd>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Amounts Section */}
+                  <div className="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
+                    <div className="p-6 border-b border-border/30">
+                      <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <div className="w-1.5 h-6 bg-green-500 rounded-full"></div>
+                        Financial Details
+                      </h3>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      {[
+                        {
+                          label: "Original Amount",
+                          value: `${selectedTx.original_amount} ${selectedTx.currency}`,
+                        },
+                        { label: "Net Amount", value: selectedTx.net_amount },
+                        {
+                          label: "Commission",
+                          value: `${selectedTx.commission_amount ?? "-"} (${
+                            selectedTx.commission_rate ?? "-"
+                          }%)`,
+                        },
+                        {
+                          label: "Received Amount",
+                          value: selectedTx.received_amount,
+                        },
+                      ].map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between items-start py-2 border-b border-border/20 last:border-b-0"
+                        >
+                          <dt className="text-sm font-medium text-muted-foreground min-w-0 flex-1">
+                            {item.label}
+                          </dt>
+                          <dd className="text-sm text-foreground font-mono ml-4 text-right">
+                            {item.value || "-"}
+                          </dd>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Payment Information */}
+                  <div className="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
+                    <div className="p-6 border-b border-border/30">
+                      <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <div className="w-1.5 h-6 bg-purple-500 rounded-full"></div>
+                        Payment Information
+                      </h3>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      {[
+                        {
+                          label: "Payment Method",
+                          value: selectedTx.payment_method,
+                        },
+                        {
+                          label: "3rd Party Site",
+                          value: selectedTx.third_party_site_name,
+                        },
+                        {
+                          label: "Target Cryptocurrency",
+                          value: selectedTx.target_crypto_currency,
+                        },
+                      ].map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between items-start py-2 border-b border-border/20 last:border-b-0"
+                        >
+                          <dt className="text-sm font-medium text-muted-foreground min-w-0 flex-1">
+                            {item.label}
+                          </dt>
+                          <dd className="text-sm text-foreground ml-4 text-right">
+                            {item.value || "-"}
+                          </dd>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* QR & Links Section */}
+                  <div className="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
+                    <div className="p-6 border-b border-border/30">
+                      <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <div className="w-1.5 h-6 bg-orange-500 rounded-full"></div>
+                        QR & Links
+                      </h3>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start py-2">
+                          <dt className="text-sm font-medium text-muted-foreground">
+                            Payment Link
+                          </dt>
+                          <dd className="text-sm text-foreground ml-4 text-right max-w-xs">
+                            {selectedTx.payment_link ? (
+                              <div className="flex items-center gap-2">
+                                <span className="truncate font-mono text-xs">
+                                  {selectedTx.payment_link.substring(0, 30)}...
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() =>
+                                    navigator.clipboard.writeText(
+                                      selectedTx.payment_link
+                                    )
+                                  }
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              "-"
+                            )}
+                          </dd>
+                        </div>
+
+                        <div className="flex justify-between items-start py-2 border-b border-border/20">
+                          <dt className="text-sm font-medium text-muted-foreground">
+                            QR Expires
+                          </dt>
+                          <dd className="text-sm text-foreground ml-4 text-right">
+                            {selectedTx.qr_expires_at
+                              ? epochToCustomLocalStringTime(
+                                  selectedTx.qr_expires_at
+                                )
+                              : "-"}
+                          </dd>
+                        </div>
+
+                        <div className="flex justify-between items-start py-2">
+                          <dt className="text-sm font-medium text-muted-foreground">
+                            QR Status
+                          </dt>
+                          <dd className="ml-4">
+                            <Badge
+                              variant={
+                                selectedTx.qr_status === "active"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {selectedTx.qr_status ? "Active" : "Inactive"}
+                            </Badge>
+                          </dd>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-4 rounded-lg border bg-card space-y-2">
-                  <p className="text-sm font-medium">Raw Transaction</p>
-                  <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-48">
-                    {JSON.stringify(selectedTx, null, 2)}
-                  </pre>
+
+                {/* Enhanced QR Code Section */}
+                {selectedTx.qr_code_url && (
+                  <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/30 shadow-lg">
+                    <div className="p-6 border-b border-border/30">
+                      <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <div className="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
+                        Payment QR Code
+                      </h3>
+                    </div>
+                    <div className="p-8">
+                      <div className="flex flex-col lg:flex-row items-center gap-8">
+                        <div className="relative">
+                          <div className="p-4 bg-white rounded-2xl shadow-lg">
+                            <QRCodeSVG
+                              value={
+                                selectedTx.payment_link ||
+                                selectedTx.qr_code_url
+                              }
+                              size={180}
+                              level="M"
+                              includeMargin={true}
+                            />
+                          </div>
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 space-y-4 text-center lg:text-left">
+                          <div>
+                            <h4 className="text-lg font-semibold text-foreground mb-2">
+                              Scan to Pay
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              Use your mobile device to scan this QR code and
+                              complete the payment process.
+                            </p>
+                          </div>
+
+                          {selectedTx.payment_link && (
+                            <div className="p-4 bg-muted/50 rounded-lg border border-border/30">
+                              <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+                                Payment URL
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <code className="text-xs bg-background px-2 py-1 rounded border flex-1 truncate">
+                                  {selectedTx.payment_link}
+                                </code>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    navigator.clipboard.writeText(
+                                      selectedTx.payment_link
+                                    )
+                                  }
+                                  className="shrink-0"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    window.open(
+                                      selectedTx.payment_link,
+                                      "_blank"
+                                    )
+                                  }
+                                  className="shrink-0"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Collapsible Technical Details */}
+                <div className="space-y-6">
+                  <div className="rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm">
+                    <div className="p-6">
+                      <CollapsibleSection
+                        title="Transaction Metadata"
+                        defaultOpen={false}
+                      >
+                        <div className="rounded-lg border border-border/30 bg-muted/30 p-4">
+                          <pre className="text-xs text-muted-foreground overflow-auto max-h-64 font-mono leading-relaxed">
+                            {JSON.stringify(
+                              selectedTx.transaction_metadata || {},
+                              null,
+                              2
+                            )}
+                          </pre>
+                        </div>
+                      </CollapsibleSection>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm">
+                    <div className="p-6">
+                      <CollapsibleSection
+                        title="Raw Transaction Data"
+                        defaultOpen={false}
+                      >
+                        <div className="rounded-lg border border-border/30 bg-muted/30 p-4">
+                          <pre className="text-xs text-muted-foreground overflow-auto max-h-64 font-mono leading-relaxed">
+                            {JSON.stringify(selectedTx, null, 2)}
+                          </pre>
+                        </div>
+                      </CollapsibleSection>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

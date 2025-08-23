@@ -69,6 +69,7 @@ import { useTimeFilter, calculateRelativeTime } from "@/hooks/useTimeFilter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRelativeTimeOptions } from "@/utils/timeFilters";
 import { getAdminCommissionIncome } from "@/service/adminservices";
+import EnhancedAuditLogsPagination from "@/components/ui/enhanced-audit-logs-pagination";
 
 interface Transaction {
   id: string;
@@ -195,6 +196,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       console.log("Audit log time filter changed:", state);
     },
   });
+
   // Freeze relative time range to avoid shifting window when page changes
   const [auditTimeRange, setAuditTimeRange] = useState<{
     from: number;
@@ -237,15 +239,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     gcTime: 60000,
     staleTime: 60000,
   });
-  const extractPromoCount = (res: any): number => {
-    if (!res) return 0;
-    const d = (res as any)?.data;
-    if (typeof d === "number") return d;
-    if (Array.isArray(d)) return d.length;
-    if (d && typeof d?.count === "number") return d.count;
-    if (typeof (res as any)?.count === "number") return (res as any).count;
-    return 0;
-  };
+
+  // Derived metrics for promo links
+  const activePromoCount = (promoLinksActive as any)?.data?.active_promo_links;
+  const usedPromoCount = (promoLinksUsed as any)?.data?.used_promo_links;
+  const usageRate =
+    activePromoCount > 0
+      ? Math.round((usedPromoCount / activePromoCount) * 100)
+      : 0;
   const { from_date: ciFrom, to_date: ciTo } = getTodayDateRange();
   const { data: commissionIncomeResponse } = useQuery({
     queryKey: ["admin-commission-income", ciFrom, ciTo],
@@ -396,6 +397,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* ... existing code ... */}
       {/* Responsive Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <Card className="transition-all duration-300 hover:shadow-md overflow-hidden border-l-4 border-l-blue-500">
@@ -435,7 +437,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-2xl sm:text-3xl font-bold text-teal-700">
-                        {extractPromoCount(promoLinksActive as any)}
+                        {activePromoCount}
                       </p>
                       <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
                         <QrCode className="h-5 w-5 text-teal-700" />
@@ -450,7 +452,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-2xl sm:text-3xl font-bold text-amber-700">
-                        {extractPromoCount(promoLinksUsed as any)}
+                        {usedPromoCount}
                       </p>
                       <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
                         <QrCode className="h-5 w-5 text-amber-700" />
@@ -918,7 +920,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </Table>
             </div>
           </div>
-
           {/* Transactions Pagination (API-driven) */}
           {adminTxTotal > 0 && (
             <CommonPagination
@@ -1028,7 +1029,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 />
               </div>
             </div>
-
             {/* Clear Filters Button */}
             <div className="flex justify-end mt-4">
               <Button
@@ -1041,7 +1041,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </Button>
             </div>
           </div>
-
           {/* Responsive Audit Log Table */}
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <div className="inline-block min-w-full align-middle">
@@ -1161,11 +1160,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </Table>
             </div>
           </div>
-
-          {/* Audit Logs Pagination */}
+          {/* Enhanced Audit Logs Pagination */}
           {((auditLogsResponse as any)?.total_count ?? auditLogs.length) >
             0 && (
-            <CommonPagination
+            <EnhancedAuditLogsPagination
               currentPage={auditLogsPagination.currentPage}
               totalPages={auditLogsPagination.totalPages}
               totalItems={
@@ -1244,7 +1242,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {selectedAuditLog.details || selectedAuditLog.resource || "-"}
                 </div>
               </div>
-
               {/* Raw JSON for debugging/complete data view if needed later */}
               {/* <pre className="mt-2 text-xs bg-muted/30 p-3 rounded overflow-auto max-h-60">
                 {JSON.stringify(selectedAuditLog, null, 2)}
